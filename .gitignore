@@ -1,0 +1,87 @@
+/.proxy
+
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# Colcon build directories
+.colcon_install_layout
+.colcon_test_result_summary
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C++ build artifacts
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# ROS specific
+*.bag
+*.db3
+*.mcap
+
+# Launch file temporary files
+*.launch.py~
+
+# Documentation build
+docs/_build/
+docs/build/
+
+# Test results
+test_results/
+testing/
+
+# Coverage reports
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Environment files
+.env
+.venv
+env/
+venv/
+
+# Package build
+*.egg-info/
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp

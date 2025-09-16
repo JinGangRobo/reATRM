@@ -1,0 +1,51 @@
+{
+    "name": "reATRM",
+    "privileged": true,
+    "remoteUser": "mide",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "USERNAME": "mide"
+        }
+    },
+    "workspaceFolder": "/home/ws",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/ws,type=bind",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "GitHub.copilot",
+                "redhat.vscode-yaml",
+                "esbenp.prettier-vscode",
+                "Ranch-Hand-Robotics.rde-ros-2",
+                "Ranch-Hand-Robotics.urdf-editor",
+                "Ranch-Hand-Robotics.rde-pack",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cpptools-themes",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.isort",
+                "ms-python.black-formatter"
+            ]
+        }
+    },
+    "containerEnv": {
+        "DISPLAY": "unix:0",
+        "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
+        "ROS_DOMAIN_ID": "42",
+        "PREFERRED_INTERFACE": "tun0"
+    },
+    "runArgs": [
+        "--network=host",
+        "--pid=host",
+        "--ipc=host",
+        "-e",
+        "DISPLAY=${env:DISPLAY}"
+    ],
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+        "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "cd /home/ws/.proxy && eth0_ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1 | sed 's/\\.[0-9]*$/.1/') && echo $eth0_ip && sudo ip route del default || true && sudo ip route add default via $eth0_ip dev eth0 || true &&  nohup sudo sing-box run -c /home/ws/.proxy/config.json > /dev/null 2>&1 & sleep 10 && sudo rosdep update || true && sudo rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/"
+}
