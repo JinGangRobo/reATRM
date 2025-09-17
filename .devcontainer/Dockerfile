@@ -14,14 +14,6 @@ RUN rm -f /etc/apt/sources.list && \
     echo 'deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse'; \
     } > /etc/apt/sources.list
 
-# 创建密钥目录并添加 sagernet GPG 密钥
-RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://board.nyanc.cc/sbgpg.key -o /etc/apt/keyrings/sagernet.asc && \
-    chmod a+r /etc/apt/keyrings/sagernet.asc
-
-# 添加 sagernet 软件源
-RUN echo 'Types: deb\nURIs: https://deb.sagernet.org/\nSuites: *\nComponents: *\nEnabled: yes\nSigned-By: /etc/apt/keyrings/sagernet.asc' > /etc/apt/sources.list.d/sagernet.sources
-
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
@@ -36,18 +28,6 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     net-tools
 RUN apt-get install -y python3-pip
-RUN curl -fsSL https://board.nyanc.cc/sbinst.sh | sh -s -- --version 1.11.0
-
-RUN echo '#!/bin/bash\n\
-cd /home/ws/.proxy && \
-eth0_ip=$(ip addr show eth0 | grep "inet " | awk "{print \$2}" | cut -d"/" -f1 | sed "s/\\.[0-9]*\$/.1/") && \
-echo $eth0_ip && \
-sudo ip route del default || true && \
-sudo ip route add default via $eth0_ip dev eth0 || true && \
-nohup sudo sing-box run -c /home/ws/.proxy/config.json > /dev/null 2>&1 & \
-sleep 10\n\
-exec "$@"' > /usr/local/bin/startup.sh && \
-chmod +x /usr/local/bin/startup.sh
 
 ENV SHELL /bin/bash
 
@@ -57,6 +37,4 @@ ENV SHELL /bin/bash
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME
-
-ENTRYPOINT ["/usr/local/bin/startup.sh"]
 CMD ["/bin/bash"]

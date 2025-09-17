@@ -33,8 +33,7 @@
     "containerEnv": {
         "DISPLAY": "unix:0",
         "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
-        "ROS_DOMAIN_ID": "42",
-        "PREFERRED_INTERFACE": "tun0"
+        "ROS_DOMAIN_ID": "42"
     },
     "runArgs": [
         "--network=host",
@@ -47,5 +46,5 @@
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
         "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached"
     ],
-    "postCreateCommand": "cd /home/ws/.proxy && eth0_ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1 | sed 's/\\.[0-9]*$/.1/') && echo $eth0_ip && sudo ip route del default || true && sudo ip route add default via $eth0_ip dev eth0 || true &&  nohup sudo sing-box run -c /home/ws/.proxy/config.json > /dev/null 2>&1 & sleep 10 && sudo rosdep update || true && sudo rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/"
+    "postCreateCommand": "sudo rosdep update || true && sudo rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/"
 }
