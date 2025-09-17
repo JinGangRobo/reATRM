@@ -1,0 +1,8 @@
+camera: hik
+
+gimbal_odom2camera:
+  xyz: "\"0.18888  0.00  0.0452\""
+  rpy: "\"0.0  0.0  0.0\""
+
+detector_log_level: INFO
+tracker_log_level: INFO

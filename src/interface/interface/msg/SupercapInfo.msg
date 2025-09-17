@@ -1,0 +1,2 @@
+float64 super_cap_voltage
+bool is_super_cap_work

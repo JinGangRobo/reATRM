@@ -1,0 +1,1 @@
+uint8 decision_num # 拨杆选择决策模式
