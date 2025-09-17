@@ -1,0 +1,50 @@
+{
+    "name": "reATRM",
+    "privileged": true,
+    "remoteUser": "mide",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "USERNAME": "mide"
+        }
+    },
+    "workspaceFolder": "/home/ws",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/ws,type=bind",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "GitHub.copilot",
+                "redhat.vscode-yaml",
+                "esbenp.prettier-vscode",
+                "Ranch-Hand-Robotics.rde-ros-2",
+                "Ranch-Hand-Robotics.urdf-editor",
+                "Ranch-Hand-Robotics.rde-pack",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cpptools-themes",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.isort",
+                "ms-python.black-formatter"
+            ]
+        }
+    },
+    "containerEnv": {
+        "DISPLAY": "unix:0",
+        "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
+        "ROS_DOMAIN_ID": "42"
+    },
+    "runArgs": [
+        "--network=host",
+        "--pid=host",
+        "--ipc=host",
+        "-e",
+        "DISPLAY=${env:DISPLAY}"
+    ],
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+        "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "sudo rosdep update || true && sudo rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/"
+}
