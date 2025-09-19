@@ -122,7 +122,7 @@ def generate_launch_description():
 
     declare_robot_name_cmd = DeclareLaunchArgument(
         "robot_name",
-        default_value="iron2025_sen_ul",
+        default_value="iron2026_sen_ul",
         description="The file name of the robot xmacro to be used",
     )
 
