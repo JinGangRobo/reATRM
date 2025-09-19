@@ -3,6 +3,8 @@ build/
 install/
 log/
 
+res/
+
 # Colcon build directories
 .colcon_install_layout
 .colcon_test_result_summary

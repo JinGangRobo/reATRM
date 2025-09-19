@@ -48,7 +48,7 @@ private:
     while (rclcpp::ok()) {
       n_ret_ = MV_CC_EnumDevices(MV_USB_DEVICE, &device_list);
       if (n_ret_ != MV_OK) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to enumerate devices, retrying...");
+        RCLCPP_ERROR(this->get_logger(), "Failed to enumerate devices for %u, retrying...", n_ret_);
         std::this_thread::sleep_for(std::chrono::seconds(1));
       } else if (device_list.nDeviceNum == 0) {
         RCLCPP_ERROR(this->get_logger(), "No camera found, retrying...");
@@ -133,7 +133,7 @@ private:
     if (status == MV_OK) {
       RCLCPP_INFO(this->get_logger(), "ADC Bit Depth set to %s", adc_bit_depth.c_str());
     } else {
-      RCLCPP_ERROR(this->get_logger(), "Failed to set ADC Bit Depth, status = %d", status);
+      RCLCPP_ERROR(this->get_logger(), "Failed to set ADC Bit Depth, status = %u", status);
     }
 
     // param_desc.description = "Pixel Format";
@@ -141,7 +141,7 @@ private:
     // if (status == MV_OK) {
     //   RCLCPP_INFO(this->get_logger(), "Pixel Format set to RGB8Packed");
     // } else {
-    //   RCLCPP_ERROR(this->get_logger(), "Failed to set Pixel Format, status = %d", status);
+    //   RCLCPP_ERROR(this->get_logger(), "Failed to set Pixel Format, status = %u", status);
     // }
 
     // Init parameters for starting cam
