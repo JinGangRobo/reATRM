@@ -15,7 +15,7 @@ RUN rm -f /etc/apt/sources.list && \
     } > /etc/apt/sources.list
 RUN curl -sSL https://ghproxy.cn/https://raw.githubusercontent.com/ros/rosdistro/master/ros.key  -o /usr/share/keyrings/ros-archive-keyring.gpg
 RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu jammy main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
-  
+
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -y \
     net-tools
 RUN apt-get install -y python3-pip wget vim htop
 RUN echo 'export PATH=$PATH:/home/ws/.script' >> /home/$USERNAME/.bashrc
+RUN echo 'alias wsi="source /opt/ros/humble/setup.bash"' >> /home/$USERNAME/.bashrc
+RUN echo 'alias ini="source install/setup.bash"' >> /home/$USERNAME/.bashrc
 
 ENV SHELL /bin/bash
 
