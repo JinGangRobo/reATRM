@@ -13,11 +13,9 @@ res/
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 
 # C++ build artifacts
 *.o
-*.so
 *.dylib
 *.dll
 *.exe
