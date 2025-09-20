@@ -25,6 +25,7 @@ def launch_setup(context: LaunchContext) -> list:
 
     namespace = LaunchConfiguration("namespace")
     use_sim_time = LaunchConfiguration("use_sim_time")
+    enable_joint_pub = LaunchConfiguration("enable_joint_pub")
     params_file = LaunchConfiguration("params_file")
     rviz_config_file = LaunchConfiguration("rviz_config_file")
     use_rviz = LaunchConfiguration("use_rviz")
@@ -63,39 +64,42 @@ def launch_setup(context: LaunchContext) -> list:
 
     colorized_output_envvar = SetEnvironmentVariable("RCUTILS_COLORIZED_OUTPUT", "1")
 
-    bringup_cmd_group = GroupAction(
-        [
-            Node(
-                package="joint_state_publisher",
-                executable="joint_state_publisher",
-                name="joint_state_publisher",
-                output="screen",
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[configured_params],
-                arguments=["--ros-args", "--log-level", log_level],
-            ),
-            Node(
-                package="robot_state_publisher",
-                executable="robot_state_publisher",
-                output="screen",
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[
-                    configured_params,
-                    {"robot_description": robot_urdf_xml},
-                ],
-                arguments=["--ros-args", "--log-level", log_level],
-            ),
-            Node(
-                condition=IfCondition(use_rviz),
-                package="rviz2",
-                executable="rviz2",
-                arguments=["-d", rviz_config_file],
-                output="screen",
-            ),
-        ]
-    )
+    bringup_nodes = [
+        Node(
+            package="joint_state_publisher",
+            executable="joint_state_publisher",
+            name="joint_state_publisher",
+            output="screen",
+            respawn=use_respawn,
+            respawn_delay=2.0,
+            parameters=[configured_params],
+            arguments=["--ros-args", "--log-level", log_level],
+        ),
+        Node(
+            package="robot_state_publisher",
+            executable="robot_state_publisher",
+            output="screen",
+            respawn=use_respawn,
+            respawn_delay=2.0,
+            parameters=[
+                configured_params,
+                {"robot_description": robot_urdf_xml},
+            ],
+            arguments=["--ros-args", "--log-level", log_level],
+        ),
+        Node(
+            condition=IfCondition(use_rviz),
+            package="rviz2",
+            executable="rviz2",
+            arguments=["-d", rviz_config_file],
+            output="screen",
+        ),
+    ]
+
+    if not enable_joint_pub.perform(context) == "True":  # FOR DEBUG
+        bringup_nodes.pop(0)  # Remove joint_state_publisher node
+
+    bringup_cmd_group = GroupAction(bringup_nodes)
 
     return [
         stdout_linebuf_envvar,
@@ -118,6 +122,12 @@ def generate_launch_description():
         "use_sim_time",
         default_value="False",
         description="Use simulation (Gazebo) clock if true",
+    )
+
+    declare_enable_joint_pub_cmd = DeclareLaunchArgument(
+        "enable_joint_pub",
+        default_value="True",
+        description="Enable joint state publisher",
     )
 
     declare_robot_name_cmd = DeclareLaunchArgument(
@@ -169,6 +179,7 @@ def generate_launch_description():
     # Declare the launch options
     ld.add_action(declare_namespace_cmd)
     ld.add_action(declare_use_sim_time_cmd)
+    ld.add_action(declare_enable_joint_pub_cmd)
     ld.add_action(declare_robot_name_cmd)
     ld.add_action(declare_robot_xmacro_file_cmd)
     ld.add_action(declare_params_file_cmd)
