@@ -202,7 +202,7 @@ void RMSerialDriver::publishData(ReceiveRoboInfo & data)
 {
   // Publish gimbal state
   gimbal_state_.name = {"gimbal_yaw_joint", "gimbal_pitch_joint"};
-  gimbal_state_.position = {data.yaw, -data.pitch};
+  gimbal_state_.position = {data.yaw, data.pitch};
   gimbal_state_.velocity = {0.0, 0.0};
   gimbal_state_.effort = {0.0, 0.0};
   gimbal_pub_->publish(gimbal_state_);

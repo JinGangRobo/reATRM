@@ -162,7 +162,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions & options)
   armors_sub_.subscribe(this, "detector/armors", rmw_qos_profile_sensor_data);
   target_frame_ = this->declare_parameter("target_frame", "odom");
   tf2_filter_ = std::make_shared<tf2_filter>(
-    armors_sub_, *tf2_buffer_, target_frame_, 10, this->get_node_logging_interface(),
+    armors_sub_, *tf2_buffer_, target_frame_, 20, this->get_node_logging_interface(),
     this->get_node_clock_interface(), std::chrono::duration<int>(1));
   // Register a callback with tf2_ros::MessageFilter to be called when transforms are available
   tf2_filter_->registerCallback(&ArmorTrackerNode::armorsCallback, this);

@@ -83,7 +83,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "namespace": "red_standard_robot1",
-            "enable_joint_pub": "False",
+            "enable_joint_pub": "True",
             "use_rviz": "True",
         }.items(),
     )
@@ -115,8 +115,8 @@ def generate_launch_description():
             SetRemap("/tf", "tf"),
             SetRemap("/tf_static", "tf_static"),
             # CORE UP
-            # delay_core_communicate_node,
-            gui_publisher_node,
+            delay_core_communicate_node,
+            # gui_publisher_node,
             core_description_node,
             # DEBUG UP
             debug_fox_node,
