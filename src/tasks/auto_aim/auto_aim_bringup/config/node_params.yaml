@@ -20,7 +20,7 @@ red_standard_robot1:
 
   armor_tracker:
     ros__parameters:
-      target_frame: gimbal_yaw_odom
+      target_frame: gimbal_sub_yaw_odom
       max_armor_distance: 10.0
 
       ekf:

@@ -83,8 +83,17 @@ def generate_launch_description():
         ),
         launch_arguments={
             "namespace": "red_standard_robot1",
-            "use_rviz": "False",
+            "enable_joint_pub": "False",
+            "use_rviz": "True",
         }.items(),
+    )
+
+    gui_publisher_node = Node(
+        package="joint_state_publisher_gui",
+        executable="joint_state_publisher_gui",
+        name="joint_state_publisher_gui",
+        # namespace="red_standard_robot1",
+        output="screen",
     )
 
     task_vision_node = IncludeLaunchDescription(
@@ -99,18 +108,6 @@ def generate_launch_description():
         launch_arguments={}.items(),
     )
 
-    task_nav_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                os.path.join(
-                    get_package_share_directory("pb2025_nav_bringup"), "launch"
-                ),
-                "rm_navigation_reality_launch.py",
-            )
-        ),
-        launch_arguments={"slam": "True", "use_robot_state_pub": "False"}.items(),
-    )
-
     # Specify the actions
     bringup_cmd_group = GroupAction(
         [
@@ -118,7 +115,8 @@ def generate_launch_description():
             SetRemap("/tf", "tf"),
             SetRemap("/tf_static", "tf_static"),
             # CORE UP
-            delay_core_communicate_node,
+            # delay_core_communicate_node,
+            gui_publisher_node,
             core_description_node,
             # DEBUG UP
             debug_fox_node,
@@ -132,6 +130,5 @@ def generate_launch_description():
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(bringup_cmd_group)
-    ld.add_action(task_nav_node)
 
     return ld

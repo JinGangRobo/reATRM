@@ -87,9 +87,27 @@
             <pose relative_to="gimbal_main_yaw_odom_joint">0 0 0 0 0 0</pose>
         </link>
 
-        <joint name="gimbal_sub_yaw_odom_joint" type="revolute">
+        <joint name="gimbal_sub_yaw_base_joint" type="revolute">
             <pose relative_to='gimbal_main_yaw_odom'>${gimbal_sub_yaw_offset_x} 0 ${gimbal_sub_yaw_height} 0 0 0</pose>
             <parent>gimbal_main_yaw_odom</parent>
+            <child>gimbal_sub_yaw_base</child>
+            <axis>
+                <xyz>0 0 1</xyz>
+                <limit>
+                    <effort>100</effort>
+                    <velocity>50</velocity>
+                    <lower>-1.79769</lower>
+                    <upper>1.79769</upper>
+                </limit>
+            </axis>
+        </joint>
+        <link name="gimbal_sub_yaw_base">
+            <pose relative_to="gimbal_sub_yaw_base_joint">0 0 0 0 0 0</pose>
+        </link>
+
+        <joint name="gimbal_sub_yaw_odom_joint" type="revolute">
+            <pose relative_to='gimbal_sub_yaw_base'>0 0 0 0 0 0</pose>
+            <parent>gimbal_sub_yaw_base</parent>
             <child>gimbal_sub_yaw_odom</child>
             <axis>
                 <xyz>0 0 1</xyz>

@@ -126,7 +126,7 @@ def generate_launch_description():
 
     declare_enable_joint_pub_cmd = DeclareLaunchArgument(
         "enable_joint_pub",
-        default_value="True",
+        default_value="False",
         description="Enable joint state publisher",
     )
 
