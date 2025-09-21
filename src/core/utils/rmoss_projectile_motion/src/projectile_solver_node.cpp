@@ -17,8 +17,6 @@ namespace rmoss_projectile_motion
 
     void ProjectileSolverNode::targetCallback(const auto_aim_interfaces::msg::Target::SharedPtr msg)
     {
-        // RCLCPP_ERROR(this->get_logger(), "targetCallback %f %f %f", msg->position.x, msg->position.y, msg->position.z);
-
         // 创建考虑重力和空气阻力的求解器，GafProjectileSolver，参数代表子弹速度为25m/s，空气阻力系数为0.1
         if (!msg->tracking)
         {
@@ -32,15 +30,24 @@ namespace rmoss_projectile_motion
             std::make_shared<rmoss_projectile_motion::GimbalTransformTool>(gaf_solver);
 
         // 求解例子
-        Eigen::Vector3d position(msg->position.x, msg->position.y, msg->position.z);
-        projectile_tansformoss_tool->solve(position, target_pitch_, target_yaw_);
 
-        cmd_gimbal_.pitch = -target_pitch_ - 0.2; // TODO: WTF??
-        cmd_gimbal_.yaw = target_yaw_;
+        auto distance = msg->position.x * msg->position.x + msg->position.y * msg->position.y;
+        distance = sqrt(distance);
+        Eigen::Vector3d position(distance, 0, msg->position.z);
+        bool solve_status = projectile_tansformoss_tool->solve(position, target_pitch_, target_yaw_);
+        target_yaw_ = atan2(msg->position.y, msg->position.x);
+
+        if (!solve_status)
+        {
+            RCLCPP_WARN(this->get_logger(), "Solve failed: %s", projectile_tansformoss_tool->error_message().c_str());
+            return;
+        }
+
+        cmd_gimbal_.pitch = -target_pitch_ + 0.72; // TODO: WTF??
+        cmd_gimbal_.yaw = target_yaw_ + 1.55;
         cmd_gimbal_.fire = false;
-        cmd_gimbal_pub_->publish(cmd_gimbal_);
 
-        RCLCPP_DEBUG(this->get_logger(), "pitch: %f, yaw: %f", target_pitch_, target_yaw_);
+        cmd_gimbal_pub_->publish(cmd_gimbal_);
     }
 }
 

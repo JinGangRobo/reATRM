@@ -201,11 +201,17 @@ void RMSerialDriver::receiveData()
 void RMSerialDriver::publishData(ReceiveRoboInfo & data)
 {
   // Publish gimbal state
-  gimbal_state_.name = {"gimbal_yaw_joint", "gimbal_pitch_joint"};
-  gimbal_state_.position = {data.yaw, data.pitch};
-  gimbal_state_.velocity = {0.0, 0.0};
-  gimbal_state_.effort = {0.0, 0.0};
+  gimbal_state_.name = {
+    "gimbal_main_yaw_odom_joint", "gimbal_sub_yaw_odom_joint", "gimbal_yaw_joint",
+    "gimbal_pitch_joint"};
+  gimbal_state_.position = {
+    -data.encoder_up + data.yaw, data.encoder_up - data.yaw, data.yaw - M_PI / 2,
+    -data.pitch + (M_PI / 4)};
+  gimbal_state_.velocity = {0.0, 0.0, 0.0, 0.0};
+  gimbal_state_.effort = {0.0, 0.0, 0.0, 0.0};
   gimbal_pub_->publish(gimbal_state_);
+
+  // RCLCPP_INFO(get_logger(), "Gimbal RAW State: pitch=%.2f, yaw=%.2f", data.pitch, data.yaw);
 
   // Publish is enable auto aim
   enable_auto_aim_.enable_auto_aim = data.is_auto_aim;
@@ -246,9 +252,6 @@ void RMSerialDriver::sendData()
       reinterpret_cast<uint8_t *>(&send_packet_buffer), sizeof(SendRoboControl));
     std::vector<uint8_t> data = toVector(send_packet_buffer);
     serial_driver_->port()->send(data);
-
-    RCLCPP_INFO(
-      get_logger(), "Data send: p/%f y/%f", send_packet_buffer.pitch, send_packet_buffer.yaw);
 
   } catch (const std::exception & ex) {
     RCLCPP_ERROR(get_logger(), "Error while sending data: %s", ex.what());

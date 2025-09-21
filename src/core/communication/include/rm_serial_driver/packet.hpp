@@ -8,7 +8,7 @@
 namespace rm_serial_driver
 {
 
-const uint8_t PACKET_VERSION = 0x32;
+const uint8_t PACKET_VERSION = 0x33;
 
 struct HeaderFrame
 {
@@ -41,8 +41,8 @@ struct ReceiveRoboInfo  // 0x3B
   float pitch;
   float yaw;
 
-  uint16_t encoder_up;
-  uint16_t encoder_down;
+  float encoder_up;
+  float encoder_down;
 
   float super_cap_voltage;
   bool is_super_cap_work;
