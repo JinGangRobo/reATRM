@@ -1,0 +1,3 @@
+[submodule "src/core/utils/miyformer/miyformer/mixformer"]
+	path = src/core/utils/miyformer/miyformer/mixformer
+	url = https://github.com/JinGangRobo/MixFormerV2
