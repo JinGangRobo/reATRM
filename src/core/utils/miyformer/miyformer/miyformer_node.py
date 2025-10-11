@@ -7,7 +7,13 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
-from miyformer.extmod.extmod import hello
+import os
+import sys
+mixformer_path = os.path.join(os.path.dirname(__file__), 'mixformer')
+if mixformer_path not in sys.path:
+    sys.path.append(mixformer_path)
+
+from lib.test.evaluation import Tracker
 
 try:
     import torch
@@ -63,9 +69,9 @@ class MiyformerNode(Node):
         if TORCH_AVAILABLE and self.tensor is not None:
             # Perform a simple operation with PyTorch
             tensor_sum = torch.sum(self.tensor).item()
-            msg.data = f"Hello World from Miyformer! {hello()} PyTorch tensor sum: {tensor_sum}"
+            msg.data = f"Hello World from Miyformer! PyTorch tensor sum: {tensor_sum}"
         else:
-            msg.data = f"Hello World from Miyformer! {hello()} (PyTorch not available)"
+            msg.data = f"Hello World from Miyformer! (PyTorch not available)"
 
         self.publisher_.publish(msg)
         self.get_logger().info(f'Published: "{msg.data}"')
