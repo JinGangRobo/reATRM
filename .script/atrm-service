@@ -1,0 +1,62 @@
+#! /bin/bash
+
+set -e
+
+start() {
+    if is_running; then
+        echo 'Error: ATRM daemon is still running!'
+        exit 1
+    fi
+
+    sudo -u "mide" bash -c "source /home/ws/.script/envinit.bash && screen -dmS atrm bash -c 'ros2 launch atrm_bringup bringup_launch.py'"
+
+    sleep 0.1
+    
+    if is_running; then
+        echo "Successfully started ATRM daemon."
+    else
+        echo "Error: Failed to start ATRM daemon."
+        exit 1
+    fi
+}
+
+attach() {
+    sudo -u "mide" bash -c "screen -r atrm"
+}
+
+stop() {
+    if is_running; then
+        sudo -u "mide" bash -c "screen -S atrm -X quit"
+        echo "Successfully stopped ATRM daemon."
+    fi
+}
+
+is_running() {
+    if ls '/run/screen/S-mide' 2>/dev/null | grep -q '.*\.atrm'; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    attach)
+        attach
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo 'Usage: service atrm {start|attach|stop|restart}'
+        exit 1
+        ;;
+esac
+
+exit 0

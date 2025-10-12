@@ -191,9 +191,9 @@ class MiyformerNode(Node):
             pub_time = (self.get_clock().now() - start_time).nanoseconds / 1e6
 
             self.dbg_img_pub.publish(msg_out)
-            self.get_logger().info(
-                f"Received camera image: {msg_out.width}x{msg_out.height}, infer_time: {infer_time:.2f} ms, pub_time: {pub_time:.2f} ms, tracking: {tracking}, results: {results[-1] if results else 'None'}"
-            )
+            # self.get_logger().info(
+            #     f"Received camera image: {msg_out.width}x{msg_out.height}, infer_time: {infer_time:.2f} ms, pub_time: {pub_time:.2f} ms, tracking: {tracking}, results: {results[-1] if results else 'None'}"
+            # )
 
         target_box: list = results[-1]
         if sum(target_box) > 0 and tracking:
