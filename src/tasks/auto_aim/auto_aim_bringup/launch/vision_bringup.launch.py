@@ -34,7 +34,17 @@ def generate_launch_description():
         ),
     }
     trackers = {
-        "miyformer": None,
+        "miyformer": Node(
+            package="miyformer",
+            executable="miyformer_node",
+            name="miyformer_node",
+            output="screen",
+            parameters=[node_params],
+            remappings=[
+                ("/tf", "tf"),
+                ("/tf_static", "tf_static"),
+            ],
+        ),
         "common": Node(
             package="armor_tracker",
             executable="armor_tracker_node",
@@ -92,8 +102,6 @@ def generate_launch_description():
     )
 
     tracker_node = trackers.get(launch_params["work_mode"], trackers["common"])
-
-    # miyformer_node = N
 
     if launch_params["camera"] == "hik":
         cam_detector = get_camera_detector_container(hik_camera_node)
