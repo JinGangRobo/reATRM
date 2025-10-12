@@ -1,5 +1,6 @@
 std_msgs/Header header
 bool tracking
+bool distance_valid
 string id
 int32 armors_num
 geometry_msgs/Point position
