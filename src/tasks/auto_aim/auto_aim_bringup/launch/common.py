@@ -2,8 +2,6 @@ import os
 import yaml
 
 from ament_index_python.packages import get_package_share_directory
-from launch.substitutions import Command
-from launch_ros.actions import Node
 
 launch_params = yaml.safe_load(
     open(
@@ -28,21 +26,4 @@ launch_params = yaml.safe_load(
 
 node_params = os.path.join(
     get_package_share_directory("rm_vision_bringup"), "config", "node_params.yaml"
-)
-
-tracker_node = Node(
-    package="armor_tracker",
-    executable="armor_tracker_node",
-    output="both",
-    namespace="red_standard_robot1",
-    emulate_tty=True,
-    parameters=[node_params],
-    ros_arguments=[
-        "--log-level",
-        "armor_tracker:=" + launch_params["tracker_log_level"],
-    ],
-    remappings=[
-        ("/tf", "tf"),
-        ("/tf_static", "tf_static"),
-    ],
 )

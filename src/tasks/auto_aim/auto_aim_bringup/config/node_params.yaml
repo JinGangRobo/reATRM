@@ -37,16 +37,3 @@ red_standard_robot1:
 
         tracking_thres: 5
         lost_time_thres: 1.0
-
-  rm_rune_detector:
-    ros__parameters:
-      debug: true
-
-      detect_color: 0
-      binary_thres: 80
-
-      # light.min_ratio: 0.1
-      # rune.min_light_ratio: 0.8
-
-      # classifier_threshold: 0.8
-      # ignore_classes: ["negative"]
