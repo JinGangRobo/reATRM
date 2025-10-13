@@ -20,6 +20,10 @@ find_package(geometry_msgs REQUIRED)
 find_package(auto_aim_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(atrm_interfaces REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 # include
 include_directories(include)
@@ -41,6 +45,10 @@ set(dependencies
   auto_aim_interfaces
   sensor_msgs
   atrm_interfaces
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  visualization_msgs
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 
@@ -48,7 +56,6 @@ rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN rmoss_projectile_motion::ProjectileSolverNode
   EXECUTABLE projectile_solver_node
 )
-
 
 # Install include directories
 install(DIRECTORY include/

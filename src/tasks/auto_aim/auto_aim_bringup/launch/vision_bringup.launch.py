@@ -70,7 +70,7 @@ def generate_launch_description():
                 package="rmoss_projectile_motion",
                 plugin="rmoss_projectile_motion::ProjectileSolverNode",
                 name="rmoss_projectile_motion",
-                # parameters=[],
+                parameters=[[node_params]],
             ),
         ]
 
