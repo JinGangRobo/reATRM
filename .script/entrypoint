@@ -1,4 +1,6 @@
 #! /bin/bash
-sudo service atrm start
+sudo service atrm start || true
 
 /bin/bash
+
+sleep infinity
