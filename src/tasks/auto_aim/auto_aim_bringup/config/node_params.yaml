@@ -37,3 +37,7 @@ red_standard_robot1:
 
         tracking_thres: 5
         lost_time_thres: 1.0
+
+  miyformer_node:
+    ros__parameters:
+      debug: False

@@ -6,7 +6,6 @@ Miyformer ROS2 Node - A simple demonstration node with PyTorch integration
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from std_msgs.msg import String
 from sensor_msgs.msg import CameraInfo, Image
 from auto_aim_interfaces.msg import Target
 import tf2_ros
@@ -116,6 +115,10 @@ class MiyformerNode(Node):
     def __init__(self):
         super().__init__("miyformer_node")
 
+        self.declare_parameter("debug", True)
+        self.debug = self.get_parameter("debug").get_parameter_value().bool_value
+        print(f"Debug mode: {self.debug}")
+
         # Create camera topic subscriber
         self.camera_info_sub = self.create_subscription(
             CameraInfo,
@@ -173,27 +176,24 @@ class MiyformerNode(Node):
 
     def camera_image_callback(self, msg: Image):
         """Callback function for camera image subscriber"""
-        # temporary var
-        DEBUG = True
-
         target_msg = Target()
 
         start_time = self.get_clock().now()
         dgb_img, results, tracking = self.mixformer_tracker.run(
-            ros_image_to_cv2(msg), debug=True
+            ros_image_to_cv2(msg), debug=self.debug
         )
         infer_time = (self.get_clock().now() - start_time).nanoseconds / 1e6
 
-        if DEBUG:
+        if self.debug:
             pub_time = 0.0
             start_time = self.get_clock().now()
             msg_out = cv2_to_ros_image(dgb_img, encoding="bgr8")
             pub_time = (self.get_clock().now() - start_time).nanoseconds / 1e6
 
             self.dbg_img_pub.publish(msg_out)
-            # self.get_logger().info(
-            #     f"Received camera image: {msg_out.width}x{msg_out.height}, infer_time: {infer_time:.2f} ms, pub_time: {pub_time:.2f} ms, tracking: {tracking}, results: {results[-1] if results else 'None'}"
-            # )
+            self.get_logger().info(
+                f"Received camera image: {msg_out.width}x{msg_out.height}, infer_time: {infer_time:.2f} ms, pub_time: {pub_time:.2f} ms, tracking: {tracking}, results: {results[-1] if results else 'None'}, debug: {self.debug}"
+            )
 
         target_box: list = results[-1]
         if sum(target_box) > 0 and tracking:
@@ -240,7 +240,7 @@ class MiyformerNode(Node):
 
                     self.target_pub.publish(target_msg)
 
-                    if DEBUG:
+                    if self.debug:
                         self.get_logger().info(
                             f"3D Position (camera): {position_3d_cam}"
                         )
@@ -254,7 +254,7 @@ class MiyformerNode(Node):
                     tf2_ros.ExtrapolationException,
                 ) as e:
                     self.get_logger().warn(f"TF transform failed: {e}")
-                    if DEBUG:
+                    if self.debug:
                         self.get_logger().info(
                             f"3D Position (camera only): {position_3d_cam}"
                         )
