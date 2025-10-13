@@ -205,7 +205,7 @@ void RMSerialDriver::publishData(ReceiveRoboInfo & data)
     "gimbal_main_yaw_odom_joint", "gimbal_sub_yaw_odom_joint", "gimbal_yaw_joint",
     "gimbal_pitch_joint"};
   gimbal_state_.position = {
-    -data.encoder_up + data.yaw, data.encoder_up - data.yaw, data.yaw - M_PI / 2,
+    -data.encoder_up + data.yaw, data.encoder_up - data.yaw, data.yaw,
     -data.pitch + (M_PI / 4)};
   gimbal_state_.velocity = {0.0, 0.0, 0.0, 0.0};
   gimbal_state_.effort = {0.0, 0.0, 0.0, 0.0};
