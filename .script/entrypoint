@@ -1,4 +1,4 @@
 #! /bin/bash
-service atrm start
+sudo service atrm start
 
 /bin/bash

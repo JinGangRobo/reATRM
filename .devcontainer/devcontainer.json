@@ -1,12 +1,9 @@
 {
     "name": "reATRM",
     "privileged": true,
-    "remoteUser": "mide",
+    "remoteUser": "cvdoc",
     "build": {
-        "dockerfile": "Dockerfile",
-        "args": {
-            "USERNAME": "mide"
-        }
+        "dockerfile": "../Dockerfile"
     },
     "workspaceFolder": "/home/ws",
     "workspaceMount": "source=${localWorkspaceFolder},target=/home/ws,type=bind",
@@ -48,5 +45,5 @@
         "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached",
         "source=/dev,target=/dev,type=bind,consistency=cached"
     ],
-    "postCreateCommand": "sudo rosdep update || true && sudo rosdep install --from-paths src --ignore-src -y || true && sudo chown -R $(whoami) /home/ws/"
+    "postCreateCommand": ""
 }

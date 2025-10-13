@@ -8,7 +8,7 @@ start() {
         exit 1
     fi
 
-    sudo -u "mide" bash -c "source /home/ws/.script/envinit.bash && screen -dmS atrm bash -c 'ros2 launch atrm_bringup bringup_launch.py'"
+    sudo -u "cvdoc" bash -c "source /home/ws/.script/envinit.bash && screen -dmS atrm bash -c 'ros2 launch atrm_bringup bringup_launch.py'"
 
     sleep 0.1
     
@@ -21,18 +21,18 @@ start() {
 }
 
 attach() {
-    sudo -u "mide" bash -c "screen -r atrm"
+    sudo -u "cvdoc" bash -c "screen -r atrm"
 }
 
 stop() {
     if is_running; then
-        sudo -u "mide" bash -c "screen -S atrm -X quit"
+        sudo -u "cvdoc" bash -c "screen -S atrm -X quit"
         echo "Successfully stopped ATRM daemon."
     fi
 }
 
 is_running() {
-    if ls '/run/screen/S-mide' 2>/dev/null | grep -q '.*\.atrm'; then
+    if ls '/run/screen/S-cvdoc' 2>/dev/null | grep -q '.*\.atrm'; then
         return 0
     else
         return 1

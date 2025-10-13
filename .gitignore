@@ -28,7 +28,7 @@ Makefile
 *.cmake
 
 # IDE files
-.vscode/
+.vscode/browse*
 .idea/
 *.swp
 *.swo
