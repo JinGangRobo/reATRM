@@ -55,6 +55,7 @@ USER $USERNAME
 RUN sudo mkdir /home/ws && sudo chown $USERNAME:$USERNAME /home/ws
 RUN sudo curl -o /etc/ros/rosdep/sources.list.d/20-default.list -L https://mirrors.tuna.tsinghua.edu.cn/github-raw/ros/rosdistro/master/rosdep/sources.list.d/20-default.list
 RUN export ROSDISTRO_INDEX_URL=https://mirrors.tuna.tsinghua.edu.cn/rosdistro/index-v4.yaml && rosdep update
+RUN pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN --mount=type=bind,target=/home/ws,source=.,readonly=false cd /home/ws \
     && sudo cp /home/ws/.script/atrm-service /etc/init.d/atrm || true \ 
     && sudo cp /home/ws/.script/entrypoint /entrypoint.sh \
@@ -63,17 +64,9 @@ RUN --mount=type=bind,target=/home/ws,source=.,readonly=false cd /home/ws \
     && sudo chmod +x /etc/init.d/atrm \
     && sudo rosdep install --from-paths src --ignore-src -y || true \
     && source /home/ws/.script/envinit.bash \
-    && sudo rm -rf /home/ws/build /home/ws/install /home/ws/log 
-# && pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple -r src/core/utils/miyformer/miyformer/mixformer/requirements.txt
+    && pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple -r src/core/utils/miyformer/miyformer/mixformer/requirements.txt
 
 RUN pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple xmacro
-# && sudo colcon build --symlink-install
-
-
-
-# RUN sudo rosdep update || true && sudo rosdep install --from-paths src --ignore-src -y || true && 
-# RUN source /home/ws/.script/envinit.bash && colcon build --symlink-install
-
 
 # ENTRYPOINT [""]
 CMD ["/entrypoint.sh"]
