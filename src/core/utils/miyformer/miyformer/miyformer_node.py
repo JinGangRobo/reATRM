@@ -136,7 +136,7 @@ class MiyformerNode(Node):
         # Create a publisher
         self.target_pub = self.create_publisher(Target, "tracker/target", 3)
         self.dbg_img_pub = self.create_publisher(Image, "dbg_image", 10)
-        # self.dgb_marker_pub = self.create_publisher(MarkerArray, "tracker/marker", 10)
+        self.dgb_marker_pub = self.create_publisher(MarkerArray, "tracker/marker", 10)
 
         # Initialize TF2 buffer and listener
         self.tf_buffer = tf2_ros.Buffer()
@@ -251,7 +251,7 @@ class MiyformerNode(Node):
                     #     point_cam, transform
                     # )
 
-                    target_msg.header.stamp = self.get_clock().now().to_msg()
+                    target_msg.header.stamp = msg.header.stamp  # 使用图像的时间戳
                     target_msg.header.frame_id = "industrial_camera"
                     target_msg.position.x = float(position_3d_cam[0])
                     target_msg.position.y = -float(position_3d_cam[1])
@@ -277,22 +277,22 @@ class MiyformerNode(Node):
                         # posi_mark.color.a = 1.0
                         # posi_mark.color.g = 1.0
                         # markers.markers.append(posi_mark)
-                        # cam_mark = Marker()
-                        # cam_mark.header.frame_id = "industrial_camera"
-                        # cam_mark.header.stamp = self.get_clock().now().to_msg()
-                        # cam_mark.ns = "position"
-                        # cam_mark.id = 1
-                        # cam_mark.type = Marker.SPHERE
-                        # cam_mark.action = Marker.ADD
-                        # cam_mark.pose.position.x = target_msg.position.x
-                        # cam_mark.pose.position.y = target_msg.position.y
-                        # cam_mark.pose.position.z = target_msg.position.z
-                        # cam_mark.scale.x = cam_mark.scale.y = cam_mark.scale.z = 0.1
-                        # cam_mark.color.a = 1.0
-                        # cam_mark.color.g = 0.0
-                        # cam_mark.color.b = 1.0
-                        # markers.markers.append(cam_mark)
-                        # self.dgb_marker_pub.publish(markers)
+                        cam_mark = Marker()
+                        cam_mark.header.frame_id = "industrial_camera"
+                        cam_mark.header.stamp = msg.header.stamp
+                        cam_mark.ns = "position"
+                        cam_mark.id = 1
+                        cam_mark.type = Marker.SPHERE
+                        cam_mark.action = Marker.ADD
+                        cam_mark.pose.position.x = target_msg.position.x
+                        cam_mark.pose.position.y = target_msg.position.y
+                        cam_mark.pose.position.z = target_msg.position.z
+                        cam_mark.scale.x = cam_mark.scale.y = cam_mark.scale.z = 0.1
+                        cam_mark.color.a = 1.0
+                        cam_mark.color.g = 0.0
+                        cam_mark.color.b = 1.0
+                        markers.markers.append(cam_mark)
+                        self.dgb_marker_pub.publish(markers)
 
                         self.get_logger().info(
                             f"Target Point: {target_point}, Image Shape: {frame.shape}"
@@ -315,8 +315,8 @@ class MiyformerNode(Node):
                             f"3D Position (camera only): {position_3d_cam}"
                         )
         else:
-            target_msg.header.stamp = self.get_clock().now().to_msg()
-            target_msg.header.frame_id = "gimbal_sub_yaw_odom"
+            target_msg.header.stamp = msg.header.stamp
+            target_msg.header.frame_id = "industrial_camera"
             target_msg.tracking = False
             target_msg.distance_valid = False
 

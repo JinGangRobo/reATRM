@@ -40,4 +40,4 @@ red_standard_robot1:
 
   miyformer_node:
     ros__parameters:
-      debug: False
+      debug: True
