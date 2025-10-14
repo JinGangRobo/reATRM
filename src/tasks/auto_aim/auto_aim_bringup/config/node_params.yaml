@@ -2,7 +2,7 @@ red_standard_robot1:
   camera_node:
     ros__parameters:
       camera_info_url: package://rm_vision_bringup/config/camera_info.yaml
-      exposure_time: 2800
+      exposure_time: 0 # Auto exposure
       gain: 12.0
 
   armor_detector:
