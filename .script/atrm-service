@@ -32,6 +32,8 @@ stop() {
 }
 
 is_running() {
+    sudo -u "cvdoc" bash -c "screen -wipe" >/dev/null 2>&1 || true
+
     if ls '/run/screen/S-cvdoc' 2>/dev/null | grep -q '.*\.atrm'; then
         return 0
     else
