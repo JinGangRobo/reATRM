@@ -1,6 +1,7 @@
 services:
   atrm-develop:
     image: atrm-dev-loc:latest
+    restart: unless-stopped
     user: "cvdoc"
     privileged: true
     volumes:
