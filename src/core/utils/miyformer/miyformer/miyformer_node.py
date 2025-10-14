@@ -132,13 +132,13 @@ class MiyformerNode(Node):
         self.camera_image_sub = self.create_subscription(
             Image, "image_raw", self.camera_image_callback, qos_profile_sensor_data
         )
-        
-        # Create a publisher
-        self.target_pub = self.create_publisher(Target, "tracker/target", 3)
-        self.dbg_img_pub = self.create_publisher(Image, "dbg_image", 10)
-        # self.dgb_marker_pub = self.create_publisher(MarkerArray, "tracker/marker", 10)
 
-        # Initialize TF2 buffer and listener
+        # Create a publisher
+        self.target_pub = self.create_publisher(
+            Target, "tracker/target", qos_profile_sensor_data
+        )
+        self.dbg_img_pub = self.create_publisher(Image, "dbg_image", 10)
+
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
@@ -161,7 +161,6 @@ class MiyformerNode(Node):
 
     def camera_info_callback(self, msg):
         """Callback function for camera info subscriber"""
-        # self.get_logger().info(f"Received camera info: {msg}")
         self.camera_info = msg
 
     def solve_pnp(self, camera_info, target_point_2d):
@@ -228,95 +227,25 @@ class MiyformerNode(Node):
             if self.camera_info is not None:
                 position_3d_cam = self.solve_pnp(self.camera_info, target_point)
 
-                # 通过TF变换将以相机为坐标系的位置转换为机器人的gimbal_sub_yaw_odom坐标系
-                try:
-                    # 创建相机坐标系下的点
-                    # point_cam = PointStamped()
-                    # point_cam.header.stamp = self.get_clock().now().to_msg()
-                    # point_cam.header.frame_id = "industrial_camera"  # 相机光学坐标系
-                    # point_cam.point.x = float(position_3d_cam[0])
-                    # point_cam.point.y = -float(position_3d_cam[1])
-                    # point_cam.point.z = float(position_3d_cam[2])
+                target_msg.header.stamp = msg.header.stamp
+                target_msg.header.frame_id = "industrial_camera"
+                target_msg.position.x = float(position_3d_cam[0])
+                target_msg.position.y = -float(position_3d_cam[1])
+                target_msg.position.z = float(position_3d_cam[2])
+                target_msg.tracking = tracking
+                target_msg.distance_valid = False
 
-                    # # 转换到目标坐标系
-                    # transform = self.tf_buffer.lookup_transform(
-                    #     "gimbal_sub_yaw_odom",  # 目标坐标系
-                    #     "industrial_camera",  # 源坐标系
-                    #     rclpy.time.Time(seconds=0),  # 最新的变换
-                    #     timeout=rclpy.duration.Duration(seconds=0.001),
-                    # )
+                self.target_pub.publish(target_msg)
 
-                    # # 应用变换
-                    # point_gimbal = tf2_geometry_msgs.do_transform_point(
-                    #     point_cam, transform
-                    # )
+                if self.debug:
+                    self.get_logger().info(
+                        f"Target Point: {target_point}, Image Shape: {frame.shape}"
+                    )
+                    self.get_logger().info(f"3D Position (camera): {position_3d_cam}")
 
-                    target_msg.header.stamp = self.get_clock().now().to_msg()
-                    target_msg.header.frame_id = "industrial_camera"
-                    target_msg.position.x = float(position_3d_cam[0])
-                    target_msg.position.y = -float(position_3d_cam[1])
-                    target_msg.position.z = float(position_3d_cam[2])
-                    target_msg.tracking = tracking
-                    target_msg.distance_valid = False
-
-                    self.target_pub.publish(target_msg)
-
-                    if self.debug:
-                        markers = MarkerArray()
-                        # posi_mark = Marker()
-                        # posi_mark.header.frame_id = "gimbal_sub_yaw_odom"
-                        # posi_mark.header.stamp = self.get_clock().now().to_msg()
-                        # posi_mark.ns = "position"
-                        # posi_mark.id = 0
-                        # posi_mark.type = Marker.SPHERE
-                        # posi_mark.action = Marker.ADD
-                        # posi_mark.pose.position.x = point_gimbal.point.x
-                        # posi_mark.pose.position.y = point_gimbal.point.y
-                        # posi_mark.pose.position.z = point_gimbal.point.z
-                        # posi_mark.scale.x = posi_mark.scale.y = posi_mark.scale.z = 0.1
-                        # posi_mark.color.a = 1.0
-                        # posi_mark.color.g = 1.0
-                        # markers.markers.append(posi_mark)
-                        # cam_mark = Marker()
-                        # cam_mark.header.frame_id = "industrial_camera"
-                        # cam_mark.header.stamp = self.get_clock().now().to_msg()
-                        # cam_mark.ns = "position"
-                        # cam_mark.id = 1
-                        # cam_mark.type = Marker.SPHERE
-                        # cam_mark.action = Marker.ADD
-                        # cam_mark.pose.position.x = target_msg.position.x
-                        # cam_mark.pose.position.y = target_msg.position.y
-                        # cam_mark.pose.position.z = target_msg.position.z
-                        # cam_mark.scale.x = cam_mark.scale.y = cam_mark.scale.z = 0.1
-                        # cam_mark.color.a = 1.0
-                        # cam_mark.color.g = 0.0
-                        # cam_mark.color.b = 1.0
-                        # markers.markers.append(cam_mark)
-                        # self.dgb_marker_pub.publish(markers)
-
-                        self.get_logger().info(
-                            f"Target Point: {target_point}, Image Shape: {frame.shape}"
-                        )
-                        self.get_logger().info(
-                            f"3D Position (camera): {position_3d_cam}"
-                        )
-                        # self.get_logger().info(
-                        #     f"3D Position (gimbal): [{point_gimbal.point.x:.3f}, {point_gimbal.point.y:.3f}, {point_gimbal.point.z:.3f}]"
-                        # )
-
-                except (
-                    tf2_ros.LookupException,
-                    tf2_ros.ConnectivityException,
-                    tf2_ros.ExtrapolationException,
-                ) as e:
-                    self.get_logger().warn(f"TF transform failed: {e}")
-                    if self.debug:
-                        self.get_logger().info(
-                            f"3D Position (camera only): {position_3d_cam}"
-                        )
         else:
-            target_msg.header.stamp = self.get_clock().now().to_msg()
-            target_msg.header.frame_id = "gimbal_sub_yaw_odom"
+            target_msg.header.stamp = msg.header.stamp
+            target_msg.header.frame_id = "industrial_camera"
             target_msg.tracking = False
             target_msg.distance_valid = False
 

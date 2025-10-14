@@ -84,7 +84,7 @@ def generate_launch_description():
         launch_arguments={
             "namespace": "red_standard_robot1",
             "enable_joint_pub": "True",
-            "use_rviz": "True",
+            "use_rviz": "False",
         }.items(),
     )
 

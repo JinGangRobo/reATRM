@@ -17,7 +17,6 @@ namespace rmoss_projectile_motion
             "gimbal_state", 3, [this](sensor_msgs::msg::JointState::ConstSharedPtr msg)
             { joint_state_ = std::make_shared<sensor_msgs::msg::JointState>(*msg); });
 
-        // 创建 message_filters::Subscriber
         target_subscriber_.subscribe(this, "tracker/target", rclcpp::SensorDataQoS().get_rmw_qos_profile());
 
         target_filter_ = std::make_shared<tf2_ros::MessageFilter<auto_aim_interfaces::msg::Target>>(
@@ -27,7 +26,7 @@ namespace rmoss_projectile_motion
             10,
             this->get_node_logging_interface(),
             this->get_node_clock_interface(),
-            std::chrono::duration<int>(1)); // 修改为 double 类型的 duration
+            std::chrono::duration<int>(1));
 
         target_filter_->registerCallback(
             std::bind(&ProjectileSolverNode::targetCallback, this, std::placeholders::_1));
@@ -50,13 +49,12 @@ namespace rmoss_projectile_motion
         {
             geometry_msgs::msg::PointStamped point_origin;
             point_origin.header = msg->header;
-            point_origin.header.frame_id = "industrial_camera";
             point_origin.point.x = msg->position.x;
             point_origin.point.y = msg->position.y;
             point_origin.point.z = msg->position.z;
 
             geometry_msgs::msg::PointStamped point_target;
-            point_target = tf_buffer_.transform(point_origin, "gimbal_sub_yaw_odom", tf2::durationFromSec(0.1));
+            point_target = tf_buffer_.transform(point_origin, "gimbal_sub_yaw_odom");
 
             // 绘制变换后的位置
             publishVisualization(point_target);
@@ -103,8 +101,7 @@ namespace rmoss_projectile_motion
     void ProjectileSolverNode::publishVisualization(const geometry_msgs::msg::PointStamped &point)
     {
         visualization_msgs::msg::Marker marker;
-        marker.header.frame_id = "gimbal_sub_yaw_odom";
-        marker.header.stamp = this->get_clock()->now();
+        marker.header = point.header;
         marker.ns = "target_position";
         marker.id = 0;
         marker.type = visualization_msgs::msg::Marker::SPHERE;
@@ -124,7 +121,7 @@ namespace rmoss_projectile_motion
         marker.color.g = 0.0;
         marker.color.b = 0.0;
         marker.color.a = 1.0;
-        marker.lifetime = rclcpp::Duration::from_nanoseconds(100000000); // 0.1秒
+        marker.lifetime = rclcpp::Duration::from_nanoseconds(100000000); // 0.1s
 
         visualization_pub_->publish(marker);
     }

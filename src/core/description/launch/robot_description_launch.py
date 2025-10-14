@@ -75,7 +75,7 @@ def launch_setup(context: LaunchContext) -> list:
             respawn_delay=2.0,
             parameters=[configured_params],
             arguments=["--ros-args", "--log-level", log_level],
-            on_exit=Shutdown()
+            on_exit=Shutdown(),
         ),
         Node(
             package="robot_state_publisher",
@@ -88,7 +88,7 @@ def launch_setup(context: LaunchContext) -> list:
                 {"robot_description": robot_urdf_xml},
             ],
             arguments=["--ros-args", "--log-level", log_level],
-            on_exit=Shutdown()
+            on_exit=Shutdown(),
         ),
         Node(
             condition=IfCondition(use_rviz),
@@ -163,7 +163,7 @@ def generate_launch_description():
     )
 
     declare_use_rviz_cmd = DeclareLaunchArgument(
-        "use_rviz", default_value="True", description="Whether to start RViz"
+        "use_rviz", default_value="False", description="Whether to start RViz"
     )
 
     declare_use_respawn_cmd = DeclareLaunchArgument(
