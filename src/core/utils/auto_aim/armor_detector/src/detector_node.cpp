@@ -2,7 +2,7 @@
 // Copyright (C) 2024 Zheng Yu
 // Licensed under the MIT License.
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/convert.h>

@@ -6,7 +6,7 @@ repositories:
 
   rmoss_gz_resources:
     url: https://github.com/SMBU-PolarBear-Robotics-Team/rmoss_gz_resources.git
-    version: humble
+    version: jazzy
 
   sdformat_tools:
     url: https://github.com/gezp/sdformat_tools.git

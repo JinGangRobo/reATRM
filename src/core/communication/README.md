@@ -12,7 +12,7 @@ RoboMaster 算法系统与电控系统的串口通讯模块
 
 ## 使用指南
 
-安装依赖 `sudo apt install ros-humble-serial-driver`
+安装依赖 `sudo apt install ros-jazzy-serial-driver`
 
 更改 [serial_driver.yaml](config/serial_driver.yaml) 中的参数以匹配与电控通讯的串口
 
