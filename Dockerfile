@@ -63,8 +63,8 @@ RUN --mount=type=bind,target=/home/ws,source=.,readonly=false cd /home/ws \
     && sudo chown root:root /etc/init.d/atrm \
     && sudo chmod +x /etc/init.d/atrm \
     && sudo rosdep install --from-paths src --ignore-src -y || true \
-    && source /home/ws/.script/envinit.bash \
-    && pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple -r src/core/utils/miyformer/miyformer/mixformer/requirements.txt
+    && source /home/ws/.script/envinit.bash
+# && pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple -r src/core/utils/miyformer/miyformer/mixformer/requirements.txt
 
 RUN pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple xmacro
 
