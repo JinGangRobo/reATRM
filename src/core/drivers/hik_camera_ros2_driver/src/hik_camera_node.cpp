@@ -108,16 +108,12 @@ private:
     // Exposure time
     param_desc.description = "Exposure time in microseconds";
     MV_CC_GetFloatValue(camera_handle_, "ExposureTime", &f_value);
+    param_desc.integer_range[0].from_value = f_value.fMin;
     param_desc.integer_range[0].to_value = f_value.fMax;
     double exposure_time = this->declare_parameter("exposure_time", 5000, param_desc);
-    if (exposure_time < 0.5) {
-      MV_CC_SetExposureAutoMode(camera_handle_, 2);  // Continuous auto exposure
-      RCLCPP_INFO(this->get_logger(), "Exposure time: auto");
-    } else {
-      MV_CC_SetExposureAutoMode(camera_handle_, 0);  // Manual exposure
-      MV_CC_SetFloatValue(camera_handle_, "ExposureTime", exposure_time);
-      RCLCPP_INFO(this->get_logger(), "Exposure time: %f", exposure_time);
-    }
+    MV_CC_SetFloatValue(camera_handle_, "ExposureTime", exposure_time);
+    RCLCPP_INFO(this->get_logger(), "Exposure time: %f", exposure_time);
+
     // Gain
     param_desc.description = "Gain";
     MV_CC_GetFloatValue(camera_handle_, "Gain", &f_value);

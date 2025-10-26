@@ -2,7 +2,7 @@ red_standard_robot1:
   camera_node:
     ros__parameters:
       camera_info_url: package://rm_vision_bringup/config/camera_info.yaml
-      exposure_time: 0 # Auto exposure
+      exposure_time: 2800
       gain: 12.0
 
   armor_detector:
@@ -38,6 +38,15 @@ red_standard_robot1:
         tracking_thres: 5
         lost_time_thres: 1.0
 
-  miyformer_node:
+  rm_rune_detector:
     ros__parameters:
-      debug: False
+      debug: true
+
+      detect_color: 0
+      binary_thres: 80
+
+      # light.min_ratio: 0.1
+      # rune.min_light_ratio: 0.8
+
+      # classifier_threshold: 0.8
+      # ignore_classes: ["negative"]

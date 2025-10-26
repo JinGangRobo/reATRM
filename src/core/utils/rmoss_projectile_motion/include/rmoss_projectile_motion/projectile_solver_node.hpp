@@ -14,16 +14,6 @@
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "atrm_interfaces/msg/cmd_gimbal.hpp"
 
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/create_timer_ros.hpp>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/message_filter.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#include <geometry_msgs/msg/point_stamped.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <visualization_msgs/msg/marker.hpp>
-#include <message_filters/subscriber.h>
-
 namespace rmoss_projectile_motion
 {
     class ProjectileSolverNode : public rclcpp::Node
@@ -32,22 +22,17 @@ namespace rmoss_projectile_motion
         ProjectileSolverNode(const rclcpp::NodeOptions &options);
 
     private:
-        void targetCallback(const auto_aim_interfaces::msg::Target::ConstSharedPtr msg);
-        void publishVisualization(const geometry_msgs::msg::PointStamped &point);
+        void targetCallback(const auto_aim_interfaces::msg::Target::SharedPtr msg);
 
+        rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
         rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
 
-        message_filters::Subscriber<auto_aim_interfaces::msg::Target> target_subscriber_;
-        std::shared_ptr<tf2_ros::MessageFilter<auto_aim_interfaces::msg::Target>> target_filter_;
-
         rclcpp::Publisher<atrm_interfaces::msg::CmdGimbal>::SharedPtr cmd_gimbal_pub_;
-        rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr visualization_pub_;
-
-        tf2_ros::Buffer tf_buffer_;
-        tf2_ros::TransformListener tf_listener_;
 
         std::shared_ptr<sensor_msgs::msg::JointState> joint_state_;
+
         atrm_interfaces::msg::CmdGimbal cmd_gimbal_;
+
         double target_yaw_, target_pitch_;
     };
 

@@ -1,7 +1,5 @@
 camera: hik
 
-work_mode: miyformer
-
 gimbal_odom2camera:
   xyz: "\"0.18888  0.00  0.0452\""
   rpy: "\"0.0  0.0  0.0\""
