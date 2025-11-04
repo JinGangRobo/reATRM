@@ -39,7 +39,7 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
                 executable="rmcs_executor",
                 parameters=[
                     os.path.join(
-                        FindPackageShare("rmcs_bringup").perform(context),
+                        FindPackageShare("atrm_bringup").perform(context),
                         "config",
                         robot_name + ".yaml",
                     ),
