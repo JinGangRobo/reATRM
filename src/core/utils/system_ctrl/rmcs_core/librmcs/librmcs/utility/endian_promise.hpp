@@ -39,8 +39,7 @@ requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
 }
 
 template <typename T, std::endian target_endian>
-requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
-PACKED_STRUCT(endian_t final {
+requires(std::is_integral_v<T> || std::is_floating_point_v<T>) PACKED_STRUCT(endian_t final {
     T value_buffer;
 
     [[nodiscard]] static T transform(const T& value) noexcept {

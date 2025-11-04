@@ -93,7 +93,7 @@ public:
         !internal::has_setter_joint<From, To, TransformT> && internal::has_transform_joint<From, To>
         && contains_joint_v<To>)
     void set_transform(TransformT&& transform) {
-        auto& joint     = get_joint<From, To>();
+        auto& joint = get_joint<From, To>();
         joint.transform = std::forward<TransformT>(transform);
         internal::set_joint_modified(joint, true);
     }
@@ -103,7 +103,7 @@ public:
         !internal::has_setter_joint<From, To, TranslationT>
         && internal::has_translation_joint<From, To> && contains_joint_v<To>)
     void set_transform(TranslationT&& translation) {
-        auto& joint     = get_joint<From, To>();
+        auto& joint = get_joint<From, To>();
         joint.transform = std::forward<TranslationT>(translation);
         internal::set_joint_modified(joint, true);
     }
@@ -113,7 +113,7 @@ public:
         !internal::has_setter_joint<From, To, TranslationT>
         && internal::has_transform_joint<From, To> && contains_joint_v<To>)
     void set_transform(TranslationT&& translation) {
-        auto& joint                   = get_joint<From, To>();
+        auto& joint = get_joint<From, To>();
         joint.transform.translation() = std::forward<TranslationT>(translation).translation();
         internal::set_joint_modified(joint, true);
     }
@@ -123,7 +123,7 @@ public:
         !internal::has_setter_joint<From, To, RotationT> && internal::has_rotation_joint<From, To>
         && contains_joint_v<To>)
     void set_transform(RotationT&& rotation) {
-        auto& joint     = get_joint<From, To>();
+        auto& joint = get_joint<From, To>();
         joint.transform = std::forward<RotationT>(rotation);
         internal::set_joint_modified(joint, true);
     }
@@ -133,7 +133,7 @@ public:
         !internal::has_setter_joint<From, To, RotationT> && internal::has_transform_joint<From, To>
         && contains_joint_v<To>)
     void set_transform(RotationT&& rotation) {
-        auto& joint              = get_joint<From, To>();
+        auto& joint = get_joint<From, To>();
         joint.transform.linear() = std::forward<RotationT>(rotation).matrix();
         internal::set_joint_modified(joint, true);
     }

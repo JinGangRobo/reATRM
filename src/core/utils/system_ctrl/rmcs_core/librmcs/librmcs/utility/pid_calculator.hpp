@@ -48,7 +48,7 @@ public:
 
     PidCalculator& set_integral_min(double value) { return integral_min = value, *this; }
     PidCalculator& set_integral_max(double value) { return integral_max = value, *this; }
-    
+
     PidCalculator& set_output_min(double value) { return output_min = value, *this; }
     PidCalculator& set_output_max(double value) { return output_max = value, *this; }
 

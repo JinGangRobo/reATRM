@@ -21,7 +21,7 @@ public:
     virtual ~PidCalculator() = default;
 
     void reset() {
-        last_err_     = nan;
+        last_err_ = nan;
         err_integral_ = 0;
     }
 

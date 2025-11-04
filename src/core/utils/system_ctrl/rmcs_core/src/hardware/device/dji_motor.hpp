@@ -34,9 +34,9 @@ public:
 
     void update_status() {
         librmcs::device::DjiMotor::update_status();
-        *angle_    = angle();
+        *angle_ = angle();
         *velocity_ = velocity();
-        *torque_   = torque();
+        *torque_ = torque();
     }
 
     double control_torque() const {

@@ -116,7 +116,7 @@ private:
         std::vector<Eigen::Vector2d> new_polygon;
         for (size_t i = polygon.size() - 1, j = 0; j < polygon.size(); i = j++) {
             auto& current_point = polygon[j];
-            auto& prev_point    = polygon[i];
+            auto& prev_point = polygon[i];
 
             if (edge_compare(current_point) == 0) {
                 new_polygon.emplace_back(current_point);
@@ -229,7 +229,7 @@ private:
             is_in_quadratic_constraint[i] =
                 is_point_inside_quadratic_constraint(linear_constraint[i], quadratic_constraint);
 
-        double max_value           = -inf_;
+        double max_value = -inf_;
         Eigen::Vector2d best_point = Eigen::Vector2d::Zero();
 
         auto check_point = [&](Eigen::Vector2d point) {
@@ -237,7 +237,7 @@ private:
             if ((value > max_value)
                 || (value == max_value && point.x() >= best_point.x()
                     && point.y() >= best_point.y())) {
-                max_value  = value;
+                max_value = value;
                 best_point = point;
             }
         };
@@ -250,9 +250,9 @@ private:
                 const Eigen::Vector2d &x1 = linear_constraint[i], &x2 = linear_constraint[j];
                 Eigen::Vector2d dx = x2 - x1;
 
-                double a     = 0.5 * dx.dot(q * dx);
-                double b     = x1.dot(q * dx) + p.dot(dx);
-                double c     = 0.5 * x1.dot(q * x1) + p.dot(x1) + r;
+                double a = 0.5 * dx.dot(q * dx);
+                double b = x1.dot(q * dx) + p.dot(dx);
+                double c = 0.5 * x1.dot(q * x1) + p.dot(x1) + r;
                 double delta = b * b - 4 * a * c;
 
                 if (delta < 0)

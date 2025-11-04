@@ -36,7 +36,7 @@ namespace rcl {
 
 class Node : public rclcpp::Node {
 public:
-    Node(Node const&)           = delete;
+    Node(Node const&) = delete;
     void operator=(Node const&) = delete;
 
     static Node& get_instance() {
@@ -49,9 +49,9 @@ public:
         const Eigen::Quaterniond& rotation) {
 
         geometry_msgs::msg::TransformStamped t;
-        t.header.stamp    = get_clock()->now();
+        t.header.stamp = get_clock()->now();
         t.header.frame_id = header;
-        t.child_frame_id  = child;
+        t.child_frame_id = child;
 
         t.transform.translation.x = translation.x();
         t.transform.translation.y = translation.y();
@@ -83,7 +83,7 @@ template <internal::is_link From, internal::is_link To, typename... JointCollect
 requires(internal::has_joint<From, To> && requires(const JointCollectionTs&... collections) {
     get_transform<From, To>(collections...);
 }) inline void broadcast(const JointCollectionTs&... collections) {
-    auto transform               = get_transform<From, To>(collections...);
+    auto transform = get_transform<From, To>(collections...);
     auto [translation, rotation] = internal::extract_translation_rotation(transform);
     Node::get_instance().tf_broadcast(From::name, To::name, translation, rotation);
 }

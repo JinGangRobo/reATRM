@@ -16,10 +16,10 @@ class Component {
 public:
     friend class Executor;
 
-    Component(const Component&)            = delete;
+    Component(const Component&) = delete;
     Component& operator=(const Component&) = delete;
-    Component(Component&&)                 = delete;
-    Component& operator=(Component&&)      = delete;
+    Component(Component&&) = delete;
+    Component& operator=(Component&&) = delete;
 
     virtual ~Component(){};
 
@@ -37,10 +37,10 @@ public:
 
         InputInterface() = default;
 
-        InputInterface(const InputInterface&)            = delete;
+        InputInterface(const InputInterface&) = delete;
         InputInterface& operator=(const InputInterface&) = delete;
-        InputInterface(InputInterface&&)                 = delete;
-        InputInterface& operator=(InputInterface&&)      = delete;
+        InputInterface(InputInterface&&) = delete;
+        InputInterface& operator=(InputInterface&&) = delete;
 
         ~InputInterface() {
             if (delete_data_when_deconstruct) {
@@ -61,7 +61,7 @@ public:
                 throw std::runtime_error("The interface has already been bound to somewhere");
 
             data_pointer_ = new T(std::forward<Args>(args)...);
-            activated     = true;
+            activated = true;
 
             delete_data_when_deconstruct = true;
         }
@@ -71,7 +71,7 @@ public:
                 throw std::runtime_error("The interface has already been bound to somewhere");
 
             data_pointer_ = const_cast<T*>(&destination);
-            activated     = true;
+            activated = true;
         }
 
         const T* operator->() const { return data_pointer_; }
@@ -84,7 +84,7 @@ public:
         }
 
         T* data_pointer_ = nullptr;
-        bool activated   = false;
+        bool activated = false;
 
         bool delete_data_when_deconstruct = false;
     };
@@ -96,10 +96,10 @@ public:
 
         OutputInterface() = default;
 
-        OutputInterface(const OutputInterface&)            = delete;
+        OutputInterface(const OutputInterface&) = delete;
         OutputInterface& operator=(const OutputInterface&) = delete;
-        OutputInterface(OutputInterface&&)                 = delete;
-        OutputInterface& operator=(OutputInterface&&)      = delete;
+        OutputInterface(OutputInterface&&) = delete;
+        OutputInterface& operator=(OutputInterface&&) = delete;
 
         ~OutputInterface() {
             if (active())
@@ -182,7 +182,7 @@ private:
 
     std::vector<std::shared_ptr<Component>> partner_component_list_;
 
-    size_t dependency_count_                  = 0;
+    size_t dependency_count_ = 0;
     std::unordered_set<Component*> wanted_by_ = {};
 };
 

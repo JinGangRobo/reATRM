@@ -16,7 +16,7 @@ public:
             size = 2;
         else
             size = round_up_to_next_power_of_2(size);
-        mask     = size - 1;
+        mask = size - 1;
         storage_ = new Storage[size];
     };
 
@@ -79,7 +79,7 @@ public:
     template <typename F>
     requires requires(F f, std::byte* storage) { f(storage); }
     size_t emplace_back_multi(F construct_functor, size_t count = -1) {
-        auto in  = in_.load(std::memory_order::relaxed);
+        auto in = in_.load(std::memory_order::relaxed);
         auto out = out_.load(std::memory_order::acquire);
 
         auto writeable = max_size() - (in - out);
@@ -90,7 +90,7 @@ public:
             return 0;
 
         auto offset = in & mask;
-        auto slice  = std::min(count, max_size() - offset);
+        auto slice = std::min(count, max_size() - offset);
 
         for (size_t i = 0; i < slice; i++)
             construct_functor(storage_[offset + i].data);
@@ -125,7 +125,7 @@ public:
     template <typename F>
     requires requires(F f, T t) { f(std::move(t)); }
     size_t pop_front_multi(F callback_functor, size_t count = -1) {
-        auto in  = in_.load(std::memory_order::acquire);
+        auto in = in_.load(std::memory_order::acquire);
         auto out = out_.load(std::memory_order::relaxed);
 
         auto readable = in - out;
@@ -135,7 +135,7 @@ public:
             return 0;
 
         auto offset = out & mask;
-        auto slice  = std::min(count, max_size() - offset);
+        auto slice = std::min(count, max_size() - offset);
 
         auto process = [&callback_functor](std::byte* storage) {
             auto& element = *std::launder(reinterpret_cast<T*>(storage));
