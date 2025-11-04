@@ -24,7 +24,10 @@
                 "ms-python.vscode-pylance",
                 "ms-python.isort",
                 "ms-python.black-formatter",
-                "ms-azuretools.vscode-containers"
+                "ms-azuretools.vscode-containers",
+                "xaver.clang-format",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "DotJoshJohnson.xml"
             ]
         }
     },

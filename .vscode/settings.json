@@ -22,5 +22,6 @@
         // "install/": true,
         "log/": true,
         "**/__pycache__": true
-    }
+    },
+    "C_Cpp.intelliSenseEngine": "disabled"
 }
