@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Find all source and header files recursively and format them with clang-format using the .clang-format file in the directory
+find . -type f \( -name "*.c" -o -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" -o -name "*.h" -o -name "*.hpp" -o -name "*.hxx" \) -exec clang-format -i --style=file {} \;

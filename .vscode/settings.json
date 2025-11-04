@@ -15,6 +15,7 @@
         "**/.hg": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
+        "**/.cache": true,
         // "build/": true,
         // "install/": true,
         "log/": true,
