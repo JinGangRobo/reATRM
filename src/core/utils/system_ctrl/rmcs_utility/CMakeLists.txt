@@ -14,4 +14,4 @@ ament_auto_find_build_dependencies ()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-ament_auto_package()
+ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

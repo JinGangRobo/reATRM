@@ -51,4 +51,4 @@ else()
     target_link_libraries(${PROJECT_NAME} setupapi)
 endif()
 
-ament_auto_package()
+ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

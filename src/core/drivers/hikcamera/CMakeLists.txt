@@ -31,4 +31,4 @@ install(
 )
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} MvCameraControl)
 
-ament_auto_package()
+ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
