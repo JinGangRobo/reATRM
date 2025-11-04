@@ -54,8 +54,9 @@ public:
 
         if (auto_aim_control_direction_.ready() && (mouse.right || switch_right == Switch::UP)
             && !auto_aim_control_direction_->isZero())
-            return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetControlDirection(
-                OdomImu::DirectionVector(*auto_aim_control_direction_)));
+            return two_axis_gimbal_solver.update(
+                TwoAxisGimbalSolver::SetControlDirection(
+                    OdomImu::DirectionVector(*auto_aim_control_direction_)));
 
         if (!two_axis_gimbal_solver.enabled())
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetToLevel());

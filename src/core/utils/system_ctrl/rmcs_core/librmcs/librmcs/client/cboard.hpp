@@ -42,8 +42,9 @@ public:
         auto ret = libusb_submit_transfer(libusb_receive_transfer_);
         if (ret != 0) {
             if (ret == LIBUSB_ERROR_NO_DEVICE)
-                LOG_ERROR("Failed to submit receive transfer: Device disconnected. "
-                          "Terminating...");
+                LOG_ERROR(
+                    "Failed to submit receive transfer: Device disconnected. "
+                    "Terminating...");
             else
                 LOG_ERROR("Failed to submit receive transfer: %d. Terminating...", ret);
             std::terminate();
@@ -165,8 +166,9 @@ private:
                 LOG_ERROR(
                     "%d devices found with specified vendor id (0x%x) and product id (0x%x)",
                     valid_device_count, vendor_id, product_id);
-                LOG_ERROR("Multiple devices found, which is unusual. Consider using a device with "
-                          "a unique serial number");
+                LOG_ERROR(
+                    "Multiple devices found, which is unusual. Consider using a device with "
+                    "a unique serial number");
             } else {
                 LOG_ERROR("%d devices found with vendor id: 0x%x", valid_device_count, vendor_id);
                 for (int i = 0, j = 0; i < device_count; i++) {
@@ -236,8 +238,9 @@ private:
             int ret = libusb_submit_transfer(transfer);
             if (ret != 0) [[unlikely]] {
                 if (ret == LIBUSB_ERROR_NO_DEVICE)
-                    LOG_ERROR("Failed to re-submit receive transfer: Device disconnected. "
-                              "Terminating...");
+                    LOG_ERROR(
+                        "Failed to re-submit receive transfer: Device disconnected. "
+                        "Terminating...");
                 else
                     LOG_ERROR("Failed to re-submit receive transfer: %d. Terminating...", ret);
                 std::terminate();
@@ -550,8 +553,9 @@ public:
             } else
                 continue;
 
-            LOG_ERROR("The destructor will exit normally, but the unrecoverable memory leak "
-                      "has already occurred. This may be a problem caused by libusb.");
+            LOG_ERROR(
+                "The destructor will exit normally, but the unrecoverable memory leak "
+                "has already occurred. This may be a problem caused by libusb.");
             LOG_ERROR("Number of leaked transfers: %zu", unreleased_transfer_count);
             break;
         }
@@ -752,12 +756,15 @@ private:
         transfer->length = 1;
 
         if (!free_transfers_.push_back(transfer)) [[unlikely]] {
-            LOG_ERROR("Error while attempting to recycle transmit transfer into the ring queue: "
-                      "The ring queue is full.");
-            LOG_ERROR("This situation should theoretically be impossible. Its occurrence typically "
-                      "indicates an issue with multithreaded synchronization in the code.");
-            LOG_ERROR("Although this problem is not fatal, termination is triggered to ensure the "
-                      "issue is promptly identified.");
+            LOG_ERROR(
+                "Error while attempting to recycle transmit transfer into the ring queue: "
+                "The ring queue is full.");
+            LOG_ERROR(
+                "This situation should theoretically be impossible. Its occurrence typically "
+                "indicates an issue with multithreaded synchronization in the code.");
+            LOG_ERROR(
+                "Although this problem is not fatal, termination is triggered to ensure the "
+                "issue is promptly identified.");
             std::terminate();
         }
     }

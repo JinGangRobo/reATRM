@@ -6,17 +6,17 @@
 
 /// \~chinese 输出帧的信息             \~english Output Frame Information
 typedef struct _MV_FRAME_OUT_INFO_ {
-    unsigned short nWidth;  ///< [OUT]  \~chinese 图像宽            \~english Image Width
-    unsigned short nHeight; ///< [OUT]  \~chinese 图像高            \~english Image Height
+    unsigned short nWidth;            ///< [OUT]  \~chinese 图像宽            \~english Image Width
+    unsigned short nHeight;           ///< [OUT]  \~chinese 图像高            \~english Image Height
     enum MvGvspPixelType enPixelType; ///< [OUT]  \~chinese 像素格式          \~english Pixel Type
 
-    unsigned int nFrameNum; ///< [OUT]  \~chinese 帧号              \~english Frame Number
+    unsigned int nFrameNum;           ///< [OUT]  \~chinese 帧号              \~english Frame Number
     unsigned int
         nDevTimeStampHigh; ///< [OUT]  \~chinese 时间戳高32位      \~english Timestamp high 32 bits
     unsigned int
-        nDevTimeStampLow; ///< [OUT]  \~chinese 时间戳低32位      \~english Timestamp low 32 bits
+        nDevTimeStampLow;  ///< [OUT]  \~chinese 时间戳低32位      \~english Timestamp low 32 bits
     unsigned int
-        nReserved0; ///< [OUT]  \~chinese 保留，8字节对齐   \~english Reserved, 8-byte aligned
+        nReserved0;     ///< [OUT]  \~chinese 保留，8字节对齐   \~english Reserved, 8-byte aligned
     int64_t
         nHostTimeStamp; ///< [OUT]  \~chinese 主机生成的时间戳  \~english Host-generated timestamp
 
@@ -31,17 +31,17 @@ typedef struct _MV_SAVE_IMAGE_PARAM_T_ {
     unsigned char* pData;  ///< [IN]   \~chinese 输入数据缓存      \~english Input Data Buffer
     unsigned int nDataLen; ///< [IN]   \~chinese 输入数据大小      \~english Input Data Size
     enum MvGvspPixelType
-        enPixelType; ///< [IN]   \~chinese 输入像素格式      \~english Input Data Pixel Format
-    unsigned short nWidth;  ///< [IN]   \~chinese 图像宽            \~english Image Width
-    unsigned short nHeight; ///< [IN]   \~chinese 图像高            \~english Image Height
+        enPixelType;       ///< [IN]   \~chinese 输入像素格式      \~english Input Data Pixel Format
+    unsigned short nWidth; ///< [IN]   \~chinese 图像宽            \~english Image Width
+    unsigned short nHeight;   ///< [IN]   \~chinese 图像高            \~english Image Height
 
     unsigned char*
-        pImageBuffer; ///< [OUT]  \~chinese 输出图片缓存      \~english Output Image Buffer
-    unsigned int nImageLen; ///< [OUT]  \~chinese 输出图片大小      \~english Output Image Size
+        pImageBuffer;         ///< [OUT]  \~chinese 输出图片缓存      \~english Output Image Buffer
+    unsigned int nImageLen;   ///< [OUT]  \~chinese 输出图片大小      \~english Output Image Size
     unsigned int nBufferSize; ///< [IN]   \~chinese 提供的输出缓冲区大小  \~english Output buffer
                               ///< size provided
     enum MV_SAVE_IAMGE_TYPE
-        enImageType; ///< [IN]   \~chinese 输出图片格式      \~english Output Image Format
+        enImageType;          ///< [IN]   \~chinese 输出图片格式      \~english Output Image Format
 
 } MV_SAVE_IMAGE_PARAM;
 
@@ -72,23 +72,23 @@ typedef struct _MV_IMAGE_BASIC_INFO_ {
 typedef enum _MV_CC_BAYER_NOISE_FEATURE_TYPE {
     MV_CC_BAYER_NOISE_FEATURE_TYPE_INVALID = 0, ///<        \~chinese 无效值 \~english Invalid
     MV_CC_BAYER_NOISE_FEATURE_TYPE_PROFILE = 1, ///<        \~chinese 噪声曲线 \~english Noise curve
-    MV_CC_BAYER_NOISE_FEATURE_TYPE_LEVEL = 2, ///<        \~chinese 噪声水平 \~english Noise level
+    MV_CC_BAYER_NOISE_FEATURE_TYPE_LEVEL = 2,   ///<        \~chinese 噪声水平 \~english Noise level
     MV_CC_BAYER_NOISE_FEATURE_TYPE_DEFAULT = 1, ///<        \~chinese 默认值 \~english Default
 
 } MV_CC_BAYER_NOISE_FEATURE_TYPE;
 
 /// \~chinese Bayer格式降噪特性信息    \~english Denoise profile info
 typedef struct _MV_CC_BAYER_NOISE_PROFILE_INFO_T_ {
-    unsigned int nVersion;  ///<  \~chinese 版本                           \~english version
+    unsigned int nVersion; ///<  \~chinese 版本                           \~english version
     MV_CC_BAYER_NOISE_FEATURE_TYPE
-        enNoiseFeatureType; ///<  \~chinese 噪声特性类型       \~english noise feature type
+    enNoiseFeatureType;    ///<  \~chinese 噪声特性类型       \~english noise feature type
     enum MvGvspPixelType
-        enPixelType;    ///<  \~chinese 图像格式                       \~english image format
-    int nNoiseLevel;    ///<  \~chinese 平均噪声水平                   \~english noise level
+        enPixelType;       ///<  \~chinese 图像格式                       \~english image format
+    int nNoiseLevel;       ///<  \~chinese 平均噪声水平                   \~english noise level
     unsigned int
         nCurvePointNum; ///<  \~chinese 曲线点数                       \~english curve point number
-    int* nNoiseCurve; ///<  \~chinese 噪声曲线                       \~english noise curve
-    int* nLumCurve;   ///<  \~chinese 亮度曲线                       \~english luminance curve
+    int* nNoiseCurve;   ///<  \~chinese 噪声曲线                       \~english noise curve
+    int* nLumCurve;     ///<  \~chinese 亮度曲线                       \~english luminance curve
 
     unsigned int nRes[8]; ///<       \~chinese 预留                           \~english Reserved
 
@@ -99,10 +99,10 @@ typedef struct _MV_CC_BAYER_NOISE_ESTIMATE_PARAM_T_ {
     unsigned int nWidth;  ///< [IN]  \~chinese 图像宽(大于等于8)              \~english Width
     unsigned int nHeight; ///< [IN]  \~chinese 图像高(大于等于8)              \~english Height
     enum MvGvspPixelType
-        enPixelType; ///< [IN]  \~chinese 像素格式                       \~english Pixel format
+        enPixelType;      ///< [IN]  \~chinese 像素格式                       \~english Pixel format
 
     unsigned char*
-        pSrcData; ///< [IN]  \~chinese 输入数据缓存                   \~english Input data buffer
+        pSrcData;    ///< [IN]  \~chinese 输入数据缓存                   \~english Input data buffer
     unsigned int
         nSrcDataLen; ///< [IN]  \~chinese 输入数据大小                   \~english Input data size
 
@@ -110,17 +110,18 @@ typedef struct _MV_CC_BAYER_NOISE_ESTIMATE_PARAM_T_ {
                                   ///< Noise Threshold
 
     unsigned char*
-        pCurveBuf; ///< [IN]  \~chinese 用于存储噪声曲线和亮度曲线（需要外部分配，缓存大小：4096 *
-                   ///< sizeof(int) * 2）     \~english Buffer used to store noise and brightness
-                   ///< curves, size:4096 * sizeof(int) * 2)
+        pCurveBuf;  ///< [IN]  \~chinese 用于存储噪声曲线和亮度曲线（需要外部分配，缓存大小：4096 *
+                    ///< sizeof(int) * 2）     \~english Buffer used to store noise and brightness
+                    ///< curves, size:4096 * sizeof(int) * 2)
     MV_CC_BAYER_NOISE_PROFILE_INFO
-        stNoiseProfile; ///< [OUT]  \~chinese 降噪特性信息               \~english Denoise profile
+    stNoiseProfile; ///< [OUT]  \~chinese 降噪特性信息               \~english Denoise profile
 
-    unsigned int nThreadNum; ///< [IN]  \~chinese
-                             ///< 线程数量，0表示算法库根据硬件自适应；1表示单线程（默认）；大于1表示线程数目
-                             ///< \~english Thread number, 0 means that the library is adaptive to
-                             ///< the hardware, 1 means single thread(Default value), Greater than 1
-                             ///< indicates the number of threads
+    unsigned int
+        nThreadNum; ///< [IN]  \~chinese
+                    ///< 线程数量，0表示算法库根据硬件自适应；1表示单线程（默认）；大于1表示线程数目
+                    ///< \~english Thread number, 0 means that the library is adaptive to
+                    ///< the hardware, 1 means single thread(Default value), Greater than 1
+                    ///< indicates the number of threads
 
     unsigned int nRes[8]; ///<       \~chinese 预留                           \~english Reserved
 
@@ -131,10 +132,10 @@ typedef struct _MV_CC_BAYER_SPATIAL_DENOISE_PARAM_T_ {
     unsigned int nWidth;  ///< [IN]  \~chinese 图像宽(大于等于8)              \~english Width
     unsigned int nHeight; ///< [IN]  \~chinese 图像高(大于等于8)              \~english Height
     enum MvGvspPixelType
-        enPixelType; ///< [IN]  \~chinese 像素格式                       \~english Pixel format
+        enPixelType;      ///< [IN]  \~chinese 像素格式                       \~english Pixel format
 
     unsigned char*
-        pSrcData; ///< [IN]  \~chinese 输入数据缓存                   \~english Input data buffer
+        pSrcData;    ///< [IN]  \~chinese 输入数据缓存                   \~english Input data buffer
     unsigned int
         nSrcDataLen; ///< [IN]  \~chinese 输入数据大小                   \~english Input data size
 
@@ -154,11 +155,12 @@ typedef struct _MV_CC_BAYER_SPATIAL_DENOISE_PARAM_T_ {
     unsigned int
         nNoiseCorrect; ///< [IN]  \~chinese 噪声校正系数(0-1280)           \~english Noise Correct
 
-    unsigned int nThreadNum; ///< [IN]  \~chinese
-                             ///< 线程数量，0表示算法库根据硬件自适应；1表示单线程（默认）；大于1表示线程数目
-                             ///< \~english Thread number, 0 means that the library is adaptive to
-                             ///< the hardware, 1 means single thread(Default value), Greater than 1
-                             ///< indicates the number of threads
+    unsigned int
+        nThreadNum;    ///< [IN]  \~chinese
+                    ///< 线程数量，0表示算法库根据硬件自适应；1表示单线程（默认）；大于1表示线程数目
+                    ///< \~english Thread number, 0 means that the library is adaptive to
+                    ///< the hardware, 1 means single thread(Default value), Greater than 1
+                    ///< indicates the number of threads
 
     unsigned int nRes[8]; ///<       \~chinese 预留                           \~english Reserved
 
@@ -169,8 +171,8 @@ typedef struct _MV_CC_CLUT_PARAM_T_ {
     bool bCLUTEnable;        ///< [IN]  \~chinese 是否启用CLUT           \~english CLUT enable
     unsigned int nCLUTScale; ///< [IN]  \~chinese 量化系数(2的整数幂,最大65536)  \~english
                              ///< Quantitative scale(Integer power of 2, <= 65536)
-    unsigned int nCLUTSize; ///< [IN]  \~chinese CLUT大小,目前仅支持17     \~english CLUT size,
-                            ///< currently only supports 17
+    unsigned int nCLUTSize;  ///< [IN]  \~chinese CLUT大小,目前仅支持17     \~english CLUT size,
+                             ///< currently only supports 17
     unsigned char* pCLUTBuf; ///< [IN]  \~chinese 量化CLUT表             \~english CLUT buffer
     unsigned int
         nCLUTBufLen;         ///< [IN]  \~chinese
@@ -183,9 +185,9 @@ typedef struct _MV_CC_CLUT_PARAM_T_ {
 
 /// \~chinese 锐化结构体                \~english Sharpen structure
 typedef struct _MV_CC_SHARPEN_PARAM_T_ {
-    unsigned int nWidth;  ///< [IN]  \~chinese 图像宽度(最小8)        \~english Image Width
-    unsigned int nHeight; ///< [IN]  \~chinese 图像高度(最小8)        \~english Image Height
-    unsigned char* pSrcBuf; ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
+    unsigned int nWidth;     ///< [IN]  \~chinese 图像宽度(最小8)        \~english Image Width
+    unsigned int nHeight;    ///< [IN]  \~chinese 图像高度(最小8)        \~english Image Height
+    unsigned char* pSrcBuf;  ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
     unsigned int nSrcBufLen; ///< [IN]  \~chinese 输入数据大小           \~english Input data length
     enum MvGvspPixelType
         enPixelType;         ///< [IN]  \~chinese 像素格式               \~english Pixel format
@@ -214,9 +216,9 @@ typedef struct _MV_CC_SHARPEN_PARAM_T_ {
 
 /// \~chinese 色彩校正结构体            \~english Color correct structure
 typedef struct _MV_CC_COLOR_CORRECT_PARAM_T_ {
-    unsigned int nWidth;  ///< [IN]  \~chinese 图像宽度               \~english Image Width
-    unsigned int nHeight; ///< [IN]  \~chinese 图像高度               \~english Image Height
-    unsigned char* pSrcBuf; ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
+    unsigned int nWidth;     ///< [IN]  \~chinese 图像宽度               \~english Image Width
+    unsigned int nHeight;    ///< [IN]  \~chinese 图像高度               \~english Image Height
+    unsigned char* pSrcBuf;  ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
     unsigned int nSrcBufLen; ///< [IN]  \~chinese 输入数据大小           \~english Input data length
     enum MvGvspPixelType
         enPixelType;         ///< [IN]  \~chinese 像素格式               \~english Pixel format
@@ -225,15 +227,15 @@ typedef struct _MV_CC_COLOR_CORRECT_PARAM_T_ {
     unsigned int nDstBufSize; ///< [IN]  \~chinese 提供的输出缓冲区大小   \~english Provided output
                               ///< buffer size
     unsigned int
-        nDstBufLen; ///< [OUT] \~chinese 输出数据长度           \~english Output data length
+        nDstBufLen;         ///< [OUT] \~chinese 输出数据长度           \~english Output data length
 
     unsigned int nImageBit; ///< [IN]  \~chinese 有效图像位数(8,10,12,16)   \~english Image bit(8 or
                             ///< 10 or 12 or 16)
     MV_CC_GAMMA_PARAM stGammaParam; ///< [IN]  \~chinese Gamma信息              \~english Gamma info
-    MV_CC_CCM_PARAM_EX stCCMParam; ///< [IN]  \~chinese CCM信息                \~english CCM info
-    MV_CC_CLUT_PARAM stCLUTParam;  ///< [IN]  \~chinese CLUT信息               \~english CLUT info
+    MV_CC_CCM_PARAM_EX stCCMParam;  ///< [IN]  \~chinese CCM信息                \~english CCM info
+    MV_CC_CLUT_PARAM stCLUTParam;   ///< [IN]  \~chinese CLUT信息               \~english CLUT info
 
-    unsigned int nRes[8];          ///<       \~chinese 预留                   \~english Reserved
+    unsigned int nRes[8];           ///<       \~chinese 预留                   \~english Reserved
 
 } MV_CC_COLOR_CORRECT_PARAM;
 
@@ -248,11 +250,11 @@ typedef struct _MV_CC_RECT_I_ {
 
 /// \~chinese 噪声估计结构体            \~english Noise estimate structure
 typedef struct _MV_CC_NOISE_ESTIMATE_PARAM_T_ {
-    unsigned int nWidth;  ///< [IN]  \~chinese 图像宽度(最小8)        \~english Image Width
-    unsigned int nHeight; ///< [IN]  \~chinese 图像高度(最小8)        \~english Image Height
+    unsigned int nWidth;     ///< [IN]  \~chinese 图像宽度(最小8)        \~english Image Width
+    unsigned int nHeight;    ///< [IN]  \~chinese 图像高度(最小8)        \~english Image Height
     enum MvGvspPixelType
-        enPixelType;      ///< [IN]  \~chinese 像素格式               \~english Pixel format
-    unsigned char* pSrcBuf; ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
+        enPixelType;         ///< [IN]  \~chinese 像素格式               \~english Pixel format
+    unsigned char* pSrcBuf;  ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
     unsigned int nSrcBufLen; ///< [IN]  \~chinese 输入数据大小           \~english Input data length
 
     MV_CC_RECT_I* pstROIRect; ///< [IN]  \~chinese 图像ROI                \~english Image ROI
@@ -269,27 +271,27 @@ typedef struct _MV_CC_NOISE_ESTIMATE_PARAM_T_ {
         pNoiseProfile; ///< [OUT] \~chinese 输出噪声特性           \~english Output Noise Profile
     unsigned int nNoiseProfileSize; ///< [IN]  \~chinese 提供的输出缓冲区大小   \~english Provided
                                     ///< output buffer size
-    unsigned int nNoiseProfileLen; ///< [OUT] \~chinese 输出噪声特性长度       \~english Output
-                                   ///< Noise Profile length
+    unsigned int nNoiseProfileLen;  ///< [OUT] \~chinese 输出噪声特性长度       \~english Output
+                                    ///< Noise Profile length
 
-    unsigned int nRes[8]; ///<       \~chinese 预留                   \~english Reserved
+    unsigned int nRes[8];           ///<       \~chinese 预留                   \~english Reserved
 
 } MV_CC_NOISE_ESTIMATE_PARAM;
 
 /// \~chinese 空域降噪结构体            \~english Spatial denoise structure
 typedef struct _MV_CC_SPATIAL_DENOISE_PARAM_T_ {
-    unsigned int nWidth;  ///< [IN]  \~chinese 图像宽度(最小8)        \~english Image Width
-    unsigned int nHeight; ///< [IN]  \~chinese 图像高度(最小8)        \~english Image Height
+    unsigned int nWidth;     ///< [IN]  \~chinese 图像宽度(最小8)        \~english Image Width
+    unsigned int nHeight;    ///< [IN]  \~chinese 图像高度(最小8)        \~english Image Height
     enum MvGvspPixelType
-        enPixelType;      ///< [IN]  \~chinese 像素格式               \~english Pixel format
-    unsigned char* pSrcBuf; ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
+        enPixelType;         ///< [IN]  \~chinese 像素格式               \~english Pixel format
+    unsigned char* pSrcBuf;  ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
     unsigned int nSrcBufLen; ///< [IN]  \~chinese 输入数据大小           \~english Input data length
 
     unsigned char* pDstBuf; ///< [OUT] \~chinese 输出降噪后的数据       \~english Output data buffer
     unsigned int nDstBufSize; ///< [IN]  \~chinese 提供的输出缓冲区大小   \~english Provided output
                               ///< buffer size
     unsigned int
-        nDstBufLen; ///< [OUT] \~chinese 输出降噪后的数据长度   \~english Output data length
+        nDstBufLen;    ///< [OUT] \~chinese 输出降噪后的数据长度   \~english Output data length
 
     unsigned char*
         pNoiseProfile; ///< [IN]  \~chinese 输入噪声特性           \~english Input Noise Profile
@@ -302,51 +304,51 @@ typedef struct _MV_CC_SPATIAL_DENOISE_PARAM_T_ {
                                         ///< Denoise Strength[0,100]
     unsigned int nBayerSharpenStrength; ///< [IN]  \~chinese 锐化强度[0,32]         \~english
                                         ///< Sharpen Strength[0,32]
-    unsigned int nBayerNoiseCorrect; ///< [IN]  \~chinese 噪声校正系数[0,1280]   \~english Noise
-                                     ///< Correct[0,1280]
+    unsigned int nBayerNoiseCorrect;    ///< [IN]  \~chinese 噪声校正系数[0,1280]   \~english Noise
+                                        ///< Correct[0,1280]
 
     ///< \~chinese Mono8/RGB域空域降噪参数，Bayer域无效     \~english Mono8/RGB Spatial denoise
     ///< param,Bayer formats are invalid
-    unsigned int nNoiseCorrectLum; ///< [IN]  \~chinese 亮度校正系数[1,2000]   \~english Noise
-                                   ///< Correct Lum[1,2000]
+    unsigned int nNoiseCorrectLum;   ///< [IN]  \~chinese 亮度校正系数[1,2000]   \~english Noise
+                                     ///< Correct Lum[1,2000]
     unsigned int nNoiseCorrectChrom; ///< [IN]  \~chinese 色调校正系数[1,2000]   \~english Noise
                                      ///< Correct Chrom[1,2000]
     unsigned int
-        nStrengthLum; ///< [IN]  \~chinese 亮度降噪强度[0,100]    \~english Strength Lum[0,100]
+        nStrengthLum;   ///< [IN]  \~chinese 亮度降噪强度[0,100]    \~english Strength Lum[0,100]
     unsigned int
         nStrengthChrom; ///< [IN]  \~chinese 色调降噪强度[0,100]    \~english Strength Chrom[0,100]
     unsigned int nStrengthSharpen; ///< [IN]  \~chinese 锐化强度[1,1000]       \~english Strength
                                    ///< Sharpen[1,1000]
 
-    unsigned int nRes[8]; ///<       \~chinese 预留                   \~english Reserved
+    unsigned int nRes[8];          ///<       \~chinese 预留                   \~english Reserved
 
 } MV_CC_SPATIAL_DENOISE_PARAM;
 
 /// \~chinese LSC标定结构体             \~english LSC calib structure
 typedef struct _MV_CC_LSC_CALIB_PARAM_T_ {
-    unsigned int nWidth;  ///< [IN]  \~chinese 图像宽度[16,65535]     \~english Image Width
-    unsigned int nHeight; ///< [IN]  \~chinese 图像高度[16-65535]     \~english Image Height
+    unsigned int nWidth;     ///< [IN]  \~chinese 图像宽度[16,65535]     \~english Image Width
+    unsigned int nHeight;    ///< [IN]  \~chinese 图像高度[16-65535]     \~english Image Height
     enum MvGvspPixelType
-        enPixelType;      ///< [IN]  \~chinese 像素格式               \~english Pixel format
-    unsigned char* pSrcBuf; ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
+        enPixelType;         ///< [IN]  \~chinese 像素格式               \~english Pixel format
+    unsigned char* pSrcBuf;  ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
     unsigned int nSrcBufLen; ///< [IN]  \~chinese 输入数据长度           \~english Input data length
 
     unsigned char*
-        pCalibBuf; ///< [OUT] \~chinese 输出标定表缓存         \~english Output calib buffer
+        pCalibBuf;     ///< [OUT] \~chinese 输出标定表缓存         \~english Output calib buffer
     unsigned int
         nCalibBufSize; ///< [IN]  \~chinese 提供的标定表缓冲大小(nWidth*nHeight*sizeof(unsigned
                        ///< short))    \~english Provided output buffer size
     unsigned int nCalibBufLen; ///< [OUT] \~chinese 输出标定表缓存长度     \~english Output calib
                                ///< buffer length
 
-    unsigned int nSecNumW; ///< [IN]  \~chinese 宽度分块数             \~english Width Sec num
-    unsigned int nSecNumH; ///< [IN]  \~chinese 高度分块数             \~english Height Sec num
-    unsigned int nPadCoef; ///< [IN]  \~chinese 边缘填充系数[1,5]      \~english Pad Coef[1,5]
+    unsigned int nSecNumW;     ///< [IN]  \~chinese 宽度分块数             \~english Width Sec num
+    unsigned int nSecNumH;     ///< [IN]  \~chinese 高度分块数             \~english Height Sec num
+    unsigned int nPadCoef;     ///< [IN]  \~chinese 边缘填充系数[1,5]      \~english Pad Coef[1,5]
     unsigned int
         nCalibMethod; ///< [IN]  \~chinese 标定方式(0-中心为基准;1-最亮区域为基准;2-目标亮度为基准)
                       ///< \~english Calib method
     unsigned int
-        nTargetGray; ///< [IN]  \~chinese 目标亮度(标定方式为2时有效)    \~english Target Gray
+        nTargetGray;  ///< [IN]  \~chinese 目标亮度(标定方式为2时有效)    \~english Target Gray
     ///< \~chinese 8位,范围：[0,255]            \~english 8bit,range:[0,255]
     ///< \~chinese 10位,范围：[0,1023]          \~english 10bit,range:[0,1023]
     ///< \~chinese 12位,范围：[0,4095]          \~english 12bit,range:[0,4095]
@@ -357,11 +359,11 @@ typedef struct _MV_CC_LSC_CALIB_PARAM_T_ {
 
 /// \~chinese LSC校正结构体             \~english LSC correct structure
 typedef struct _MV_CC_LSC_CORRECT_PARAM_T_ {
-    unsigned int nWidth;  ///< [IN]  \~chinese 图像宽度[16,65535]     \~english Image Width
-    unsigned int nHeight; ///< [IN]  \~chinese 图像高度[16,65535]     \~english Image Height
+    unsigned int nWidth;     ///< [IN]  \~chinese 图像宽度[16,65535]     \~english Image Width
+    unsigned int nHeight;    ///< [IN]  \~chinese 图像高度[16,65535]     \~english Image Height
     enum MvGvspPixelType
-        enPixelType;      ///< [IN]  \~chinese 像素格式               \~english Pixel format
-    unsigned char* pSrcBuf; ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
+        enPixelType;         ///< [IN]  \~chinese 像素格式               \~english Pixel format
+    unsigned char* pSrcBuf;  ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
     unsigned int nSrcBufLen; ///< [IN]  \~chinese 输入数据长度           \~english Input data length
 
     unsigned char* pDstBuf; ///< [OUT] \~chinese 输出数据缓存           \~english Output data buffer
@@ -375,7 +377,7 @@ typedef struct _MV_CC_LSC_CORRECT_PARAM_T_ {
     unsigned int nCalibBufLen; ///< [IN]  \~chinese 输入标定表缓存长度     \~english Input calib
                                ///< buffer length
 
-    unsigned int nRes[8]; ///<       \~chinese 预留                   \~english Reserved
+    unsigned int nRes[8];      ///<       \~chinese 预留                   \~english Reserved
 
 } MV_CC_LSC_CORRECT_PARAM;
 
@@ -419,7 +421,7 @@ typedef struct _MV_XML_NODE_FEATURE_ {
                                                    ///< Node Description, NOT SUPPORT NOW
     char strDisplayName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 显示名称         \~english Display
                                                    ///< Name
-    char strName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 节点名           \~english Node Name
+    char strName[MV_MAX_XML_NODE_STRLEN_C];    ///< \~chinese 节点名           \~english Node Name
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C]; ///< \~chinese 提示             \~english Notice
 
     unsigned int nReserved[4];
@@ -437,13 +439,13 @@ typedef struct _MV_XML_FEATURE_Value_ {
                                                    ///< Node Description, NOT SUPPORT NOW
     char strDisplayName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 显示名称         \~english Display
                                                    ///< Name
-    char strName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 节点名           \~english Node Name
+    char strName[MV_MAX_XML_NODE_STRLEN_C];    ///< \~chinese 节点名           \~english Node Name
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C]; ///< \~chinese 提示             \~english Notice
     unsigned int nReserved[4];
 } MV_XML_FEATURE_Value;
 
 typedef struct _MV_XML_FEATURE_Base_ {
-    enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
+    enum MV_XML_AccessMode enAccessMode;       ///< \~chinese 访问模式         \~english Access Mode
 } MV_XML_FEATURE_Base;
 
 typedef struct _MV_XML_FEATURE_Integer_ {
@@ -453,10 +455,10 @@ typedef struct _MV_XML_FEATURE_Integer_ {
                                                    ///< SUPPORT NOW
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C];
 
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
-    int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
-                   ///< 1-YES, NOT SUPPORT NOW
+    int bIsLocked;      ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
+                        ///< 1-YES, NOT SUPPORT NOW
     int64_t nValue;     ///< \~chinese 当前值           \~english Current Value
     int64_t nMinValue;  ///< \~chinese 最小值           \~english Min Value
     int64_t nMaxValue;  ///< \~chinese 最大值           \~english Max Value
@@ -473,11 +475,11 @@ typedef struct _MV_XML_FEATURE_Boolean_ {
                                                    ///< SUPPORT NOW
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C];
 
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
     int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
                    ///< 1-YES, NOT SUPPORT NOW
-    bool bValue; ///< \~chinese 当前值           \~english Current Value
+    bool bValue;   ///< \~chinese 当前值           \~english Current Value
 
     unsigned int nReserved[4];
 } MV_XML_FEATURE_Boolean;
@@ -489,7 +491,7 @@ typedef struct _MV_XML_FEATURE_Command_ {
                                                    ///< SUPPORT NOW
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C];
 
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
     int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
                    ///< 1-YES, NOT SUPPORT NOW
@@ -504,10 +506,10 @@ typedef struct _MV_XML_FEATURE_Float_ {
                                                    ///< SUPPORT NOW
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C];
 
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
-    int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
-                   ///< 1-YES, NOT SUPPORT NOW
+    int bIsLocked;      ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
+                        ///< 1-YES, NOT SUPPORT NOW
     double dfValue;     ///< \~chinese 当前值           \~english Current Value
     double dfMinValue;  ///< \~chinese 最小值           \~english Min Value
     double dfMaxValue;  ///< \~chinese 最大值           \~english Max Value
@@ -523,12 +525,12 @@ typedef struct _MV_XML_FEATURE_String_ {
                                                    ///< SUPPORT NOW
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C];
 
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
     int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
                    ///< 1-YES, NOT SUPPORT NOW
-    char strValue[MV_MAX_XML_STRVALUE_STRLEN_C]; ///< \~chinese 当前值           \~english Current
-                                                 ///< Value
+    char strValue[MV_MAX_XML_STRVALUE_STRLEN_C];   ///< \~chinese 当前值           \~english Current
+                                                   ///< Value
 
     unsigned int nReserved[4];
 } MV_XML_FEATURE_String;
@@ -540,10 +542,10 @@ typedef struct _MV_XML_FEATURE_Register_ {
                                                    ///< SUPPORT NOW
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C];
 
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
-    int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
-                   ///< 1-YES, NOT SUPPORT NOW
+    int bIsLocked;      ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
+                        ///< 1-YES, NOT SUPPORT NOW
     int64_t nAddrValue; ///< \~chinese 当前值           \~english Current Value
 
     unsigned int nReserved[4];
@@ -554,7 +556,7 @@ typedef struct _MV_XML_FEATURE_Category_ {
                                                    ///< Node Description, NOT SUPPORT NOW
     char strDisplayName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 显示名称         \~english Display
                                                    ///< Name
-    char strName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 节点名           \~english Node Name
+    char strName[MV_MAX_XML_NODE_STRLEN_C];    ///< \~chinese 节点名           \~english Node Name
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C]; ///< \~chinese 提示             \~english Notice
 
     enum MV_XML_Visibility enVisivility;       ///< \~chinese 是否可见         \~english Visible
@@ -572,7 +574,7 @@ typedef struct _MV_XML_FEATURE_EnumEntry_ {
     int nParentsNum;
     MV_XML_NODE_FEATURE stParentsList[MV_MAX_XML_PARENTS_NUM];
 
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     int64_t nValue;                      ///< \~chinese 当前值           \~english Current Value
     enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
     int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
@@ -582,12 +584,12 @@ typedef struct _MV_XML_FEATURE_EnumEntry_ {
 } MV_XML_FEATURE_EnumEntry;
 
 typedef struct _MV_XML_FEATURE_Enumeration_ {
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     char strDescription[MV_MAX_XML_DISC_STRLEN_C]; ///< \~chinese 节点描述 目前暂不支持    \~english
                                                    ///< Node Description, NOT SUPPORT NOW
     char strDisplayName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 显示名称         \~english Display
                                                    ///< Name
-    char strName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 节点名           \~english Node Name
+    char strName[MV_MAX_XML_NODE_STRLEN_C];    ///< \~chinese 节点名           \~english Node Name
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C]; ///< \~chinese 提示             \~english Notice
 
     int nSymbolicNum; ///< \~chinese ymbolic数        \~english Symbolic Number
@@ -595,23 +597,23 @@ typedef struct _MV_XML_FEATURE_Enumeration_ {
                                                            ///< Current Symbolic Index
     char strSymbolic[MV_MAX_XML_SYMBOLIC_NUM][MV_MAX_XML_SYMBOLIC_STRLEN_C];
     enum MV_XML_AccessMode enAccessMode; ////< \~chinese 访问模式        \~english Access Mode
-    int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
-                   ///< 1-YES, NOT SUPPORT NOW
-    int64_t nValue;                      ///< \~chinese 当前值           \~english Current Value
+    int bIsLocked;  ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
+                    ///< 1-YES, NOT SUPPORT NOW
+    int64_t nValue; ///< \~chinese 当前值           \~english Current Value
 
     unsigned int nReserved[4];
 } MV_XML_FEATURE_Enumeration;
 
 typedef struct _MV_XML_FEATURE_Port_ {
-    enum MV_XML_Visibility enVisivility; ///< \~chinese 是否可见         \~english Visible
+    enum MV_XML_Visibility enVisivility;           ///< \~chinese 是否可见         \~english Visible
     char strDescription[MV_MAX_XML_DISC_STRLEN_C]; ///< \~chinese 节点描述,目前暂不支持    \~english
                                                    ///< Node Description, NOT SUPPORT NOW
     char strDisplayName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 显示名称         \~english Display
                                                    ///< Name
-    char strName[MV_MAX_XML_NODE_STRLEN_C]; ///< \~chinese 节点名           \~english Node Name
+    char strName[MV_MAX_XML_NODE_STRLEN_C];    ///< \~chinese 节点名           \~english Node Name
     char strToolTip[MV_MAX_XML_DISC_STRLEN_C]; ///< \~chinese 提示             \~english Notice
 
-    enum MV_XML_AccessMode enAccessMode; ///< \~chinese 访问模式         \~english Access Mode
+    enum MV_XML_AccessMode enAccessMode;       ///< \~chinese 访问模式         \~english Access Mode
     int bIsLocked; ///< \~chinese 是否锁定。0-否；1-是,目前暂不支持    \~english Locked. 0-NO;
                    ///< 1-YES, NOT SUPPORT NOW
 
@@ -631,7 +633,7 @@ typedef struct _MV_XML_CAMERA_FEATURE_ {
 
 /// \~chinese 图片保存参数              \~english Save Image Parameters
 typedef struct _MV_SAVE_IMAGE_PARAM_T_EX_ {
-    unsigned char* pData; ///< [IN]  \~chinese 输入数据缓存           \~english Input Data Buffer
+    unsigned char* pData;  ///< [IN]  \~chinese 输入数据缓存           \~english Input Data Buffer
     unsigned int nDataLen; ///< [IN]  \~chinese 输入数据长度           \~english Input Data length
     enum MvGvspPixelType
         enPixelType; ///< [IN]  \~chinese 输入数据的像素格式     \~english Input Data Pixel Format
@@ -641,13 +643,13 @@ typedef struct _MV_SAVE_IMAGE_PARAM_T_EX_ {
     unsigned char*
         pImageBuffer; ///< [OUT] \~chinese 输出图片缓存           \~english Output Image Buffer
     unsigned int
-        nImageLen; ///< [OUT] \~chinese 输出图片长度           \~english Output Image length
+        nImageLen;    ///< [OUT] \~chinese 输出图片长度           \~english Output Image length
     unsigned int nBufferSize; ///< [IN]  \~chinese 提供的输出缓冲区大小   \~english Output buffer
                               ///< size provided
     enum MV_SAVE_IAMGE_TYPE
         enImageType; ///< [IN]  \~chinese 输出图片格式           \~english Output Image Format
-    unsigned int nJpgQuality; ///< [IN]  \~chinese JPG编码质量(50-99]，其它格式无效   \~english
-                              ///< Encoding quality(50-99]，Other formats are invalid
+    unsigned int nJpgQuality;  ///< [IN]  \~chinese JPG编码质量(50-99]，其它格式无效   \~english
+                               ///< Encoding quality(50-99]，Other formats are invalid
 
     unsigned int iMethodValue; ///< [IN]  \~chinese 插值方法 0-快速 1-均衡
                                ///< 2-最优（其它值默认为最优） 3-最优+  \~english Bayer
@@ -661,15 +663,15 @@ typedef struct _MV_SAVE_IMAGE_PARAM_T_EX_ {
 typedef struct _MV_SAVE_IMG_TO_FILE_PARAM_ {
     enum MvGvspPixelType enPixelType; ///< [IN]  \~chinese输入数据的像素格式      \~english The
                                       ///< pixel format of the input data
-    unsigned char* pData; ///< [IN]  \~chinese 输入数据缓存           \~english Input Data Buffer
-    unsigned int nDataLen; ///< [IN]  \~chinese 输入数据长度           \~english Input Data length
+    unsigned char* pData;   ///< [IN]  \~chinese 输入数据缓存           \~english Input Data Buffer
+    unsigned int nDataLen;  ///< [IN]  \~chinese 输入数据长度           \~english Input Data length
     unsigned short nWidth;  ///< [IN]  \~chinese 图像宽                 \~english Image Width
     unsigned short nHeight; ///< [IN]  \~chinese 图像高                 \~english Image Height
     enum MV_SAVE_IAMGE_TYPE
-        enImageType; ///< [IN]  \~chinese 输入图片格式           \~english Input Image Format
-    unsigned int nQuality; ///< [IN]  \~chinese JPG编码质量(50-99]，其它格式无效 \~english JPG
-                           ///< Encoding quality(50-99],Other formats are invalid
-    char pImagePath[256]; ///< [IN]  \~chinese 输入文件路径           \~english Input file path
+        enImageType;        ///< [IN]  \~chinese 输入图片格式           \~english Input Image Format
+    unsigned int nQuality;  ///< [IN]  \~chinese JPG编码质量(50-99]，其它格式无效 \~english JPG
+                            ///< Encoding quality(50-99],Other formats are invalid
+    char pImagePath[256];   ///< [IN]  \~chinese 输入文件路径           \~english Input file path
 
     int iMethodValue; ///< [IN]  \~chinese 插值方法 0-快速 1-均衡 2-最优（其它值默认为最优） 3-最优+
                       ///< \~english Bayer interpolation method  0-Fast 1-Equilibrium 2-Optimal
@@ -688,18 +690,18 @@ typedef struct _MV_CC_PIXEL_CONVERT_PARAM_ {
         enSrcPixelType; ///< [IN]  \~chinese 源像素格式             \~english Source pixel format
     unsigned char* pSrcData; ///< [IN]  \~chinese 输入数据缓存           \~english Input data buffer
     unsigned int
-        nSrcDataLen; ///< [IN]  \~chinese 输入数据长度           \~english Input data length
+        nSrcDataLen;         ///< [IN]  \~chinese 输入数据长度           \~english Input data length
 
     enum MvGvspPixelType enDstPixelType; ///< [IN]  \~chinese 目标像素格式           \~english
                                          ///< Destination pixel format
     unsigned char*
-        pDstBuffer; ///< [OUT] \~chinese 输出数据缓存           \~english Output data buffer
+        pDstBuffer;       ///< [OUT] \~chinese 输出数据缓存           \~english Output data buffer
     unsigned int nDstLen; ///< [OUT] \~chinese 输出数据长度           \~english Output data length
     unsigned int nDstBufferSize; ///< [IN]  \~chinese 提供的输出缓冲区大小   \~english Provided
                                  ///< output buffer size
 
-    unsigned int nRes[4]; ///<       \~chinese 预留                   \~english Reserved
+    unsigned int nRes[4];        ///<       \~chinese 预留                   \~english Reserved
 
 } MV_CC_PIXEL_CONVERT_PARAM;
 
-#endif                    /* _MV_OBSOLETE_CAM_PARAMS_H_ */
+#endif                           /* _MV_OBSOLETE_CAM_PARAMS_H_ */

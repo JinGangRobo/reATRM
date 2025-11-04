@@ -87,8 +87,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_EnumerateTls();
   invoked by multiple threads, the memory of the device list will be released and applied.\n It is
   recommended to avoid multithreaded enumeration operations as much as possible.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_EnumDevices(
-    IN unsigned int nTLayerType, IN OUT MV_CC_DEVICE_INFO_LIST* pstDevList);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_EnumDevices(IN unsigned int nTLayerType, IN OUT MV_CC_DEVICE_INFO_LIST* pstDevList);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -135,8 +135,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_EnumDevicesEx(
   support the 3 preemption modes, neither do the devices from other mainstream manufacturers. \n
               This API is not supported by CameraLink device.
   ************************************************************************/
-MVSDKEXPORT_API bool __stdcall MV_CC_IsDeviceAccessible(
-    IN MV_CC_DEVICE_INFO* pstDevInfo, IN unsigned int nAccessMode);
+MVSDKEXPORT_API bool __stdcall
+    MV_CC_IsDeviceAccessible(IN MV_CC_DEVICE_INFO* pstDevInfo, IN unsigned int nAccessMode);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -157,8 +157,8 @@ MVSDKEXPORT_API bool __stdcall MV_CC_IsDeviceAccessible(
   file will be created by default. Creating handle through MV_CC_CreateHandleWithoutLog will not
   generate log files.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_CreateHandle(
-    OUT void** handle, IN const MV_CC_DEVICE_INFO* pstDevInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_CreateHandle(OUT void** handle, IN const MV_CC_DEVICE_INFO* pstDevInfo);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -179,8 +179,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_CreateHandle(
   file will not be created. To create logs, create handle through MV_CC_CreateHandle, and log files
   will be automatically generated.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_CreateHandleWithoutLog(
-    OUT void** handle, IN const MV_CC_DEVICE_INFO* pstDevInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_CreateHandleWithoutLog(OUT void** handle, IN const MV_CC_DEVICE_INFO* pstDevInfo);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -497,8 +497,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetImageForBGR(
   supported by CameraLink device. \n This API is supported by both USB3 vision camera and GigE
   camera. \n
   **********************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetImageBuffer(
-    IN void* handle, OUT MV_FRAME_OUT* pstFrame, IN int nMsec);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetImageBuffer(IN void* handle, OUT MV_FRAME_OUT* pstFrame, IN int nMsec);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -596,8 +596,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_ClearImageBuffer(IN void* handle);
   *  @remarks This API is valid for USB3Vision camera and GIGE camera. \n
               This API is not supported by CameraLink device.
   ***********************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_DisplayOneFrame(
-    IN void* handle, IN MV_DISPLAY_FRAME_INFO* pstDisplayInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_DisplayOneFrame(IN void* handle, IN MV_DISPLAY_FRAME_INFO* pstDisplayInfo);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -652,8 +652,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetImageNodeNum(IN void* handle, unsigned in
   interface, wait the next upcoming image generated. Support for GigE camera only, not support for
   U3V camera.
   ***********************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetGrabStrategy(
-    IN void* handle, IN MV_GRAB_STRATEGY enGrabStrategy);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetGrabStrategy(IN void* handle, IN MV_GRAB_STRATEGY enGrabStrategy);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -674,8 +674,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetGrabStrategy(
   the maximum allowance queue size of the image under the LatestImages strategy. The user may change
   the output queue size while grabbing images.
   ***********************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetOutputQueueSize(
-    IN void* handle, IN unsigned int nOutputQueueSize);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetOutputQueueSize(IN void* handle, IN unsigned int nOutputQueueSize);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -695,8 +695,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetOutputQueueSize(
               If the device is a GigE camera, there is a blocking risk in calling the interface, so
   it is not recommended to call the interface during the fetching process.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetDeviceInfo(
-    IN void* handle, IN OUT MV_CC_DEVICE_INFO* pstDevInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetDeviceInfo(IN void* handle, IN OUT MV_CC_DEVICE_INFO* pstDevInfo);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -723,8 +723,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetDeviceInfo(
   after starting device to get MV_MATCH_TYPE_USB_DETECT information of USB3Vision device. \n This
   API is not supported by CameraLink device.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetAllMatchInfo(
-    IN void* handle, IN OUT MV_ALL_MATCH_INFO* pstInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetAllMatchInfo(IN void* handle, IN OUT MV_ALL_MATCH_INFO* pstInfo);
 
 /************************************************************************/
 /* 设置和获取设备参数的万能接口                                         */
@@ -749,8 +749,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetAllMatchInfo(
   *  @remarks You can call this API to get the value of camera node with integer type after
   connecting the device.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetIntValueEx(
-    IN void* handle, IN const char* strKey, OUT MVCC_INTVALUE_EX* pstIntValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetIntValueEx(IN void* handle, IN const char* strKey, OUT MVCC_INTVALUE_EX* pstIntValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -771,8 +771,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetIntValueEx(
   *  @remarks You can call this API to get the value of camera node with integer type after
   connecting the device.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetIntValueEx(
-    IN void* handle, IN const char* strKey, IN int64_t nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetIntValueEx(IN void* handle, IN const char* strKey, IN int64_t nValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -792,8 +792,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetIntValueEx(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks After the device is connected, call this interface to get specified Enum nodes.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetEnumValue(
-    IN void* handle, IN const char* strKey, OUT MVCC_ENUMVALUE* pstEnumValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetEnumValue(IN void* handle, IN const char* strKey, OUT MVCC_ENUMVALUE* pstEnumValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -813,8 +813,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetEnumValue(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks After the device is connected, call this interface to get specified Enum nodes.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetEnumValue(
-    IN void* handle, IN const char* strKey, IN unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetEnumValue(IN void* handle, IN const char* strKey, IN unsigned int nValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -835,8 +835,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetEnumValue(
   *  @remarks Call this API after connecting the device. All the values of nodes with IEnumeration
   type can be set via this API.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetEnumValueByString(
-    IN void* handle, IN const char* strKey, IN const char* strValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetEnumValueByString(IN void* handle, IN const char* strKey, IN const char* strValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -855,8 +855,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetEnumValueByString(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks After the device is connected, call this interface to get specified float node.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetFloatValue(
-    IN void* handle, IN const char* strKey, OUT MVCC_FLOATVALUE* pstFloatValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetFloatValue(IN void* handle, IN const char* strKey, OUT MVCC_FLOATVALUE* pstFloatValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -875,8 +875,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetFloatValue(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks After the device is connected, call this interface to set specified float node.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetFloatValue(
-    IN void* handle, IN const char* strKey, IN float fValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetFloatValue(IN void* handle, IN const char* strKey, IN float fValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -895,8 +895,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetFloatValue(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks After the device is connected, call this interface to get specified bool nodes.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetBoolValue(
-    IN void* handle, IN const char* strKey, OUT bool* pbValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetBoolValue(IN void* handle, IN const char* strKey, OUT bool* pbValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -915,8 +915,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetBoolValue(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks After the device is connected, call this interface to set specified bool nodes.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBoolValue(
-    IN void* handle, IN const char* strKey, IN bool bValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBoolValue(IN void* handle, IN const char* strKey, IN bool bValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -955,8 +955,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetStringValue(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks After the device is connected, call this interface to set specified string nodes.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetStringValue(
-    IN void* handle, IN const char* strKey, IN const char* strValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetStringValue(IN void* handle, IN const char* strKey, IN const char* strValue);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1050,8 +1050,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetUpgradeProcess(IN void* handle, unsigned 
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks Access device, read the data from certain register.
  *************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_ReadMemory(
-    IN void* handle, void* pBuffer, int64_t nAddress, int64_t nLength);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_ReadMemory(IN void* handle, void* pBuffer, int64_t nAddress, int64_t nLength);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1076,8 +1076,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_ReadMemory(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks Access device, write a piece of data into a certain segment of register.
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_WriteMemory(
-    IN void* handle, const void* pBuffer, int64_t nAddress, int64_t nLength);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_WriteMemory(IN void* handle, const void* pBuffer, int64_t nAddress, int64_t nLength);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1363,8 +1363,8 @@ MVSDKEXPORT_API int __stdcall MV_GIGE_SetRetryGvcpTimes(void* handle, unsigned i
   *  @remarks This interface is used to get the current number of GVCP retransmissions, which
   defaults to 3.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_GIGE_GetRetryGvcpTimes(
-    void* handle, unsigned int* pnRetryGvcpTimes);
+MVSDKEXPORT_API int __stdcall
+    MV_GIGE_GetRetryGvcpTimes(void* handle, unsigned int* pnRetryGvcpTimes);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1428,8 +1428,8 @@ MVSDKEXPORT_API int __stdcall MV_GIGE_SetResend(
   MV_GIGE_SetResend, \n
   *           otherwise would fail and return MV_E_CALLORDER.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_GIGE_SetResendMaxRetryTimes(
-    void* handle, unsigned int nRetryTimes);
+MVSDKEXPORT_API int __stdcall
+    MV_GIGE_SetResendMaxRetryTimes(void* handle, unsigned int nRetryTimes);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1449,8 +1449,8 @@ MVSDKEXPORT_API int __stdcall MV_GIGE_SetResendMaxRetryTimes(
   MV_GIGE_SetResend, \n
   *           otherwise would fail and return MV_E_CALLORDER.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_GIGE_GetResendMaxRetryTimes(
-    void* handle, unsigned int* pnRetryTimes);
+MVSDKEXPORT_API int __stdcall
+    MV_GIGE_GetResendMaxRetryTimes(void* handle, unsigned int* pnRetryTimes);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1508,8 +1508,8 @@ MVSDKEXPORT_API int __stdcall MV_GIGE_GetResendTimeInterval(void* handle, unsign
   *  @remarks Call this API to set the transmission mode as single cast mode and multicast mode. And
   this API is only valid for GigEVision camera.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_GIGE_SetTransmissionType(
-    void* handle, MV_TRANSMISSION_TYPE* pstTransmissionType);
+MVSDKEXPORT_API int __stdcall
+    MV_GIGE_SetTransmissionType(void* handle, MV_TRANSMISSION_TYPE* pstTransmissionType);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1546,8 +1546,8 @@ MVSDKEXPORT_API int __stdcall MV_GIGE_IssueActionCommand(
   state, and to solve the problem that the client needs to turn on the camera to determine multicast
   when enumerating.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_GIGE_GetMulticastStatus(
-    IN MV_CC_DEVICE_INFO* pstDevInfo, OUT bool* pbStatus);
+MVSDKEXPORT_API int __stdcall
+    MV_GIGE_GetMulticastStatus(IN MV_CC_DEVICE_INFO* pstDevInfo, OUT bool* pbStatus);
 
 /************************************************************************/
 /* CameraLink 设备独有的接口                                            */
@@ -1591,8 +1591,8 @@ MVSDKEXPORT_API int __stdcall MV_CAML_SetDeviceBaudrate(IN void* handle, unsigne
   *  @remarks This API is supported only by CameraLink device.\n
               This API support calls when devices are not connected.
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CAML_GetDeviceBaudrate(
-    IN void* handle, unsigned int* pnCurrentBaudrate);
+MVSDKEXPORT_API int __stdcall
+    MV_CAML_GetDeviceBaudrate(IN void* handle, unsigned int* pnCurrentBaudrate);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1614,8 +1614,8 @@ MVSDKEXPORT_API int __stdcall MV_CAML_GetDeviceBaudrate(
   *  @remarks This API is supported only by CameraLink device.\n
               This API support calls when devices are not connected.
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CAML_GetSupportBaudrates(
-    IN void* handle, unsigned int* pnBaudrateAblity);
+MVSDKEXPORT_API int __stdcall
+    MV_CAML_GetSupportBaudrates(IN void* handle, unsigned int* pnBaudrateAblity);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1777,8 +1777,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_EnumDevicesByGenTL(
   *  @remarks Create required resources within library and initialize internal module according to
   input device information.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_CreateHandleByGenTL(
-    OUT void** handle, IN const MV_GENTL_DEV_INFO* pstDevInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_CreateHandleByGenTL(OUT void** handle, IN const MV_GENTL_DEV_INFO* pstDevInfo);
 
 /************************************************************************/
 /* XML解析树的生成                                                      */
@@ -1877,8 +1877,8 @@ MVSDKEXPORT_API int __stdcall MV_XML_GetNodeInterfaceType(
   to convert the format. \n Comparing with the API MV_CC_SaveImageEx, this API added the parameter
   handle to ensure the unity with other API.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SaveImageEx2(
-    IN void* handle, MV_SAVE_IMAGE_PARAM_EX* pstSaveParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SaveImageEx2(IN void* handle, MV_SAVE_IMAGE_PARAM_EX* pstSaveParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1895,8 +1895,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SaveImageEx2(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks This API support BMP/JPEG/PNG/TIFF.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SaveImageToFile(
-    IN void* handle, MV_SAVE_IMG_TO_FILE_PARAM* pstSaveFileParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SaveImageToFile(IN void* handle, MV_SAVE_IMG_TO_FILE_PARAM* pstSaveFileParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1917,8 +1917,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SaveImageToFile(
   PixelType_Gvsp_Coord3D_ABC32、PixelType_Gvsp_Coord3D_ABC32f、PixelType_Gvsp_Coord3D_AB32、PixelType_Gvsp_Coord3D_AB32f、PixelType_Gvsp_Coord3D_AC32、PixelType_Gvsp_Coord3D_AC32f,Other
   3D format is not supported now.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SavePointCloudData(
-    IN void* handle, MV_SAVE_POINT_CLOUD_PARAM* pstPointDataParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SavePointCloudData(IN void* handle, MV_SAVE_POINT_CLOUD_PARAM* pstPointDataParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1935,8 +1935,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SavePointCloudData(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks This API only support 90/180/270 rotation of data in the MONO8/RGB24/BGR24 format.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_RotateImage(
-    IN void* handle, IN OUT MV_CC_ROTATE_IMAGE_PARAM* pstRotateParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_RotateImage(IN void* handle, IN OUT MV_CC_ROTATE_IMAGE_PARAM* pstRotateParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1954,8 +1954,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_RotateImage(
   *  @remarks This API only support vertical and horizontal reverse of data in the MONO8/RGB24/BGR24
   format.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_FlipImage(
-    IN void* handle, IN OUT MV_CC_FLIP_IMAGE_PARAM* pstFlipParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_FlipImage(IN void* handle, IN OUT MV_CC_FLIP_IMAGE_PARAM* pstFlipParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -1978,8 +1978,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_FlipImage(
   set callback function, and get a frame of image data, then call this API to transform the format.
   \n
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_ConvertPixelType(
-    IN void* handle, IN OUT MV_CC_PIXEL_CONVERT_PARAM* pstCvtParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_ConvertPixelType(IN void* handle, IN OUT MV_CC_PIXEL_CONVERT_PARAM* pstCvtParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2001,8 +2001,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_ConvertPixelType(
   interface, and the interpolation algorithm used in the MV_CC_ConvertPixelType and
   MV_CC_GetImageForRGB/BGR interfaces is set by this interface.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBayerCvtQuality(
-    IN void* handle, IN unsigned int nBayerCvtQuality);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBayerCvtQuality(IN void* handle, IN unsigned int nBayerCvtQuality);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2044,8 +2044,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBayerGammaValue(IN void* handle, IN float
   MV_CC_ConvertPixelType\MV_CC_SaveImageEx2 API convert Bayer8/10/12/16 to RGB24/48，
   RGBA32/64，BGR24/48，BGRA32/64.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBayerGammaParam(
-    IN void* handle, IN MV_CC_GAMMA_PARAM* pstGammaParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBayerGammaParam(IN void* handle, IN MV_CC_GAMMA_PARAM* pstGammaParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2066,8 +2066,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBayerGammaParam(
   calling MV_CC_ConvertPixelType\MV_CC_SaveImageEx2 API convert Bayer8/10/12/16 to RGB24/48，
   RGBA32/64，BGR24/48，BGRA32/64.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBayerCCMParam(
-    IN void* handle, IN MV_CC_CCM_PARAM* pstCCMParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBayerCCMParam(IN void* handle, IN MV_CC_CCM_PARAM* pstCCMParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2088,8 +2088,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBayerCCMParam(
   calling MV_CC_ConvertPixelType\MV_CC_SaveImageEx2 API convert Bayer8/10/12/16 to RGB24/48，
   RGBA32/64，BGR24/48，BGRA32/64.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBayerCCMParamEx(
-    IN void* handle, IN MV_CC_CCM_PARAM_EX* pstCCMParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBayerCCMParamEx(IN void* handle, IN MV_CC_CCM_PARAM_EX* pstCCMParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2110,8 +2110,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBayerCCMParamEx(
   MV_CC_ConvertPixelType\MV_CC_SaveImageEx2 API convert Bayer8/10/12/16 to RGB24/48，
   RGBA32/64，BGR24/48，BGRA32/64.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBayerCLUTParam(
-    IN void* handle, IN MV_CC_CLUT_PARAM* pstCLUTParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBayerCLUTParam(IN void* handle, IN MV_CC_CLUT_PARAM* pstCLUTParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2126,8 +2126,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBayerCLUTParam(
   *  @param  pstContrastParam            [IN]            Contrast parameter structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_ImageContrast(
-    IN void* handle, IN OUT MV_CC_CONTRAST_PARAM* pstContrastParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_ImageContrast(IN void* handle, IN OUT MV_CC_CONTRAST_PARAM* pstContrastParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2142,8 +2142,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_ImageContrast(
   *  @param  pstSharpenParam             [IN]            Sharpen parameter structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_ImageSharpen(
-    IN void* handle, IN OUT MV_CC_SHARPEN_PARAM* pstSharpenParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_ImageSharpen(IN void* handle, IN OUT MV_CC_SHARPEN_PARAM* pstSharpenParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2162,8 +2162,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_ImageSharpen(
   *  @remarks This API supports CCM or CLUT alone, as well as CCM and CLUT at the same time. The
   user can select by means of the enable switch in CCM and CLUT information.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_ColorCorrect(
-    IN void* handle, IN OUT MV_CC_COLOR_CORRECT_PARAM* pstColorCorrectParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_ColorCorrect(IN void* handle, IN OUT MV_CC_COLOR_CORRECT_PARAM* pstColorCorrectParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2180,8 +2180,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_ColorCorrect(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks If the user selects the full image, nROINum can be typed with 0 and pstROIRect empty.
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_NoiseEstimate(
-    IN void* handle, IN OUT MV_CC_NOISE_ESTIMATE_PARAM* pstNoiseEstimateParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_NoiseEstimate(IN void* handle, IN OUT MV_CC_NOISE_ESTIMATE_PARAM* pstNoiseEstimateParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2212,8 +2212,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SpatialDenoise(
   *  @param  pstLSCCalibParam            [IN]            LSC Calib parameter structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_LSCCalib(
-    IN void* handle, IN OUT MV_CC_LSC_CALIB_PARAM* pstLSCCalibParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_LSCCalib(IN void* handle, IN OUT MV_CC_LSC_CALIB_PARAM* pstLSCCalibParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2228,8 +2228,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_LSCCalib(
   *  @param  pstLSCCorrectParam          [IN]            LSC Correct parameter structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_LSCCorrect(
-    IN void* handle, IN OUT MV_CC_LSC_CORRECT_PARAM* pstLSCCorrectParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_LSCCorrect(IN void* handle, IN OUT MV_CC_LSC_CORRECT_PARAM* pstLSCCorrectParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2247,8 +2247,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_LSCCorrect(
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks Decode the lossless compressed data from the camera into raw data
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_HB_Decode(
-    IN void* handle, IN OUT MV_CC_HB_DECODE_PARAM* pstDecodeParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_HB_Decode(IN void* handle, IN OUT MV_CC_HB_DECODE_PARAM* pstDecodeParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2293,8 +2293,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_FeatureLoad(IN void* handle, IN const char* 
   *  @param  pstFileAccess               [IN]            File access structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_FileAccessRead(
-    IN void* handle, IN MV_CC_FILE_ACCESS* pstFileAccess);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_FileAccessRead(IN void* handle, IN MV_CC_FILE_ACCESS* pstFileAccess);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2309,8 +2309,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_FileAccessRead(
   *  @param  pstFileAccess               [IN]            File access structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_FileAccessWrite(
-    IN void* handle, IN MV_CC_FILE_ACCESS* pstFileAccess);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_FileAccessWrite(IN void* handle, IN MV_CC_FILE_ACCESS* pstFileAccess);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2341,8 +2341,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetFileAccessProgress(
   *  @param  pstRecordParam              [IN]            Record param structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_StartRecord(
-    IN void* handle, IN MV_CC_RECORD_PARAM* pstRecordParam);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_StartRecord(IN void* handle, IN MV_CC_RECORD_PARAM* pstRecordParam);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2357,8 +2357,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_StartRecord(
   *  @param  pstInputFrameInfo           [IN]            Record data structure
   *  @return Success, return MV_OK. Failure, return error code
   ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_InputOneFrame(
-    IN void* handle, IN MV_CC_INPUT_FRAME_INFO* pstInputFrameInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_InputOneFrame(IN void* handle, IN MV_CC_INPUT_FRAME_INFO* pstInputFrameInfo);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -2390,8 +2390,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_StopRecord(IN void* handle);
  *  @param  pstInfo                     [IN][OUT]       Structure pointer of image basic information
  *  @return Success, return MV_OK. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetImageInfo(
-    IN void* handle, IN OUT MV_IMAGE_BASIC_INFO* pstInfo);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetImageInfo(IN void* handle, IN OUT MV_IMAGE_BASIC_INFO* pstInfo);
 
 /************************************************************************
  *  @fn     MV_CC_SetSDKLogPath()
@@ -2432,8 +2432,8 @@ MVSDKEXPORT_API void* __stdcall MV_CC_GetTlProxy(IN void* handle);
  *  @param       pstNode                [OUT]         Root node information structure
  *  @return Success, return MV_OK. Failure, return error code
  ***********************************************************************/
-MVSDKEXPORT_API int __stdcall MV_XML_GetRootNode(
-    IN void* handle, IN OUT MV_XML_NODE_FEATURE* pstNode);
+MVSDKEXPORT_API int __stdcall
+    MV_XML_GetRootNode(IN void* handle, IN OUT MV_XML_NODE_FEATURE* pstNode);
 
 /***********************************************************************
  *  @fn         MV_XML_GetChildren
@@ -2774,8 +2774,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_Display(IN void* handle, void* hWnd);
  *  @param  MVCC_INTVALUE* pstValue     [IN][OUT]   Structure pointer of camera features
  *  @return Success, return MV_OK. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetIntValue(
-    IN void* handle, IN const char* strKey, OUT MVCC_INTVALUE* pIntValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetIntValue(IN void* handle, IN const char* strKey, OUT MVCC_INTVALUE* pIntValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetIntValue(IN void* handle,
@@ -2797,8 +2797,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetIntValue(
  *          const unsigned int nValue   [IN]        Feature value to set
  *  @return Success, return MV_OK. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetIntValue(
-    IN void* handle, IN const char* strKey, IN unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetIntValue(IN void* handle, IN const char* strKey, IN unsigned int nValue);
 
 /************************************************************************/
 /* 相机参数获取和设置，此模块的所有接口已废弃，建议使用万能接口代替   */
@@ -3006,8 +3006,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetAOIoffsetY(IN void* handle, IN const unsi
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetAutoExposureTimeLower(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetAutoExposureTimeLower(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetAutoExposureTimeLower(IN void* handle, IN const
@@ -3025,8 +3025,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetAutoExposureTimeLower(
  *  @return Success, return MV_OK, and the camera exposure time lower limit value will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetAutoExposureTimeLower(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetAutoExposureTimeLower(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetAutoExposureTimeUpper(IN void* handle, IN OUT
@@ -3048,8 +3048,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetAutoExposureTimeLower(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetAutoExposureTimeUpper(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetAutoExposureTimeUpper(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetAutoExposureTimeUpper(IN void* handle, IN const
@@ -3067,8 +3067,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetAutoExposureTimeUpper(
  *  @return Success, return MV_OK, and the camera exposure time upper limit value will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetAutoExposureTimeUpper(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetAutoExposureTimeUpper(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetBrightness(IN void* handle, IN OUT MVCC_INTVALUE*
@@ -3250,8 +3250,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetGain(IN void* handle, IN const float fVal
  *
  *          Other interface of Float structure parameters can refer to this interface
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetExposureTime(
-    IN void* handle, IN OUT MVCC_FLOATVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetExposureTime(IN void* handle, IN OUT MVCC_FLOATVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetExposureTime(IN void* handle, IN const float
@@ -3311,8 +3311,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetExposureTime(IN void* handle, IN const fl
  for the corresponding definition in PixelType.h and CameraParams.h for the integer values of the
  enum type parameter
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetPixelFormat(
-    IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetPixelFormat(IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetPixelFormat(IN void* handle, IN const unsigned
@@ -3362,8 +3362,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetPixelFormat(IN void* handle, IN const uns
  *
             Refer to MV_CC_GetPixelFormat and definition of MV_CAM_ACQUISITION_MODE in CameraParam.h
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetAcquisitionMode(
-    IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetAcquisitionMode(IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetAcquisitionMode(IN void* handle, IN const
@@ -3382,8 +3382,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetAcquisitionMode(
  *  @return Success, return MV_OK, and the camera acquisition mode will change to the corresponding
  value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetAcquisitionMode(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetAcquisitionMode(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetGainMode(IN void* handle, IN OUT MVCC_ENUMVALUE*
@@ -3446,8 +3446,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetGainMode(IN void* handle, IN const unsign
             Refer to MV_CC_GetPixelFormat and definition of MV_CAM_EXPOSURE_AUTO_MODE in
  CameraParam.h
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetExposureAutoMode(
-    IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetExposureAutoMode(IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetExposureAutoMode(IN void* handle, IN const
@@ -3466,8 +3466,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetExposureAutoMode(
  *  @return Success, return MV_OK, and the camera auto exposure mode will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetExposureAutoMode(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetExposureAutoMode(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetTriggerMode(IN void* handle, IN OUT
@@ -3489,8 +3489,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetExposureAutoMode(
  *
             Refer to MV_CC_GetPixelFormat and definition of MV_CAM_TRIGGER_MODE in CameraParam.h
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetTriggerMode(
-    IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetTriggerMode(IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetTriggerMode(IN void* handle, IN const unsigned
@@ -3531,8 +3531,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetTriggerMode(IN void* handle, IN const uns
  *
  *          Refer to MV_CC_GetFrameRate
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetTriggerDelay(
-    IN void* handle, IN OUT MVCC_FLOATVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetTriggerDelay(IN void* handle, IN OUT MVCC_FLOATVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetTriggerDelay(IN void* handle, IN const float
@@ -3572,8 +3572,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetTriggerDelay(IN void* handle, IN const fl
  *
             Refer to MV_CC_GetPixelFormat and definition of MV_CAM_TRIGGER_SOURCE in CameraParam.h
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetTriggerSource(
-    IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetTriggerSource(IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetTriggerSource(IN void* handle, IN const unsigned
@@ -3628,8 +3628,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_TriggerSoftwareExecute(IN void* handle);
  *
             Refer to MV_CC_GetPixelFormat and definition of MV_CAM_GAMMA_SELECTOR in CameraParam.h
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetGammaSelector(
-    IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetGammaSelector(IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetGammaSelector(IN void* handle, IN const unsigned
@@ -3825,8 +3825,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetSaturation(IN void* handle, IN const unsi
             Refer to MV_CC_GetPixelFormat and definition of MV_CAM_BALANCEWHITE_AUTO in
  CameraParam.h
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceWhiteAuto(
-    IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetBalanceWhiteAuto(IN void* handle, IN OUT MVCC_ENUMVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceWhiteAuto(IN void* handle, IN const
@@ -3845,8 +3845,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceWhiteAuto(
  *  @return Success, return MV_OK, and the camera auto white balance will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceWhiteAuto(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBalanceWhiteAuto(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioRed(IN void* handle, IN OUT
@@ -3867,8 +3867,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceWhiteAuto(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioRed(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetBalanceRatioRed(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioRed(IN void* handle, IN const
@@ -3886,8 +3886,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioRed(
  *  @return Success, return MV_OK, and the camera white balance red will change to the corresponding
  value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioRed(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBalanceRatioRed(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioGreen(IN void* handle, IN OUT
@@ -3908,8 +3908,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioRed(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioGreen(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetBalanceRatioGreen(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioGreen(IN void* handle, IN const
@@ -3927,8 +3927,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioGreen(
  *  @return Success, return MV_OK, and the camera white balance green will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioGreen(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBalanceRatioGreen(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioBlue(IN void* handle, IN OUT
@@ -3949,8 +3949,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioGreen(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioBlue(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetBalanceRatioBlue(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioBlue(IN void* handle, IN const
@@ -3968,8 +3968,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetBalanceRatioBlue(
  *  @return Success, return MV_OK, and the camera white balance blue will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioBlue(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBalanceRatioBlue(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetFrameSpecInfoAbility(IN void* handle, IN OUT
@@ -3992,8 +3992,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBalanceRatioBlue(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetFrameSpecInfoAbility(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetFrameSpecInfoAbility(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetFrameSpecInfoAbility(IN void* handle, IN const
@@ -4011,8 +4011,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetFrameSpecInfoAbility(
  *  @return Success, return MV_OK, and the camera information type included by frame stamp will
  change to the corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetFrameSpecInfoAbility(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetFrameSpecInfoAbility(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetDeviceUserID(IN void* handle, IN OUT
@@ -4029,8 +4029,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetFrameSpecInfoAbility(
  *          MVCC_STRINGVALUE* pstValue  [IN OUT]    Structure pointer of device name
  *  @return Success, return MV_OK, and get the camera user defined name. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetDeviceUserID(
-    IN void* handle, IN OUT MVCC_STRINGVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetDeviceUserID(IN void* handle, IN OUT MVCC_STRINGVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetDeviceUserID(IN void* handle, IN const char*
@@ -4069,8 +4069,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetDeviceUserID(IN void* handle, IN const ch
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetBurstFrameCount(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetBurstFrameCount(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetBurstFrameCount(IN void* handle, IN const
@@ -4088,8 +4088,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetBurstFrameCount(
  *  @return Success, return MV_OK, and the camera frame number trigger by once will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetBurstFrameCount(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetBurstFrameCount(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetAcquisitionLineRate(IN void* handle, IN OUT
@@ -4110,8 +4110,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetBurstFrameCount(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetAcquisitionLineRate(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetAcquisitionLineRate(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetAcquisitionLineRate(IN void* handle, IN const
@@ -4129,8 +4129,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetAcquisitionLineRate(
  *  @return Success, return MV_OK, and the camera line rate will change to the corresponding value.
  Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetAcquisitionLineRate(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetAcquisitionLineRate(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_GetHeartBeatTimeout(IN void* handle, IN OUT
@@ -4151,8 +4151,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetAcquisitionLineRate(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_GetHeartBeatTimeout(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_GetHeartBeatTimeout(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_CC_SetHeartBeatTimeout(IN void* handle, IN const
@@ -4170,8 +4170,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_GetHeartBeatTimeout(
  *  @return Success, return MV_OK, and the camera heartbeat information will change to the
  corresponding value. Failure, return error code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CC_SetHeartBeatTimeout(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_CC_SetHeartBeatTimeout(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_GIGE_GetGevSCPSPacketSize(IN void* handle, IN OUT
@@ -4192,8 +4192,8 @@ MVSDKEXPORT_API int __stdcall MV_CC_SetHeartBeatTimeout(
  *
  *          Refer to MV_CC_GetWidth
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_GIGE_GetGevSCPSPacketSize(
-    IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
+MVSDKEXPORT_API int __stdcall
+    MV_GIGE_GetGevSCPSPacketSize(IN void* handle, IN OUT MVCC_INTVALUE* pstValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_GIGE_SetGevSCPSPacketSize(IN void* handle, IN const
@@ -4211,8 +4211,8 @@ MVSDKEXPORT_API int __stdcall MV_GIGE_GetGevSCPSPacketSize(
  *  @return Success, return MV_OK, and change packet size to setting value. Failure, return error
  code
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_GIGE_SetGevSCPSPacketSize(
-    IN void* handle, IN const unsigned int nValue);
+MVSDKEXPORT_API int __stdcall
+    MV_GIGE_SetGevSCPSPacketSize(IN void* handle, IN const unsigned int nValue);
 
 /************************************************************************
  *  @fn     MVSDKEXPORT_API int __stdcall MV_GIGE_GetGevSCPD(IN void* handle, IN OUT MVCC_INTVALUE*
@@ -4353,8 +4353,8 @@ MVSDKEXPORT_API int __stdcall MV_CAML_SetDeviceBauderate(IN void* handle, unsign
   *  @return Success, return MV_OK. Failure, return error code
   *  @remarks (This interface is abandoned, it is recommended to use the MV_CAML_GetDeviceBaudrate)
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CAML_GetDeviceBauderate(
-    IN void* handle, unsigned int* pnCurrentBaudrate);
+MVSDKEXPORT_API int __stdcall
+    MV_CAML_GetDeviceBauderate(IN void* handle, unsigned int* pnCurrentBaudrate);
 
 /********************************************************************/ /**
   *  @~chinese
@@ -4376,8 +4376,8 @@ MVSDKEXPORT_API int __stdcall MV_CAML_GetDeviceBauderate(
   *  @remarks (This interface is abandoned, it is recommended to use the
  MV_CAML_GetSupportBaudrates)
  ************************************************************************/
-MVSDKEXPORT_API int __stdcall MV_CAML_GetSupportBauderates(
-    IN void* handle, unsigned int* pnBaudrateAblity);
+MVSDKEXPORT_API int __stdcall
+    MV_CAML_GetSupportBauderates(IN void* handle, unsigned int* pnBaudrateAblity);
 
 #ifdef __cplusplus
 }

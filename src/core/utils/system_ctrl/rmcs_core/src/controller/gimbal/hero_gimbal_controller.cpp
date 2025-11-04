@@ -107,8 +107,9 @@ public:
         if (auto_aim_control_direction_.ready()
             && (mouse_->right || *switch_right_ == rmcs_msgs::Switch::UP)
             && !auto_aim_control_direction_->isZero()) {
-            return imu_gimbal_solver.update(TwoAxisGimbalSolver::SetControlDirection{
-                OdomImu::DirectionVector{*auto_aim_control_direction_}});
+            return imu_gimbal_solver.update(
+                TwoAxisGimbalSolver::SetControlDirection{
+                    OdomImu::DirectionVector{*auto_aim_control_direction_}});
         }
 
         if (!imu_gimbal_solver.enabled())

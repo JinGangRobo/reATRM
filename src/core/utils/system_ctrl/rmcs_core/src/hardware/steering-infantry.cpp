@@ -26,8 +26,9 @@ public:
         : Node(
               get_component_name(),
               rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true))
-        , command_component_(create_partner_component<SteeringInfantryCommand>(
-              get_component_name() + "_command", *this)) {
+        , command_component_(
+              create_partner_component<SteeringInfantryCommand>(
+                  get_component_name() + "_command", *this)) {
         using namespace rmcs_description;
         register_output("/tf", tf_);
 
@@ -121,9 +122,10 @@ private:
 
             gimbal_left_friction_.configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
-            gimbal_right_friction_.configure(device::DjiMotor::Config{device::DjiMotor::Type::M3508}
-                                                 .set_reduction_ratio(1.)
-                                                 .set_reversed());
+            gimbal_right_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                    .set_reduction_ratio(1.)
+                    .set_reversed());
 
             steeringInfantry.register_output(
                 "/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_bmi088_);
@@ -261,40 +263,46 @@ private:
                     static_cast<int>(
                         steeringInfantry.get_parameter("yaw_motor_zero_point").as_int())));
 
-            gimbal_bullet_feeder_.configure(device::DjiMotor::Config{device::DjiMotor::Type::M2006}
-                                                .enable_multi_turn_angle()
-                                                .set_reversed()
-                                                .set_reduction_ratio(19 * 2));
+            gimbal_bullet_feeder_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M2006}
+                    .enable_multi_turn_angle()
+                    .set_reversed()
+                    .set_reduction_ratio(19 * 2));
 
             for (auto& motor : chassis_wheel_motors_)
-                motor.configure(device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                motor.configure(
+                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
 
-                                    .set_reduction_ratio(11.)
-                                    .enable_multi_turn_angle()
-                                    .set_reversed());
+                        .set_reduction_ratio(11.)
+                        .enable_multi_turn_angle()
+                        .set_reversed());
             chassis_steer_motors_[0].configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::GM6020}
                     .set_reversed()
-                    .set_encoder_zero_point(static_cast<int>(
-                        steeringInfantry.get_parameter("left_front_zero_point").as_int()))
+                    .set_encoder_zero_point(
+                        static_cast<int>(
+                            steeringInfantry.get_parameter("left_front_zero_point").as_int()))
                     .enable_multi_turn_angle());
             chassis_steer_motors_[1].configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::GM6020}
                     .set_reversed()
-                    .set_encoder_zero_point(static_cast<int>(
-                        steeringInfantry.get_parameter("left_back_zero_point").as_int()))
+                    .set_encoder_zero_point(
+                        static_cast<int>(
+                            steeringInfantry.get_parameter("left_back_zero_point").as_int()))
                     .enable_multi_turn_angle());
             chassis_steer_motors_[2].configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::GM6020}
                     .set_reversed()
-                    .set_encoder_zero_point(static_cast<int>(
-                        steeringInfantry.get_parameter("right_back_zero_point").as_int()))
+                    .set_encoder_zero_point(
+                        static_cast<int>(
+                            steeringInfantry.get_parameter("right_back_zero_point").as_int()))
                     .enable_multi_turn_angle());
             chassis_steer_motors_[3].configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::GM6020}
                     .set_reversed()
-                    .set_encoder_zero_point(static_cast<int>(
-                        steeringInfantry.get_parameter("right_front_zero_point").as_int()))
+                    .set_encoder_zero_point(
+                        static_cast<int>(
+                            steeringInfantry.get_parameter("right_front_zero_point").as_int()))
                     .enable_multi_turn_angle());
             steeringInfantry.register_output(
                 "/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_, 0);

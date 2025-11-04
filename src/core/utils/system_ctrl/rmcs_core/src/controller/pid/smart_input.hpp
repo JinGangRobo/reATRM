@@ -12,9 +12,10 @@ public:
     requires std::is_base_of_v<rmcs_executor::Component, T> && std::is_base_of_v<rclcpp::Node, T>
     explicit SmartInput(T& component, const std::string& name) {
         if (!component.has_parameter(name))
-            throw std::runtime_error(fmt::format(
-                "Parameter '{}' was not found in component '{}'", name,
-                component.get_component_name()));
+            throw std::runtime_error(
+                fmt::format(
+                    "Parameter '{}' was not found in component '{}'", name,
+                    component.get_component_name()));
 
         register_input(component, component.get_parameter(name));
     }

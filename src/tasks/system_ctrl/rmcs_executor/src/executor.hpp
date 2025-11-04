@@ -21,7 +21,9 @@ class Executor final : public rclcpp::Node {
 public:
     explicit Executor(
         const std::string& node_name, rclcpp::executors::SingleThreadedExecutor& rcl_executor)
-        : Node{node_name, rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true)}
+        : Node{
+              node_name,
+              rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true)}
         , rcl_executor_(rcl_executor) {
         Component::initializing_component_name = "predefined_msg_provider";
         predefined_msg_provider_ = std::make_shared<PredefinedMsgProvider>();

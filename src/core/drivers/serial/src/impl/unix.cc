@@ -376,7 +376,7 @@ void Serial::SerialImpl::reconfigurePort() {
     else
         options.c_iflag &= (tcflag_t) ~(IXON | IXOFF);
 # endif
-        // rtscts
+    // rtscts
 # ifdef CRTSCTS
     if (rtscts_)
         options.c_cflag |= (CRTSCTS);
@@ -561,8 +561,9 @@ size_t Serial::SerialImpl::read(uint8_t* buf, size_t size) {
                 // Disconnected devices, at least on Linux, show the
                 // behavior that they are always ready to read immediately
                 // but reading returns nothing.
-                throw SerialException("device reports readiness to read but "
-                                      "returned no data (device disconnected?)");
+                throw SerialException(
+                    "device reports readiness to read but "
+                    "returned no data (device disconnected?)");
             }
             // Update bytes_read
             bytes_read += static_cast<size_t>(bytes_read_now);
@@ -576,9 +577,10 @@ size_t Serial::SerialImpl::read(uint8_t* buf, size_t size) {
             }
             // If bytes_read > size then we have over read, which shouldn't happen
             if (bytes_read > size) {
-                throw SerialException("read over read, too many bytes where "
-                                      "read, this shouldn't happen, might be "
-                                      "a logical error!");
+                throw SerialException(
+                    "read over read, too many bytes where "
+                    "read, this shouldn't happen, might be "
+                    "a logical error!");
             }
         }
     }
@@ -671,9 +673,10 @@ size_t Serial::SerialImpl::write(const uint8_t* data, size_t length) {
                 }
                 // If bytes_written > size then we have over written, which shouldn't happen
                 if (bytes_written > length) {
-                    throw SerialException("write over wrote, too many bytes where "
-                                          "written, this shouldn't happen, might be "
-                                          "a logical error!");
+                    throw SerialException(
+                        "write over wrote, too many bytes where "
+                        "written, this shouldn't happen, might be "
+                        "a logical error!");
                 }
             }
             // This shouldn't happen, if r > 0 our fd has to be in the list!

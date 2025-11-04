@@ -293,9 +293,10 @@ public:
 
             velocity_limit =
                 velocity_to_command_velocity_coefficient_ * (1.0 / 100.0) * velocity_limit;
-            velocity_limit = std::round(std::clamp<double>(
-                velocity_limit, std::numeric_limits<uint16_t>::min(),
-                std::numeric_limits<uint16_t>::max()));
+            velocity_limit = std::round(
+                std::clamp<double>(
+                    velocity_limit, std::numeric_limits<uint16_t>::min(),
+                    std::numeric_limits<uint16_t>::max()));
             command.velocity_limit = static_cast<uint16_t>(velocity_limit);
         }
 
@@ -324,9 +325,10 @@ public:
 
             velocity_limit =
                 velocity_to_command_velocity_coefficient_ * (1.0 / 100.0) * velocity_limit;
-            velocity_limit = std::round(std::clamp<double>(
-                velocity_limit, std::numeric_limits<uint16_t>::min(),
-                std::numeric_limits<uint16_t>::max()));
+            velocity_limit = std::round(
+                std::clamp<double>(
+                    velocity_limit, std::numeric_limits<uint16_t>::min(),
+                    std::numeric_limits<uint16_t>::max()));
             command.velocity_limit = static_cast<uint16_t>(velocity_limit);
         }
 
@@ -342,15 +344,18 @@ private:
 
     int32_t to_command_velocity(double velocity) const {
         velocity = velocity_to_command_velocity_coefficient_ * velocity;
-        velocity = std::round(std::clamp<double>(
-            velocity, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max()));
+        velocity = std::round(
+            std::clamp<double>(
+                velocity, std::numeric_limits<int32_t>::min(),
+                std::numeric_limits<int32_t>::max()));
         return static_cast<int32_t>(velocity);
     }
 
     int32_t to_command_angle(double angle) const {
         angle = angle_to_command_angle_coefficient_ * angle;
-        angle = std::round(std::clamp<double>(
-            angle, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max()));
+        angle = std::round(
+            std::clamp<double>(
+                angle, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max()));
         return static_cast<int32_t>(angle);
     }
 
@@ -359,8 +364,9 @@ private:
         angle -= std::abs(angle_to_command_angle_coefficient_)
                * (((raw_angle_max_ - static_cast<double>(encoder_zero_point_)) / raw_angle_max_) * 2
                   * std::numbers::pi);
-        angle = std::round(std::clamp<double>(
-            angle, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max()));
+        angle = std::round(
+            std::clamp<double>(
+                angle, std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max()));
 
         return static_cast<int32_t>(angle);
     }

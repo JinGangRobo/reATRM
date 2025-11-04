@@ -23,9 +23,12 @@ class SteeringHero
     , public rclcpp::Node {
 public:
     SteeringHero()
-        : Node{get_component_name(), rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
-        , command_component_(create_partner_component<SteeringHeroCommand>(
-              get_component_name() + "_command", *this)) {
+        : Node{
+              get_component_name(),
+              rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
+        , command_component_(
+              create_partner_component<SteeringHeroCommand>(
+                  get_component_name() + "_command", *this)) {
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
@@ -119,8 +122,9 @@ private:
             , gimbal_top_yaw_motor_(
                   hero, hero_command, "/gimbal/top_yaw",
                   device::LkMotor::Config{device::LkMotor::Type::MG5010E_I10}
-                      .set_encoder_zero_point(static_cast<int>(
-                          hero.get_parameter("top_yaw_motor_zero_point").as_int())))
+                      .set_encoder_zero_point(
+                          static_cast<int>(
+                              hero.get_parameter("top_yaw_motor_zero_point").as_int())))
             , gimbal_pitch_motor_(
                   hero, hero_command, "/gimbal/pitch",
                   device::LkMotor::Config{device::LkMotor::Type::MG5010E_I10}
@@ -354,8 +358,9 @@ private:
                   hero, hero_command, "/gimbal/bottom_yaw",
                   device::LkMotor::Config{device::LkMotor::Type::MG6012E_I8}
                       .set_reversed()
-                      .set_encoder_zero_point(static_cast<int>(
-                          hero.get_parameter("bottom_yaw_motor_zero_point").as_int())))
+                      .set_encoder_zero_point(
+                          static_cast<int>(
+                              hero.get_parameter("bottom_yaw_motor_zero_point").as_int())))
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 

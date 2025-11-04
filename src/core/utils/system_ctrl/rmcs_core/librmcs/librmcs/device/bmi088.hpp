@@ -20,7 +20,7 @@ public:
         , q0_(q0)
         , q1_(q1)
         , q2_(q2)
-        , q3_(q3){};
+        , q3_(q3) {};
 
     void set_coordinate_mapping(
         std::function<std::tuple<double, double, double>(double, double, double)>

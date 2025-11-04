@@ -100,9 +100,9 @@
     0x80000205 ///< \~chinese 网络包数据错误           \~english Network data packet error
 #define MV_E_NETER 0x80000206 ///< \~chinese 网络相关错误             \~english Network error
 #define MV_E_KEY_VERIFICATION \
-    0x8000020F ///< \~chinese 秘钥校验错误              \~english SwitchKey error
+    0x8000020F                ///< \~chinese 秘钥校验错误              \~english SwitchKey error
 #define MV_E_IP_CONFLICT \
-    0x80000221 ///< \~chinese 设备IP冲突               \~english Device IP conflict
+    0x80000221                ///< \~chinese 设备IP冲突               \~english Device IP conflict
 /// @}
 
 /********************************************************************/
@@ -114,9 +114,9 @@
 ///  @{
 #define MV_E_USB_READ 0x80000300 ///< \~chinese 读usb出错                \~english Reading USB error
 #define MV_E_USB_WRITE \
-    0x80000301 ///< \~chinese 写usb出错                \~english Writing USB error
+    0x80000301                   ///< \~chinese 写usb出错                \~english Writing USB error
 #define MV_E_USB_DEVICE \
-    0x80000302 ///< \~chinese 设备异常                 \~english Device exception
+    0x80000302                   ///< \~chinese 设备异常                 \~english Device exception
 #define MV_E_USB_GENICAM 0x80000303 ///< \~chinese GenICam相关错误          \~english GenICam error
 #define MV_E_USB_BANDWIDTH \
     0x80000304 ///< \~chinese 带宽不足                 \~english Insufficient bandwidth

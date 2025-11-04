@@ -7,9 +7,10 @@ public:
     explicit MyRobot(int32_t usb_pid = -1)
         : CBoard(usb_pid)
         , motor_(librmcs::device::DjiMotor::Config{librmcs::device::DjiMotor::Type::M3508})
-        , pid_calculator_(librmcs::utility::PidCalculator{0.1, 0.0003, 0.0}
-                              .set_integral_min(-1000.0)
-                              .set_integral_max(1000.0))
+        , pid_calculator_(
+              librmcs::utility::PidCalculator{0.1, 0.0003, 0.0}
+                  .set_integral_min(-1000.0)
+                  .set_integral_max(1000.0))
         , transmit_buffer_(*this, 16) {}
 
 private:

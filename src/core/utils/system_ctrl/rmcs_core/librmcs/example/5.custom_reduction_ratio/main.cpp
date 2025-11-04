@@ -5,9 +5,10 @@ class MyRobot : public librmcs::client::CBoard {
 public:
     explicit MyRobot(int32_t usb_pid = -1)
         : CBoard(usb_pid)
-        , motor_(librmcs::device::DjiMotor::Config{librmcs::device::DjiMotor::Type::M3508}
-                     .set_reduction_ratio(13.0)
-                     .set_reversed())
+        , motor_(
+              librmcs::device::DjiMotor::Config{librmcs::device::DjiMotor::Type::M3508}
+                  .set_reduction_ratio(13.0)
+                  .set_reversed())
         , transmit_buffer_(*this, 16) {}
 
 private:
