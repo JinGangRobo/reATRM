@@ -7,7 +7,6 @@ SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash
 ENV ROS_DISTRO=jazzy
 
-# Delete user if it exists in container (e.g Ubuntu Noble: ubuntu)
 RUN if id -u $USER_UID ; then userdel `id -un $USER_UID` ; fi
 
 RUN rm -f /etc/apt/sources.list.d/ubuntu.sources && \
@@ -26,6 +25,25 @@ RUN rm -f /etc/apt/sources.list.d/ubuntu.sources && \
     } > /etc/apt/sources.list.d/ubuntu.sources
 RUN curl -sSL https://ghproxy.cn/https://raw.githubusercontent.com/ros/rosdistro/master/ros.key  -o /usr/share/keyrings/ros-archive-keyring.gpg
 RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu noble main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+# Install develop tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libc6-dev gcc-14 g++-14 \
+    cmake make ninja-build \
+    openssh-client \
+    lsb-release software-properties-common gnupg sudo \
+    python3-colorama python3-dpkt && \
+    wget -O ./llvm-snapshot.gpg.key https://apt.llvm.org/llvm-snapshot.gpg.key && \
+    apt-key add ./llvm-snapshot.gpg.key && \
+    rm ./llvm-snapshot.gpg.key && \
+    echo "deb https://apt.llvm.org/noble/ llvm-toolchain-noble main" > /etc/apt/sources.list.d/llvm-apt.list && \
+    apt-get update && \
+    version=`apt-cache search clangd- | grep clangd- | awk -F' ' '{print $1}' | sort -V | tail -1 | cut -d- -f2` && \
+    apt-get install -y --no-install-recommends clangd-$version && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50 && \
+    update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-$version 50 && \
+    apt-get autoremove -y && apt-get clean
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
@@ -49,6 +67,7 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-foxglove-bridge \
     ros-jazzy-joint-state-publisher \
     ros-jazzy-rviz2 \
+    libusb-1.0-0-dev \
     screen \
     tini \
     iproute2 \
