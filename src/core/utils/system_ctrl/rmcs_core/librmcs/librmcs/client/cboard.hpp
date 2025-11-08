@@ -18,7 +18,7 @@ namespace librmcs::client {
 class CBoard {
 public:
     explicit CBoard(int32_t usb_pid = -1) {
-        if (!init(0xa11c, usb_pid)) {
+        if (!init(0x0d00, usb_pid)) {
             throw std::runtime_error{"Failed to init usb transfer for cboard, see log for detail."};
         }
     }

@@ -1,0 +1,100 @@
+rmcs_executor:
+  ros__parameters:
+    update_rate: 1000.0
+    components:
+      - rmcs_core::hardware::Hero -> hero_hardware
+
+      - rmcs_core::controller::pid::PidController -> second_left_friction_velocity_pid_controller
+      - rmcs_core::controller::pid::PidController -> first_left_friction_velocity_pid_controller
+      - rmcs_core::controller::pid::PidController -> first_right_friction_velocity_pid_controller
+      - rmcs_core::controller::pid::PidController -> second_right_friction_velocity_pid_controller
+
+      - rmcs_core::controller::chassis::ChassisController -> chassis_controller
+      - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
+
+      # - rmcs_auto_aim::AutoAimInitializer -> auto_aim_initializer
+      # - rmcs_auto_aim::AutoAimController -> auto_aim_controller
+
+hero_hardware:
+  ros__parameters:
+    usb_pid_bottom_board: 0xc1d3
+
+
+gimbal_controller:
+  ros__parameters:
+    upper_limit: -0.4598
+    lower_limit: 0.4362
+
+
+second_left_friction_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/second_left_friction/velocity
+    setpoint: /gimbal/second_left_friction/control_velocity
+    control: /gimbal/second_left_friction/control_torque
+    kp: 0.003436926
+    ki: 0.00
+    kd: 0.009373434
+
+first_left_friction_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/first_left_friction/velocity
+    setpoint: /gimbal/first_left_friction/control_velocity
+    control: /gimbal/first_left_friction/control_torque
+    kp: 0.003436926
+    ki: 0.00
+    kd: 0.009373434
+
+first_right_friction_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/first_right_friction/velocity
+    setpoint: /gimbal/first_right_friction/control_velocity
+    control: /gimbal/first_right_friction/control_torque
+    kp: 0.003436926
+    ki: 0.00
+    kd: 0.009373434
+
+second_right_friction_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/second_right_friction/velocity
+    setpoint: /gimbal/second_right_friction/control_velocity
+    control: /gimbal/second_right_friction/control_torque
+    kp: 0.003436926
+    ki: 0.00
+    kd: 0.009373434
+
+
+left_front_wheel_velocity_pid_controller:
+  ros__parameters:
+    measurement: /chassis/left_front_wheel/velocity
+    setpoint: /chassis/left_front_wheel/control_velocity
+    control: /chassis/left_front_wheel/control_torque_unrestricted
+    kp: 0.185
+    ki: 0.00
+    kd: 0.00
+
+left_back_wheel_velocity_pid_controller:
+  ros__parameters:
+    measurement: /chassis/left_back_wheel/velocity
+    setpoint: /chassis/left_back_wheel/control_velocity
+    control: /chassis/left_back_wheel/control_torque_unrestricted
+    kp: 0.185
+    ki: 0.00
+    kd: 0.00
+
+right_back_wheel_velocity_pid_controller:
+  ros__parameters:
+    measurement: /chassis/right_back_wheel/velocity
+    setpoint: /chassis/right_back_wheel/control_velocity
+    control: /chassis/right_back_wheel/control_torque_unrestricted
+    kp: 0.185
+    ki: 0.00
+    kd: 0.00
+
+right_front_wheel_velocity_pid_controller:
+  ros__parameters:
+    measurement: /chassis/right_front_wheel/velocity
+    setpoint: /chassis/right_front_wheel/control_velocity
+    control: /chassis/right_front_wheel/control_torque_unrestricted
+    kp: 0.185
+    ki: 0.00
+    kd: 0.00
