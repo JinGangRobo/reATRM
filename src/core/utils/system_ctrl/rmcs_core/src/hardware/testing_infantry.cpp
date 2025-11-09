@@ -13,6 +13,7 @@
 #include "hardware/device/bmi088.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dr16.hpp"
+#include "hardware/device/supercap.hpp"
 
 namespace rmcs_core::hardware {
 
@@ -65,6 +66,7 @@ private:
             , imu_(1000, 0.2, 0.0)
             , tf_(testing_infantry.tf_)
             , dr16_(testing_infantry)
+            , supercap_(testing_infantry, testing_infantry_command)
             , chassis_wheel_motors_(
                   {testing_infantry, testing_infantry_command, "/chassis/left_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
@@ -77,6 +79,15 @@ private:
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
+            testing_infantry.register_output("/referee/serial", referee_serial_);
+            referee_serial_->read = [this](std::byte* buffer, size_t size) {
+                return referee_ring_buffer_receive_.pop_front_multi(
+                    [&buffer](std::byte byte) { *buffer++ = byte; }, size);
+            };
+            referee_serial_->write = [this](const std::byte* buffer, size_t size) {
+                transmit_buffer_.add_uart1_transmission(buffer, size);
+                return size;
+            };
             testing_infantry.register_output(
                 "/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_, 0);
         }
@@ -147,6 +158,7 @@ private:
         OutputInterface<double> chassis_yaw_velocity_imu_;
 
         device::Dr16 dr16_;
+        device::Supercap supercap_;
 
         device::DjiMotor chassis_wheel_motors_[4];
 

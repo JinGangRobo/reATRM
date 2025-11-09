@@ -4,13 +4,17 @@ rmcs_executor:
     components:
       - rmcs_core::hardware::TestingInfantry -> testing_infantry_hardware
 
+      - rmcs_core::referee::Status -> referee_status
+      - rmcs_core::referee::Command -> referee_command
+
       # - rmcs_core::controller::pid::PidController -> second_left_friction_velocity_pid_controller
       # - rmcs_core::controller::pid::PidController -> first_left_friction_velocity_pid_controller
       # - rmcs_core::controller::pid::PidController -> first_right_friction_velocity_pid_controller
       # - rmcs_core::controller::pid::PidController -> second_right_friction_velocity_pid_controller
 
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
-      # - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
+      - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
+      - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
 
       # - rmcs_auto_aim::AutoAimInitializer -> auto_aim_initializer
       # - rmcs_auto_aim::AutoAimController -> auto_aim_controller
