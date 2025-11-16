@@ -117,7 +117,7 @@ private:
                     static_cast<int>(
                         dual_sentry.get_parameter("top_yaw_motor_zero_point").as_int())));
 
-            gimbal_top_yaw_motor_.configure(
+            gimbal_pitch_motor_.configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::GM6020}.set_encoder_zero_point(
                     static_cast<int>(
                         dual_sentry.get_parameter("pitch_motor_zero_point").as_int())));
@@ -153,8 +153,6 @@ private:
 
             gy614_.update_status();
             dr16_.update_status();
-
-            // RCLCPP_INFO(rclcpp::get_logger("remote"), "right: %lfww", dr16_.joystick_right()(0));
 
             *gimbal_yaw_velocity_imu_ = imu_.gz();
             *gimbal_pitch_velocity_imu_ = imu_.gy();
