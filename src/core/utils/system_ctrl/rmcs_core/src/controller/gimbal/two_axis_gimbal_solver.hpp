@@ -163,10 +163,12 @@ private:
             return;
         }
 
-        if (z > upper_limit_.y())
-            *control_direction << upper_limit_.x() * projection, upper_limit_.y();
-        else if (z < lower_limit_.y())
-            *control_direction << lower_limit_.x() * projection, lower_limit_.y();
+        // TODO a better board check
+
+        // if (z > upper_limit_.y())
+        //     *control_direction << upper_limit_.x() * projection, upper_limit_.y();
+        // else if (z < lower_limit_.y())
+        //     *control_direction << lower_limit_.x() * projection, lower_limit_.y();
     }
 
     static AngleError calculate_control_errors(

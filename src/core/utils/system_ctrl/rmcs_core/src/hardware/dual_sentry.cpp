@@ -1,4 +1,4 @@
-#include <atomic>
+#include <fast_tf/rcl.hpp>
 #include <memory>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
@@ -60,17 +60,6 @@ public:
     void command_update() {
         top_board_->command_update();
         bottom_board_->command_update();
-
-        RCLCPP_INFO(
-            get_logger(),
-            "Bottom Yaw: Feed=%.2f, Set=%.2f | Top Yaw: Feed=%.2f, "
-            "Set=%.2f | Pitch: Feed=%.2f, Set=%.2f",
-            bottom_board_->gimbal_bottom_yaw_motor_.angle(),
-            bottom_board_->gimbal_bottom_yaw_motor_.control_torque(),
-            top_board_->gimbal_top_yaw_motor_.angle(),
-            top_board_->gimbal_top_yaw_motor_.control_torque(),
-            top_board_->gimbal_pitch_motor_.angle(),
-            top_board_->gimbal_pitch_motor_.control_torque());
     }
 
 private:
@@ -104,7 +93,7 @@ private:
             DualSentry& dual_sentry, DualSentryCommand& dual_sentry_command, int usb_pid = -1)
             : librmcs::client::CBoard(usb_pid)
             , tf_(dual_sentry.tf_)
-            , imu_(1000, 0.2, 0.0)
+            , imu_(10.0f, 0.001f, 1000000.0f)
             , gy614_(dual_sentry, "/friction_wheels/temperature")
             , dr16_{dual_sentry}
             , gimbal_top_yaw_motor_(dual_sentry, dual_sentry_command, "/gimbal/top_yaw")
@@ -118,9 +107,11 @@ private:
                         dual_sentry.get_parameter("top_yaw_motor_zero_point").as_int())));
 
             gimbal_pitch_motor_.configure(
-                device::DjiMotor::Config{device::DjiMotor::Type::GM6020}.set_encoder_zero_point(
-                    static_cast<int>(
-                        dual_sentry.get_parameter("pitch_motor_zero_point").as_int())));
+                device::DjiMotor::Config{device::DjiMotor::Type::GM6020}
+                    .set_encoder_zero_point(
+                        static_cast<int>(
+                            dual_sentry.get_parameter("pitch_motor_zero_point").as_int()))
+                    .set_reversed());
 
             imu_.set_coordinate_mapping([](double x, double y, double z) {
                 // Get the mapping with the following code.
@@ -161,6 +152,8 @@ private:
             gimbal_pitch_motor_.update_status();
             tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
                 gimbal_pitch_motor_.angle());
+
+            fast_tf::rcl::broadcast_all(*tf_);
         }
 
         void command_update() {
@@ -227,7 +220,7 @@ private:
         explicit BottomBoard(
             DualSentry& dual_sentry, DualSentryCommand& dual_sentry_command, int usb_pid = -1)
             : librmcs::client::CBoard(usb_pid)
-            , imu_(1000, 0.2, 0.0)
+            , imu_(10.0f, 0.001f, 1000000.0f)
             , tf_(dual_sentry.tf_)
             , gimbal_bottom_yaw_motor_(dual_sentry, dual_sentry_command, "/gimbal/bottom_yaw")
             , chassis_wheel_motors_(
@@ -272,6 +265,9 @@ private:
             *chassis_yaw_velocity_imu_ = imu_.gz();
 
             gimbal_bottom_yaw_motor_.update_status();
+            tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
+                gimbal_bottom_yaw_motor_.angle());
+            fast_tf::rcl::broadcast_all(*tf_);
 
             for (auto& motor : chassis_wheel_motors_)
                 motor.update_status();
