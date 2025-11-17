@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cmath>
-
+#include "../utility/ekf_imu.hpp"
 #include <atomic>
+#include <chrono>
+#include <cmath>
 #include <functional>
 #include <numbers>
 #include <utility>
@@ -12,15 +13,16 @@ namespace librmcs::device {
 class Bmi088 {
 public:
     explicit Bmi088(
-        double sample_freq, double kp, double ki, double q0 = 1, double q1 = 0, double q2 = 0,
+        double process_noise1 = 10.0f, double process_noise2 = 0.001f,
+        double measurement_noise = 1000000.0f, double q0 = 1, double q1 = 0, double q2 = 0,
         double q3 = 0)
-        : inv_sample_freq_(1.0 / sample_freq)
-        , double_kp_(2.0 * kp)
-        , double_ki_(2.0 * ki)
+        : imu_filter_(process_noise1, process_noise2, measurement_noise)
         , q0_(q0)
         , q1_(q1)
         , q2_(q2)
-        , q3_(q3) {};
+        , q3_(q3) {
+        last_update_time_ = std::chrono::steady_clock::now();
+    };
 
     void set_coordinate_mapping(
         std::function<std::tuple<double, double, double>(double, double, double)>
@@ -53,7 +55,7 @@ public:
             std::tie(ax_, ay_, az_) = coordinate_mapping_function_(ax_, ay_, az_);
         }
 
-        mahony_ahrs_update_imu(ax_, ay_, az_, gx_, gy_, gz_);
+        ekf_ahrs_update_imu(ax_, ay_, az_, gx_, gy_, gz_);
     }
 
     double ax() const { return ax_; }
@@ -70,81 +72,24 @@ public:
     double& q3() { return q3_; }
 
 private:
-    void mahony_ahrs_update_imu(double ax, double ay, double az, double gx, double gy, double gz) {
-        // Madgwick's implementation of Mayhony's AHRS algorithm.
-        // See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
+    void ekf_ahrs_update_imu(double ax, double ay, double az, double gx, double gy, double gz) {
+        auto now = std::chrono::steady_clock::now();
+        float dt = static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(
+                                          now - last_update_time_)
+                                          .count())
+                 / 1000000.0f;
+        imu_filter_.update(gx, gy, gz, ax, ay, az, dt);
+        last_update_time_ = now;
 
-        double recip_norm;
-        double halfvx, halfvy, halfvz;
-        double halfex, halfey, halfez;
-        double qa, qb, qc;
-
-        // Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer
-        // normalization)
-        if (!((ax == 0.0) && (ay == 0.0) && (az == 0.0))) {
-
-            // Normalize accelerometer measurement
-            recip_norm = 1 / std::sqrt(ax * ax + ay * ay + az * az);
-            ax *= recip_norm;
-            ay *= recip_norm;
-            az *= recip_norm;
-
-            // Estimated direction of gravity and vector perpendicular to magnetic flux
-            halfvx = q1_ * q3_ - q0_ * q2_;
-            halfvy = q0_ * q1_ + q2_ * q3_;
-            halfvz = q0_ * q0_ - 0.5 + q3_ * q3_;
-
-            // Error is sum of cross product between estimated and measured direction of gravity
-            halfex = ay * halfvz - az * halfvy;
-            halfey = az * halfvx - ax * halfvz;
-            halfez = ax * halfvy - ay * halfvx;
-
-            // Compute and apply integral feedback if enabled
-            if (double_ki_ > 0.0) {
-                // integral error scaled by Ki
-                integral_fbx_ += double_ki_ * halfex * (inv_sample_freq_);
-                integral_fby_ += double_ki_ * halfey * (inv_sample_freq_);
-                integral_fbz_ += double_ki_ * halfez * (inv_sample_freq_);
-                // apply integral feedback
-                gx += integral_fbx_;
-                gy += integral_fby_;
-                gz += integral_fbz_;
-            } else {
-                // prevent integral windup
-                integral_fbx_ = 0.0;
-                integral_fby_ = 0.0;
-                integral_fbz_ = 0.0;
-            }
-
-            // Apply proportional feedback
-            gx += double_kp_ * halfex;
-            gy += double_kp_ * halfey;
-            gz += double_kp_ * halfez;
-        }
-
-        // Integrate rate of change of quaternion
-        gx *= (0.5 * (inv_sample_freq_)); // pre-multiply common factors
-        gy *= (0.5 * (inv_sample_freq_));
-        gz *= (0.5 * (inv_sample_freq_));
-        qa = q0_;
-        qb = q1_;
-        qc = q2_;
-        q0_ += (-qb * gx - qc * gy - q3_ * gz);
-        q1_ += (qa * gx + qc * gz - q3_ * gy);
-        q2_ += (qa * gy - qb * gz + q3_ * gx);
-        q3_ += (qa * gz + qb * gy - qc * gx);
-
-        // Normalize quaternion
-        recip_norm = 1 / std::sqrt(q0_ * q0_ + q1_ * q1_ + q2_ * q2_ + q3_ * q3_);
-        q0_ *= recip_norm;
-        q1_ *= recip_norm;
-        q2_ *= recip_norm;
-        q3_ *= recip_norm;
+        const auto& state = imu_filter_.get_state();
+        q0_ = state.q[0];
+        q1_ = state.q[1];
+        q2_ = state.q[2];
+        q3_ = state.q[3];
     }
 
-    double inv_sample_freq_; // The reciprocal of sampling frequency
-    double double_kp_;       // 2 * proportional gain (Kp)
-    double double_ki_;       // 2 * integral gain (Ki)
+    utility::EkfImu imu_filter_;
+    std::chrono::steady_clock::time_point last_update_time_;
 
     struct alignas(8) ImuData {
         int16_t x, y, z;
@@ -159,9 +104,6 @@ private:
 
     // Quaternion of sensor frame relative to auxiliary frame
     double q0_, q1_, q2_, q3_;
-
-    // Integral error terms scaled by Ki
-    double integral_fbx_ = 0.0, integral_fby_ = 0.0, integral_fbz_ = 0.0;
 };
 
 } // namespace librmcs::device

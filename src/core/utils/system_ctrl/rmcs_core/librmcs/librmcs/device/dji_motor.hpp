@@ -164,6 +164,7 @@ public:
     double torque() const { return torque_; }
     double max_torque() const { return max_torque_; }
     double temperature() const { return temperature_; }
+    double last_raw_angle() const { return last_raw_angle_; }
 
 private:
     struct alignas(uint64_t) DjiMotorFeedback {
