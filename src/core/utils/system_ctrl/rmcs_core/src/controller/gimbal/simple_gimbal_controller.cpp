@@ -22,7 +22,9 @@ public:
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , two_axis_gimbal_solver(
               *this, get_parameter("upper_limit").as_double(),
-              get_parameter("lower_limit").as_double()) {
+              get_parameter("lower_limit").as_double())
+        , joystick_left_bias_y_(get_parameter("joystick_left_bias_y").as_double())
+        , joystick_left_bias_x_(get_parameter("joystick_left_bias_x").as_double()) {
 
         register_input("/remote/joystick/left", joystick_left_);
         register_input("/remote/switch/right", switch_right_);
@@ -34,6 +36,9 @@ public:
 
         register_output("/gimbal/yaw/control_angle_error", yaw_angle_error_, nan_);
         register_output("/gimbal/pitch/control_angle_error", pitch_angle_error_, nan_);
+
+        register_output("/debug/solver/val_4", debug_val_4_);
+        register_output("/debug/solver/val_5", debug_val_5_);
     }
 
     void update() override {
@@ -61,13 +66,16 @@ public:
         if (!two_axis_gimbal_solver.enabled())
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetToLevel());
 
-        constexpr double joystick_sensitivity = 0.006;
+        constexpr double joystick_sensitivity = 0.002;
         constexpr double mouse_sensitivity = 0.5;
 
-        double yaw_shift =
-            joystick_sensitivity * joystick_left_->y() + mouse_sensitivity * mouse_velocity_->y();
-        double pitch_shift =
-            -joystick_sensitivity * joystick_left_->x() - mouse_sensitivity * mouse_velocity_->x();
+        *debug_val_4_ = joystick_left_->y();
+        *debug_val_5_ = joystick_left_->x();
+
+        double yaw_shift = joystick_sensitivity * (joystick_left_->y() - joystick_left_bias_y_)
+                         + mouse_sensitivity * mouse_velocity_->y();
+        double pitch_shift = -joystick_sensitivity * (joystick_left_->x() - joystick_left_bias_x_)
+                           - mouse_sensitivity * mouse_velocity_->x();
 
         return two_axis_gimbal_solver.update(
             TwoAxisGimbalSolver::SetControlShift(yaw_shift, pitch_shift));
@@ -87,6 +95,12 @@ private:
     TwoAxisGimbalSolver two_axis_gimbal_solver;
 
     OutputInterface<double> yaw_angle_error_, pitch_angle_error_;
+
+    double joystick_left_bias_y_ = 0.0;
+    double joystick_left_bias_x_ = 0.0;
+
+    rmcs_executor::Component::OutputInterface<double> debug_val_4_;
+    rmcs_executor::Component::OutputInterface<double> debug_val_5_;
 };
 
 } // namespace rmcs_core::controller::gimbal

@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include <iostream>
 #include <limits>
 #include <utility>
 
@@ -32,6 +31,11 @@ public:
 
         component.register_input("/gimbal/pitch/angle", gimbal_pitch_angle_);
         component.register_input("/tf", tf_);
+
+        // FOR DEBUG
+        component.register_output("/debug/solver/val_1", debug_val_1_);
+        component.register_output("/debug/solver/val_2", debug_val_2_);
+        component.register_output("/debug/solver/val_3", debug_val_3_);
     }
 
     class SetDisabled : public Operation {
@@ -165,10 +169,10 @@ private:
 
         // TODO a better board check
 
-        // if (z > upper_limit_.y())
-        //     *control_direction << upper_limit_.x() * projection, upper_limit_.y();
-        // else if (z < lower_limit_.y())
-        //     *control_direction << lower_limit_.x() * projection, lower_limit_.y();
+        if (z > upper_limit_.y())
+            *control_direction << upper_limit_.x() * projection, upper_limit_.y();
+        else if (z < lower_limit_.y())
+            *control_direction << lower_limit_.x() * projection, lower_limit_.y();
     }
 
     static AngleError calculate_control_errors(
@@ -190,6 +194,10 @@ private:
 
     rmcs_executor::Component::InputInterface<double> gimbal_pitch_angle_;
     rmcs_executor::Component::InputInterface<Tf> tf_;
+
+    rmcs_executor::Component::OutputInterface<double> debug_val_1_;
+    rmcs_executor::Component::OutputInterface<double> debug_val_2_;
+    rmcs_executor::Component::OutputInterface<double> debug_val_3_;
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
 

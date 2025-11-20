@@ -96,6 +96,9 @@ private:
             , imu_(10.0f, 0.001f, 1000000.0f)
             , gy614_(dual_sentry, "/friction_wheels/temperature")
             , dr16_{dual_sentry}
+            , imu_bias_x(dual_sentry.get_parameter("imu_bias_x").as_int())
+            , imu_bias_y(dual_sentry.get_parameter("imu_bias_y").as_int())
+            , imu_bias_z(dual_sentry.get_parameter("imu_bias_z").as_int())
             , gimbal_top_yaw_motor_(dual_sentry, dual_sentry_command, "/gimbal/top_yaw")
             , gimbal_pitch_motor_(dual_sentry, dual_sentry_command, "/gimbal/pitch")
             , transmit_buffer_(*this, 32)
@@ -128,6 +131,10 @@ private:
 
             dual_sentry.register_output("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
             dual_sentry.register_output("/gimbal/pitch/velocity_imu", gimbal_pitch_velocity_imu_);
+
+            // dual_sentry.register_output("/debug/imu_g_x", debug_imu_g_x_);
+            // dual_sentry.register_output("/debug/imu_g_y", debug_imu_g_y_);
+            // dual_sentry.register_output("/debug/imu_g_z", debug_imu_g_z_);
         }
 
         ~TopBoard() final {
@@ -195,7 +202,10 @@ private:
         }
 
         void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
-            imu_.store_gyroscope_status(x, y, z);
+            imu_.store_gyroscope_status(x - imu_bias_x, y - imu_bias_y, z - imu_bias_z);
+            // *debug_imu_g_x_ = (imu_.cali_gx_ref());
+            // *debug_imu_g_y_ = (imu_.cali_gy_ref());
+            // *debug_imu_g_z_ = (imu_.cali_gz_ref());
         }
 
         OutputInterface<rmcs_description::Tf>& tf_;
@@ -206,6 +216,12 @@ private:
 
         OutputInterface<double> gimbal_yaw_velocity_imu_;
         OutputInterface<double> gimbal_pitch_velocity_imu_;
+
+        OutputInterface<double> debug_imu_g_x_;
+        OutputInterface<double> debug_imu_g_y_;
+        OutputInterface<double> debug_imu_g_z_;
+
+        int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 
         device::DjiMotor gimbal_top_yaw_motor_;
         device::DjiMotor gimbal_pitch_motor_;

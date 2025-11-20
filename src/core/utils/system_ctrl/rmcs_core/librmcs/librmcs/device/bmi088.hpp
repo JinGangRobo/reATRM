@@ -34,7 +34,15 @@ public:
         accelerometer_data_.store({x, y, z}, std::memory_order::relaxed);
     }
 
-    void store_gyroscope_status(int16_t x, int16_t y, int16_t z) {
+    void store_gyroscope_status(int16_t x, int16_t y, int16_t z, bool cali_mode = false) {
+        if (cali_mode && cali_cnt < 65535) {
+            cali_cnt++;
+            cali_gx = (cali_gx * (cali_cnt - 1) + x) / cali_cnt;
+            cali_gy = (cali_gy * (cali_cnt - 1) + y) / cali_cnt;
+            cali_gz = (cali_gz * (cali_cnt - 1) + z) / cali_cnt;
+
+            return;
+        }
         gyroscope_data_.store({x, y, z}, std::memory_order::relaxed);
     }
 
@@ -58,6 +66,13 @@ public:
         ekf_ahrs_update_imu(ax_, ay_, az_, gx_, gy_, gz_);
     }
 
+    void reset_calibration() {
+        cali_cnt = 0;
+        cali_gx = 0.0f;
+        cali_gy = 0.0f;
+        cali_gz = 0.0f;
+    }
+
     double ax() const { return ax_; }
     double ay() const { return ay_; }
     double az() const { return az_; }
@@ -70,6 +85,10 @@ public:
     double& q1() { return q1_; }
     double& q2() { return q2_; }
     double& q3() { return q3_; }
+
+    double& cali_gx_ref() { return cali_gx; }
+    double& cali_gy_ref() { return cali_gy; }
+    double& cali_gz_ref() { return cali_gz; }
 
 private:
     void ekf_ahrs_update_imu(double ax, double ay, double az, double gx, double gy, double gz) {
@@ -98,6 +117,9 @@ private:
     static_assert(std::atomic<ImuData>::is_always_lock_free);
 
     double ax_, ay_, az_, gx_, gy_, gz_;
+
+    int32_t cali_cnt = 0;
+    double cali_gx, cali_gy, cali_gz = 0.0f;
 
     std::function<std::tuple<double, double, double>(double, double, double)>
         coordinate_mapping_function_;
