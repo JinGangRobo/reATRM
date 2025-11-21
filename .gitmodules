@@ -1,3 +1,9 @@
 [submodule "src/core/utils/system_ctrl/rmcs_core/librmcs"]
 	path = src/core/utils/system_ctrl/rmcs_core/librmcs
 	url = https://github.com/JinGangRobo/librmcs
+[submodule "src/core/drivers/hikcamera"]
+	path = src/core/drivers/hikcamera
+	url = https://github.com/JinGangRobo/ros2-hikcamera
+[submodule "src/core/drivers/serial"]
+	path = src/core/drivers/serial
+	url = https://github.com/JinGangRobo/ros2-serial
