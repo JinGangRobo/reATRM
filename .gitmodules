@@ -1,0 +1,3 @@
+[submodule "src/core/utils/system_ctrl/rmcs_core/librmcs"]
+	path = src/core/utils/system_ctrl/rmcs_core/librmcs
+	url = https://github.com/JinGangRobo/librmcs
