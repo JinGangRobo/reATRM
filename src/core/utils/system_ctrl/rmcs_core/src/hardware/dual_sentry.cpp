@@ -242,11 +242,11 @@ private:
             , chassis_wheel_motors_(
                   {dual_sentry, dual_sentry_command, "/chassis/left_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
-                  {dual_sentry, dual_sentry_command, "/chassis/left_back_wheel",
+                  {dual_sentry, dual_sentry_command, "/chassis/right_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {dual_sentry, dual_sentry_command, "/chassis/right_back_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
-                  {dual_sentry, dual_sentry_command, "/chassis/right_front_wheel",
+                  {dual_sentry, dual_sentry_command, "/chassis/left_back_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
             , supercap_(dual_sentry, dual_sentry_command)
             , transmit_buffer_(*this, 32)
