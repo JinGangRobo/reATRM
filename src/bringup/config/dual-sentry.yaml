@@ -12,9 +12,8 @@ rmcs_executor:
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
-      # - rmcs_core::controller::pid::PidController -> pitch_angle_pid_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
-      # - rmcs_core::controller::pid::ErrorPidController -> pitch_velocity_pid_controller
+      - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
 
 
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
@@ -26,14 +25,9 @@ rmcs_executor:
 value_broadcaster:
   ros__parameters:
     forward_list:
-      - /debug/solver/val_1
-      - /debug/solver/val_2
-      - /debug/solver/val_3
-      - /debug/solver/val_4
-      - /debug/solver/val_5
-      - /debug/imu_g_x
       - /debug/imu_g_y
-      - /debug/imu_g_z
+      - /gimbal/pitch/velocity_imu
+      - /gimbal/pitch/control_velocity
 
 dual_sentry_hardware:
   ros__parameters:
@@ -58,16 +52,16 @@ gimbal_controller:
 
 dual_yaw_controller:
   ros__parameters:
-    top_yaw_angle_kp: 12.0
-    top_yaw_angle_ki: 0.0
+    top_yaw_angle_kp: 20.0
+    top_yaw_angle_ki: 0.01
     top_yaw_angle_kd: 0.0
-    top_yaw_velocity_kp: 25.0
-    top_yaw_velocity_ki: 0.0
+    top_yaw_velocity_kp: 3.4
+    top_yaw_velocity_ki: 0.02
     top_yaw_velocity_kd: 0.0
-    bottom_yaw_angle_kp: 4.0
-    bottom_yaw_angle_ki: 0.00001
+    bottom_yaw_angle_kp: 5.0
+    bottom_yaw_angle_ki: 0.0
     bottom_yaw_angle_kd: 0.0
-    bottom_yaw_velocity_kp: 0.0
+    bottom_yaw_velocity_kp: 2.3
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
 
@@ -75,16 +69,16 @@ dual_yaw_controller:
 pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
-    control: /gimbal/pitch/control_torque
-    kp: 24.0
-    ki: 0.015
-    kd: 0.0
+    control: /gimbal/pitch/control_velocity
+    kp: 10.5
+    ki: 0.01
+    kd: 0.00006
 
-# pitch_angle_pid_controller:
-#   ros__parameters:
-#     measurement: /gimbal/pitch/angle
-#     setpoint: /gimbal/pitch/control_angle
-#     control: /gimbal/pitch/control_torque
-#     kp: 35.0
-#     ki: 0.0
-#     kd: 0.0
+pitch_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/pitch/velocity_imu
+    setpoint: /gimbal/pitch/control_velocity
+    control: /gimbal/pitch/control_torque
+    kp: 2.0
+    ki: 0.1
+    kd: 0.0001
