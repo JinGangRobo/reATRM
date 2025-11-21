@@ -13,6 +13,7 @@
 #include <serial/serial.h>
 #include <std_msgs/msg/int32.hpp>
 
+#include "filter/low_pass_filter.hpp"
 #include "hardware/device/bmi088.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dr16.hpp"
@@ -131,10 +132,6 @@ private:
 
             dual_sentry.register_output("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
             dual_sentry.register_output("/gimbal/pitch/velocity_imu", gimbal_pitch_velocity_imu_);
-
-            // dual_sentry.register_output("/debug/imu_g_x", debug_imu_g_x_);
-            // dual_sentry.register_output("/debug/imu_g_y", debug_imu_g_y_);
-            // dual_sentry.register_output("/debug/imu_g_z", debug_imu_g_z_);
         }
 
         ~TopBoard() final {
@@ -152,8 +149,8 @@ private:
             gy614_.update_status();
             dr16_.update_status();
 
-            *gimbal_yaw_velocity_imu_ = imu_.gz();
-            *gimbal_pitch_velocity_imu_ = imu_.gy();
+            *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
+            *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
 
             gimbal_top_yaw_motor_.update_status();
             gimbal_pitch_motor_.update_status();
@@ -203,9 +200,6 @@ private:
 
         void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
             imu_.store_gyroscope_status(x - imu_bias_x, y - imu_bias_y, z - imu_bias_z);
-            // *debug_imu_g_x_ = (imu_.cali_gx_ref());
-            // *debug_imu_g_y_ = (imu_.cali_gy_ref());
-            // *debug_imu_g_z_ = (imu_.cali_gz_ref());
         }
 
         OutputInterface<rmcs_description::Tf>& tf_;
@@ -222,6 +216,9 @@ private:
         OutputInterface<double> debug_imu_g_z_;
 
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
+
+        rmcs_core::filter::LowPassFilter<> imu_gy_velocity_filter_{40.0f, 1000.0f};
+        rmcs_core::filter::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         device::DjiMotor gimbal_top_yaw_motor_;
         device::DjiMotor gimbal_pitch_motor_;

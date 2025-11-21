@@ -34,7 +34,7 @@ public:
         register_input("/gimbal/top_yaw/angle", top_yaw_angle_);
         register_input("/gimbal/top_yaw/velocity", top_yaw_velocity_);
         register_input("/gimbal/bottom_yaw/angle", bottom_yaw_angle_);
-        register_input("/gimbal/bottom_yaw/velocity", bottom_yaw_velocity_);
+        register_input("/gimbal/bottom_yaw/velocity_filtered", bottom_yaw_velocity_);
 
         register_input("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
         register_input("/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_);
@@ -62,9 +62,14 @@ public:
             *top_yaw_control_torque_ = nan_;
             *bottom_yaw_control_torque_ = nan_;
         } else {
-            *top_yaw_control_torque_ = top_yaw_angle_pid_.update(*control_angle_error_);
+            *top_yaw_control_torque_ = top_yaw_velocity_pid_.update(
+                top_yaw_angle_pid_.update(*control_angle_error_) - *gimbal_yaw_velocity_imu_);
 
-            *bottom_yaw_control_torque_ = bottom_yaw_angle_pid_.update(bottom_yaw_control_error());
+            *bottom_yaw_control_torque_ = bottom_yaw_velocity_pid_.update(
+                bottom_yaw_angle_pid_.update(bottom_yaw_control_error())
+                - bottom_yaw_velocity_imu());
+
+            
         }
 
         if (std::isnan(*control_angle_shift_)) {
