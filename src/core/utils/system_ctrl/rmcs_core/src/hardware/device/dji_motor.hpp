@@ -1,5 +1,6 @@
 #pragma once
 
+#include "filter/low_pass_filter.hpp"
 #include <librmcs/device/dji_motor.hpp>
 #include <rmcs_executor/component.hpp>
 
@@ -15,6 +16,8 @@ public:
         status_component.register_output(name_prefix + "/velocity", velocity_, 0.0);
         status_component.register_output(name_prefix + "/torque", torque_, 0.0);
         status_component.register_output(name_prefix + "/max_torque", max_torque_, 0.0);
+        status_component.register_output(
+            name_prefix + "/velocity_filtered", velocity_filtered_, 0.0);
 
         command_component.register_input(name_prefix + "/control_torque", control_torque_, false);
     }
@@ -37,6 +40,7 @@ public:
         *angle_ = angle();
         *velocity_ = velocity();
         *torque_ = torque();
+        *velocity_filtered_ = velocity_lpf_.update(velocity());
     }
 
     double control_torque() const {
@@ -53,10 +57,13 @@ public:
 private:
     rmcs_executor::Component::OutputInterface<double> angle_;
     rmcs_executor::Component::OutputInterface<double> velocity_;
+    rmcs_executor::Component::OutputInterface<double> velocity_filtered_;
     rmcs_executor::Component::OutputInterface<double> torque_;
     rmcs_executor::Component::OutputInterface<double> max_torque_;
 
     rmcs_executor::Component::InputInterface<double> control_torque_;
+
+    rmcs_core::filter::LowPassFilter<> velocity_lpf_{4, 1000};
 };
 
 } // namespace rmcs_core::hardware::device
