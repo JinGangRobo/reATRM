@@ -36,9 +36,6 @@ public:
 
         register_output("/gimbal/yaw/control_angle_error", yaw_angle_error_, nan_);
         register_output("/gimbal/pitch/control_angle_error", pitch_angle_error_, nan_);
-
-        register_output("/debug/solver/val_4", debug_val_4_);
-        register_output("/debug/solver/val_5", debug_val_5_);
     }
 
     void update() override {
@@ -68,10 +65,7 @@ public:
 
         constexpr double joystick_sensitivity = 0.004;
         constexpr double mouse_sensitivity = 0.5;
-
-        *debug_val_4_ = joystick_left_->y();
-        *debug_val_5_ = joystick_left_->x();
-
+        
         double yaw_shift = joystick_sensitivity * (joystick_left_->y() - joystick_left_bias_y_)
                          + mouse_sensitivity * mouse_velocity_->y();
         double pitch_shift = -joystick_sensitivity * (joystick_left_->x() - joystick_left_bias_x_)
@@ -98,9 +92,6 @@ private:
 
     double joystick_left_bias_y_ = 0.0;
     double joystick_left_bias_x_ = 0.0;
-
-    rmcs_executor::Component::OutputInterface<double> debug_val_4_;
-    rmcs_executor::Component::OutputInterface<double> debug_val_5_;
 };
 
 } // namespace rmcs_core::controller::gimbal

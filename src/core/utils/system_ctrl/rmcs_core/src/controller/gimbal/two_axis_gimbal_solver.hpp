@@ -33,9 +33,8 @@ public:
         component.register_input("/tf", tf_);
 
         // FOR DEBUG
-        component.register_output("/debug/solver/val_1", debug_val_1_);
-        component.register_output("/debug/solver/val_2", debug_val_2_);
-        component.register_output("/debug/solver/val_3", debug_val_3_);
+        component.register_output("/debug/solver/pitch_err", debug_pitch_err_);
+        component.register_output("/debug/solver/yaw_err", debug_yaw_err_);
     }
 
     class SetDisabled : public Operation {
@@ -175,7 +174,7 @@ private:
             *control_direction << lower_limit_.x() * projection, lower_limit_.y();
     }
 
-    static AngleError calculate_control_errors(
+    AngleError calculate_control_errors(
         const YawLink::DirectionVector& control_direction, const Eigen::Vector2d& pitch) {
         const auto& [x, y, z] = *control_direction;
         const auto& [c, s] = pitch;
@@ -184,6 +183,9 @@ private:
         result.yaw_angle_error = std::atan2(y, x);
         double x_projected = std::sqrt(x * x + y * y);
         result.pitch_angle_error = -std::atan2(z * c - x_projected * s, z * s + x_projected * c);
+
+        *debug_pitch_err_ = result.pitch_angle_error;
+        *debug_yaw_err_ = result.yaw_angle_error;
 
         return result;
     }
@@ -195,9 +197,8 @@ private:
     rmcs_executor::Component::InputInterface<double> gimbal_pitch_angle_;
     rmcs_executor::Component::InputInterface<Tf> tf_;
 
-    rmcs_executor::Component::OutputInterface<double> debug_val_1_;
-    rmcs_executor::Component::OutputInterface<double> debug_val_2_;
-    rmcs_executor::Component::OutputInterface<double> debug_val_3_;
+    rmcs_executor::Component::OutputInterface<double> debug_pitch_err_;
+    rmcs_executor::Component::OutputInterface<double> debug_yaw_err_;
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
 
