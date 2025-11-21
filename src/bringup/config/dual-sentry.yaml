@@ -11,7 +11,7 @@ rmcs_executor:
       # - rmcs_core::referee::command::interaction::Ui -> referee_ui
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
-      # - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
+      - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
       # - rmcs_core::controller::pid::PidController -> pitch_angle_pid_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
       # - rmcs_core::controller::pid::ErrorPidController -> pitch_velocity_pid_controller
@@ -21,33 +21,53 @@ rmcs_executor:
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
 
-      # - rmcs_core::broadcaster::TfBroadcaster -> tf_broadcaster
+      - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
+
+value_broadcaster:
+  ros__parameters:
+    forward_list:
+      - /debug/solver/val_1
+      - /debug/solver/val_2
+      - /debug/solver/val_3
+      - /debug/solver/val_4
+      - /debug/solver/val_5
+      - /debug/imu_g_x
+      - /debug/imu_g_y
+      - /debug/imu_g_z
 
 dual_sentry_hardware:
   ros__parameters:
     usb_pid_top_board: 0xf18a
     usb_pid_bottom_board: 0x247f
     bottom_yaw_motor_zero_point: 0
-    top_yaw_motor_zero_point: 0
+    top_yaw_motor_zero_point: -350
     pitch_motor_zero_point: 1600
+
+    imu_bias_x: 3
+    imu_bias_y: 8
+    imu_bias_z: 2
+
 
 gimbal_controller:
   ros__parameters:
-    upper_limit: 0.5
-    lower_limit: 1.1
+    upper_limit: -0.3
+    lower_limit: 0.3
+
+    joystick_left_bias_y: 0.0
+    joystick_left_bias_x: 0.0
 
 dual_yaw_controller:
   ros__parameters:
-    top_yaw_angle_kp: 0.8
+    top_yaw_angle_kp: 12.0
     top_yaw_angle_ki: 0.0
     top_yaw_angle_kd: 0.0
-    top_yaw_velocity_kp: 1.0
+    top_yaw_velocity_kp: 25.0
     top_yaw_velocity_ki: 0.0
     top_yaw_velocity_kd: 0.0
-    bottom_yaw_angle_kp: 0.8
-    bottom_yaw_angle_ki: 0.0
+    bottom_yaw_angle_kp: 4.0
+    bottom_yaw_angle_ki: 0.00001
     bottom_yaw_angle_kd: 0.0
-    bottom_yaw_velocity_kp: 1.0
+    bottom_yaw_velocity_kp: 0.0
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
 
@@ -56,8 +76,8 @@ pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_torque
-    kp: 45.0
-    ki: 0.1
+    kp: 24.0
+    ki: 0.015
     kd: 0.0
 
 # pitch_angle_pid_controller:

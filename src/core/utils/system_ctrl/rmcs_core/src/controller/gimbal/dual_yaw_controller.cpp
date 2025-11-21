@@ -62,12 +62,9 @@ public:
             *top_yaw_control_torque_ = nan_;
             *bottom_yaw_control_torque_ = nan_;
         } else {
-            *top_yaw_control_torque_ = top_yaw_velocity_pid_.update(
-                top_yaw_angle_pid_.update(*control_angle_error_) - *gimbal_yaw_velocity_imu_);
+            *top_yaw_control_torque_ = top_yaw_angle_pid_.update(*control_angle_error_);
 
-            *bottom_yaw_control_torque_ = bottom_yaw_velocity_pid_.update(
-                bottom_yaw_angle_pid_.update(bottom_yaw_control_error())
-                - bottom_yaw_velocity_imu());
+            *bottom_yaw_control_torque_ = bottom_yaw_angle_pid_.update(bottom_yaw_control_error());
         }
 
         if (std::isnan(*control_angle_shift_)) {
