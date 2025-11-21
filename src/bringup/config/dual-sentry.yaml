@@ -64,8 +64,8 @@ dual_yaw_controller:
     top_yaw_velocity_kp: 25.0
     top_yaw_velocity_ki: 0.0
     top_yaw_velocity_kd: 0.0
-    bottom_yaw_angle_kp: 2.0
-    bottom_yaw_angle_ki: 0.0
+    bottom_yaw_angle_kp: 4.0
+    bottom_yaw_angle_ki: 0.00001
     bottom_yaw_angle_kd: 0.0
     bottom_yaw_velocity_kp: 0.0
     bottom_yaw_velocity_ki: 0.0
@@ -76,8 +76,8 @@ pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_torque
-    kp: 45.0
-    ki: 0.0
+    kp: 24.0
+    ki: 0.015
     kd: 0.0
 
 # pitch_angle_pid_controller:

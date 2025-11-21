@@ -170,13 +170,13 @@ private:
             can_commands[1] = gimbal_top_yaw_motor_.generate_command();
             can_commands[2] = gimbal_pitch_motor_.generate_command();
             can_commands[3] = 0;
-            transmit_buffer_.add_can2_transmission(0x1FF, std::bit_cast<uint64_t>(can_commands));
+            transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(can_commands));
 
             transmit_buffer_.trigger_transmission();
         }
 
     private:
-        void can2_receive_callback(
+        void can1_receive_callback(
             uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
             bool is_remote_transmission, uint8_t can_data_length) override {
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
