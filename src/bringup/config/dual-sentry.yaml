@@ -45,7 +45,7 @@ dual_sentry_hardware:
 gimbal_controller:
   ros__parameters:
     upper_limit: -0.3
-    lower_limit: 0.3
+    lower_limit: 0.4
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
@@ -70,15 +70,15 @@ pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    kp: 10.5
-    ki: 0.01
-    kd: 0.00006
+    kp: 10.2
+    ki: 0.008
+    kd: 0.0
 
 pitch_velocity_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
-    kp: 2.0
-    ki: 0.1
-    kd: 0.0001
+    kp: 1.8
+    ki: 0.12
+    kd: 0.0
