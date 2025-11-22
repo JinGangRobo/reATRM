@@ -102,6 +102,12 @@ private:
             , imu_bias_z(dual_sentry.get_parameter("imu_bias_z").as_int())
             , gimbal_top_yaw_motor_(dual_sentry, dual_sentry_command, "/gimbal/top_yaw")
             , gimbal_pitch_motor_(dual_sentry, dual_sentry_command, "/gimbal/pitch")
+            , gimbal_left_friction_(
+                  dual_sentry, dual_sentry_command, "/gimbal/left_friction")
+            , gimbal_right_friction_(
+                  dual_sentry, dual_sentry_command, "/gimbal/right_friction")
+            , gimbal_bullet_feeder_(
+                  dual_sentry, dual_sentry_command, "/gimbal/bullet_feeder")
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
@@ -116,6 +122,19 @@ private:
                         static_cast<int>(
                             dual_sentry.get_parameter("pitch_motor_zero_point").as_int()))
                     .set_reversed());
+
+            gimbal_left_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
+            gimbal_right_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                    .set_reduction_ratio(1.)
+                    .set_reversed());
+
+            gimbal_bullet_feeder_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                    .enable_multi_turn_angle()
+                    .set_reversed()
+                    .set_reduction_ratio(19 * 2));
 
             imu_.set_coordinate_mapping([](double x, double y, double z) {
                 // Get the mapping with the following code.
@@ -154,6 +173,11 @@ private:
 
             gimbal_top_yaw_motor_.update_status();
             gimbal_pitch_motor_.update_status();
+
+            gimbal_left_friction_.update_status();
+            gimbal_right_friction_.update_status();
+            gimbal_bullet_feeder_.update_status();
+
             tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
                 gimbal_pitch_motor_.angle());
 
@@ -166,8 +190,14 @@ private:
             can_commands[0] = 0;
             can_commands[1] = gimbal_top_yaw_motor_.generate_command();
             can_commands[2] = gimbal_pitch_motor_.generate_command();
-            can_commands[3] = 0;
+            can_commands[3] = gimbal_bullet_feeder_.generate_command();
             transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(can_commands));
+
+            can_commands[0] = gimbal_right_friction_.generate_command();
+            can_commands[1] = gimbal_left_friction_.generate_command();
+            can_commands[2] = 0;
+            can_commands[3] = 0;
+            transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
 
             transmit_buffer_.trigger_transmission();
         }
@@ -183,6 +213,12 @@ private:
                 gimbal_top_yaw_motor_.store_status(can_data);
             } else if (can_id == 0x207) {
                 gimbal_pitch_motor_.store_status(can_data);
+            } else if (can_id == 0x202) {
+                gimbal_left_friction_.store_status(can_data);
+            } else if (can_id == 0x201) {
+                gimbal_right_friction_.store_status(can_data);
+            } else if (can_id == 0x208) {
+                gimbal_bullet_feeder_.store_status(can_data);
             }
         }
 
@@ -222,6 +258,11 @@ private:
 
         device::DjiMotor gimbal_top_yaw_motor_;
         device::DjiMotor gimbal_pitch_motor_;
+
+        device::DjiMotor gimbal_left_friction_;
+        device::DjiMotor gimbal_right_friction_;
+
+        device::DjiMotor gimbal_bullet_feeder_;
 
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;
