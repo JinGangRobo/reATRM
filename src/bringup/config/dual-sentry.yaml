@@ -120,7 +120,7 @@ left_friction_velocity_pid_controller:
     measurement: /gimbal/left_friction/velocity
     setpoint: /gimbal/left_friction/control_velocity
     control: /gimbal/left_friction/control_torque
-    kp: 10
+    kp: 0.003436926
     ki: 0.0
     kd: 0.0
 
@@ -129,7 +129,7 @@ right_friction_velocity_pid_controller:
     measurement: /gimbal/right_friction/velocity
     setpoint: /gimbal/right_friction/control_velocity
     control: /gimbal/right_friction/control_torque
-    kp: 10
+    kp: 0.003436926
     ki: 0.0
     kd: 0.0
 
