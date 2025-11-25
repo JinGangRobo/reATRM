@@ -13,7 +13,6 @@ rmcs_executor:
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
-      - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
 
       - rmcs_core::controller::shooting::FrictionWheelController -> friction_wheel_controller
       - rmcs_core::controller::shooting::HeatController -> heat_controller
@@ -31,9 +30,14 @@ rmcs_executor:
 value_broadcaster:
   ros__parameters:
     forward_list:
-      - /debug/imu_g_y
-      - /gimbal/pitch/velocity_imu
       - /gimbal/pitch/control_velocity
+      - /debug/pitch/raw_angle
+      - /gimbal/pitch/angle
+      - /gimbal/yaw/angle
+      - /gimbal/pitch/control_angle_error'
+      - /debug/solver/pitch
+      - /debug/can_counter
+  
 
 dual_sentry_hardware:
   ros__parameters:
@@ -41,7 +45,7 @@ dual_sentry_hardware:
     usb_pid_bottom_board: 0x247f
     bottom_yaw_motor_zero_point: 0
     top_yaw_motor_zero_point: -350
-    pitch_motor_zero_point: 1600
+    pitch_motor_zero_point: 6500
 
     imu_bias_x: 3
     imu_bias_y: 8
@@ -50,7 +54,7 @@ dual_sentry_hardware:
 
 gimbal_controller:
   ros__parameters:
-    upper_limit: -0.3
+    upper_limit: -0.189
     lower_limit: 0.4
 
     joystick_left_bias_y: 0.0
@@ -76,18 +80,9 @@ pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    kp: 10.2
+    kp: 7.0
     ki: 0.008
-    kd: 0.0
-
-pitch_velocity_pid_controller:
-  ros__parameters:
-    measurement: /gimbal/pitch/velocity_imu
-    setpoint: /gimbal/pitch/control_velocity
-    control: /gimbal/pitch/control_torque
-    kp: 1.8
-    ki: 0.12
-    kd: 0.0
+    kd: 0.008
 
 friction_wheel_controller:
   ros__parameters:

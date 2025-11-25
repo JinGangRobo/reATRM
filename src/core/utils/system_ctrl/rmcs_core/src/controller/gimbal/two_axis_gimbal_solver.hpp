@@ -35,6 +35,8 @@ public:
         // FOR DEBUG
         component.register_output("/debug/solver/pitch_err", debug_pitch_err_);
         component.register_output("/debug/solver/yaw_err", debug_yaw_err_);
+        component.register_output("/debug/solver/pitch", debug_control_pitch_);
+        component.register_output("/debug/solver/yaw", debug_control_yaw_);
     }
 
     class SetDisabled : public Operation {
@@ -167,6 +169,8 @@ private:
         }
 
         // TODO a better board check
+        *debug_control_pitch_ = std::atan2(z, norm);
+        *debug_control_yaw_ = std::atan2(y, x);
 
         if (z > upper_limit_.y())
             *control_direction << upper_limit_.x() * projection, upper_limit_.y();
@@ -199,6 +203,8 @@ private:
 
     rmcs_executor::Component::OutputInterface<double> debug_pitch_err_;
     rmcs_executor::Component::OutputInterface<double> debug_yaw_err_;
+    rmcs_executor::Component::OutputInterface<double> debug_control_pitch_;
+    rmcs_executor::Component::OutputInterface<double> debug_control_yaw_;
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
 
