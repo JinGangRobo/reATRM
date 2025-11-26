@@ -11,3 +11,8 @@
 
 2. 关于赛场上怎么调试: 
     使用网线, SSH连接到机载计算机, 并使用X11转发连接GUI应用
+
+3. 关于如何永久设置SLAVE权限
+    ```bash
+    echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="a11c", MODE="0666"' | sudo tee /etc/udev/rules.d/95-rmcs-slave.rules && sudo udevadm control --reload-rules && sudo udevadm trigger
+    ```
