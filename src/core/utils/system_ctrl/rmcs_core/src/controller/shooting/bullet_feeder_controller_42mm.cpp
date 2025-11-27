@@ -200,17 +200,20 @@ private:
 
     void update_jam_detection() {
         // RCLCPP_INFO(get_logger(), "%.2f --", *bullet_feeder_control_torque_);
-        if (*bullet_feeder_control_torque_ < 300.0) {
-            bullet_feeder_faulty_count_ = 0;
-            return;
-        }
 
-        if (bullet_feeder_faulty_count_ < 1000)
-            bullet_feeder_faulty_count_++;
-        else {
-            bullet_feeder_faulty_count_ = 0;
-            enter_jam_protection();
-        }
+        // TODO: Generalize jam detection method
+
+        // if (*bullet_feeder_control_torque_ < 300.0) {
+        //     bullet_feeder_faulty_count_ = 0;
+        //     return;
+        // }
+
+        // if (bullet_feeder_faulty_count_ < 1000)
+        //     bullet_feeder_faulty_count_++;
+        // else {
+        //     bullet_feeder_faulty_count_ = 0;
+        //     enter_jam_protection();
+        // }
     }
 
     void enter_jam_protection() {

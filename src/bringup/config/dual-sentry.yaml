@@ -34,7 +34,7 @@ value_broadcaster:
       - /debug/pitch/raw_angle
       - /gimbal/pitch/angle
       - /gimbal/yaw/angle
-      - /gimbal/pitch/control_angle_error'
+      - /gimbal/pitch/control_angle_error
       - /debug/solver/pitch
       - /debug/can_counter
   

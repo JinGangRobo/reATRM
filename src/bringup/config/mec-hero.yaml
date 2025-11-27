@@ -13,6 +13,7 @@ rmcs_executor:
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::pid::ErrorPidController -> yaw_angle_pid_controller
+      - rmcs_core::controller::pid::PidController -> yaw_velocity_pid_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_pid_controller
 
       - rmcs_core::controller::shooting::FrictionWheelController -> friction_wheel_controller
@@ -35,21 +36,27 @@ value_broadcaster:
       - /debug/pitch/raw_angle
       - /gimbal/pitch/angle
       - /gimbal/yaw/angle
-      - /gimbal/pitch/control_angle_error'
+      - /gimbal/yaw/control_torque
+      - /gimbal/yaw/control_angle_error
+      - /gimbal/pitch/control_angle_error
       - /debug/solver/pitch
+      - /debug/solver/yaw
+      - /gimbal/pitch/velocity_imu
+      - /gimbal/yaw/velocity_imu
+      - /debug/pitch/temp
 
 hero_hardware:
   ros__parameters:
     usb_pid_top_board: 0xaaa3
     usb_pid_bottom_board: 0x9f00
-    yaw_motor_zero_point: 61054
-    pitch_motor_zero_point: 54062
+    yaw_motor_zero_point: 0
+    pitch_motor_zero_point: 30678
     external_imu_port: /dev/ttyUSB0
 
 gimbal_controller:
   ros__parameters:
-    upper_limit: -0.4598
-    lower_limit: 0.4362
+    upper_limit: -0.4
+    lower_limit: 0.2
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
@@ -57,20 +64,35 @@ gimbal_controller:
 yaw_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/yaw/control_angle_error
-    feedforward: -/chassis/yaw/velocity_imu
+    # feedforward: -/chassis/yaw/velocity_imu
     control: /gimbal/yaw/control_velocity
-    kp: 0.01
-    ki: 0.0
+    kp: 12.0
+    ki: 0.01
     kd: 0.0
+    integral_min: -10.0
+    integral_max: 10.0
+
+yaw_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/yaw/velocity_imu
+    setpoint: /gimbal/yaw/control_velocity
+    control: /gimbal/yaw/control_torque
+    kp: 18.0
+    ki: 0.2
+    kd: 0.0
+    integral_min: -20.0
+    integral_max: 20.0
 
 pitch_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    kp: 0.01
-    ki: 0.0
+    kp: 8.0
+    ki: 0.001
     kd: 0.0
-    output_max: 10.0
+    integral_min: -10.0
+    integral_max: 10.0
+    output_max: 20.0
 
 friction_wheel_controller:
   ros__parameters:

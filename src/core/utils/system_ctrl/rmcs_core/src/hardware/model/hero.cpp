@@ -1,4 +1,5 @@
 #include <atomic>
+#include <fast_tf/rcl.hpp>
 #include <memory>
 #include <thread>
 
@@ -90,8 +91,10 @@ private:
             , dr16_(hero)
             , gimbal_pitch_motor_(
                   hero, hero_command, "/gimbal/pitch",
-                  device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
-                      static_cast<int>(hero.get_parameter("pitch_motor_zero_point").as_int())))
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}
+                      .set_encoder_zero_point(
+                          static_cast<int>(hero.get_parameter("pitch_motor_zero_point").as_int()))
+                      .set_reversed())
             , gimbal_yaw_motor_(
                   hero, hero_command, "/gimbal/yaw",
                   device::DjiMotor::Config{device::DjiMotor::Type::GM6020}.set_encoder_zero_point(
@@ -120,13 +123,14 @@ private:
                 // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
                 // std::cout << mapping << std::endl;
 
-                return std::make_tuple(x, y, z);
+                return std::make_tuple(y, x, z);
             });
 
             hero.register_output("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
             hero.register_output("/gimbal/pitch/velocity_imu", gimbal_pitch_velocity_imu_);
 
             hero.register_output("/debug/pitch/raw_angle", debug_pitch_raw_angle_);
+            hero.register_output("/debug/pitch/temp", debug_pitch_temp);
         }
 
         ~TopBoard() final {
@@ -140,13 +144,15 @@ private:
 
             tf_->set_transform<rmcs_description::PitchLink, rmcs_description::OdomImu>(
                 gimbal_imu_pose.conjugate());
+            fast_tf::rcl::broadcast_all(*tf_);
 
             dr16_.update_status();
 
-            *gimbal_yaw_velocity_imu_ = imu_.gz();
-            *gimbal_pitch_velocity_imu_ = imu_.gy();
+            *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
+            *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
 
             *debug_pitch_raw_angle_ = gimbal_pitch_motor_.last_raw_angle();
+            *debug_pitch_temp = gimbal_pitch_motor_.temperature();
 
             gimbal_pitch_motor_.update_status();
             tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
@@ -154,6 +160,8 @@ private:
             gimbal_yaw_motor_.update_status();
             tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
                 gimbal_yaw_motor_.angle());
+
+            fast_tf::rcl::broadcast_all(*tf_);
 
             gimbal_bullet_feeder_.update_status();
 
@@ -166,8 +174,14 @@ private:
 
             for (int i = 0; i < 3; i++)
                 batch_commands[i] = gimbal_friction_wheels_[i].generate_command();
-            batch_commands[3] = gimbal_yaw_motor_.generate_command();
+            batch_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(batch_commands));
+
+            batch_commands[0] = gimbal_yaw_motor_.generate_command();
+            batch_commands[1] = 0;
+            batch_commands[2] = 0;
+            batch_commands[3] = 0;
+            transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(batch_commands));
 
             transmit_buffer_.add_can2_transmission(0x209, gimbal_pitch_motor_.generate_command());
             transmit_buffer_.add_can2_transmission(0x204, gimbal_bullet_feeder_.generate_command());
@@ -188,7 +202,7 @@ private:
                 gimbal_friction_wheels_[1].store_status(can_data);
             } else if (can_id == 0x203) {
                 gimbal_friction_wheels_[2].store_status(can_data);
-            } else if (can_id == 0x204) {
+            } else if (can_id == 0x205) {
                 gimbal_yaw_motor_.store_status(can_data);
             }
         }
@@ -226,12 +240,15 @@ private:
         OutputInterface<double> gimbal_yaw_velocity_imu_;
         OutputInterface<double> gimbal_pitch_velocity_imu_;
         OutputInterface<double> debug_pitch_raw_angle_;
-
+        OutputInterface<double> debug_pitch_temp;
         device::DmMotor gimbal_pitch_motor_;
         device::DjiMotor gimbal_yaw_motor_;
 
         device::DmMotor gimbal_bullet_feeder_;
         device::DjiMotor gimbal_friction_wheels_[3];
+
+        rmcs_core::filter::LowPassFilter<> imu_gy_velocity_filter_{40.0f, 1000.0f};
+        rmcs_core::filter::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;
@@ -279,7 +296,6 @@ private:
                 transmit_buffer_.add_uart1_transmission(buffer, size);
                 return size;
             };
-
 
             hero.register_output("/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_, 0);
         }
