@@ -10,7 +10,7 @@
 #include "controller/chassis/qcp_solver.hpp"
 #include "controller/pid/matrix_pid_calculator.hpp"
 #include "controller/pid/pid_calculator.hpp"
-#include "filter/low_pass_filter.hpp"
+#include "utility/low_pass_filter.hpp"
 
 namespace rmcs_core::controller::chassis {
 
@@ -483,7 +483,7 @@ private:
     OutputInterface<double> right_front_wheel_control_torque_;
 
     QcpSolver qcp_solver_;
-    filter::LowPassFilter<3> control_acceleration_filter_;
+    utility::LowPassFilter<3> control_acceleration_filter_;
 
     double chassis_yaw_angle_imu_ = 0.0;
     Eigen::Vector3d chassis_velocity_expected_ = Eigen::Vector3d::Zero();

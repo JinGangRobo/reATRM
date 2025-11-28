@@ -1,6 +1,6 @@
 #pragma once
 
-#include "filter/low_pass_filter.hpp"
+#include "utility/low_pass_filter.hpp"
 #include <librmcs/device/dm_motor.hpp>
 #include <rmcs_executor/component.hpp>
 
@@ -75,7 +75,7 @@ private:
     rmcs_executor::Component::InputInterface<double> control_velocity_;
     rmcs_executor::Component::InputInterface<double> control_torque_;
 
-    rmcs_core::filter::LowPassFilter<> velocity_lpf_{4, 1000};
+    rmcs_core::utility::LowPassFilter<> velocity_lpf_{4, 1000};
 };
 
 } // namespace rmcs_core::hardware::device

@@ -14,13 +14,13 @@
 #include <serial/serial.h>
 #include <std_msgs/msg/int32.hpp>
 
-#include "filter/low_pass_filter.hpp"
 #include "hardware/device/bmi088.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
 #include "hardware/device/gy614.hpp"
 #include "hardware/device/supercap.hpp"
+#include "utility/low_pass_filter.hpp"
 
 namespace rmcs_core::hardware {
 
@@ -275,8 +275,8 @@ private:
 
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 
-        rmcs_core::filter::LowPassFilter<> imu_gy_velocity_filter_{40.0f, 1000.0f};
-        rmcs_core::filter::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{40.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         device::DjiMotor gimbal_top_yaw_motor_;
         device::DmMotor gimbal_pitch_motor_;

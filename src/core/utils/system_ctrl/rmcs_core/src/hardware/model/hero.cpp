@@ -269,8 +269,8 @@ private:
         device::DmMotor gimbal_bullet_feeder_;
         device::DjiMotor gimbal_friction_wheels_[3];
 
-        rmcs_core::filter::LowPassFilter<> imu_gy_velocity_filter_{60.0f, 1000.0f};
-        rmcs_core::filter::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{60.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;
@@ -388,7 +388,7 @@ private:
         device::Bmi088 imu_;
         OutputInterface<rmcs_description::Tf>& tf_;
 
-        rmcs_core::filter::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         OutputInterface<double> chassis_yaw_velocity_imu_;
 

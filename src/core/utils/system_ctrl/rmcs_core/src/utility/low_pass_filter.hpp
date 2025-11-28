@@ -6,7 +6,7 @@
 
 #include <eigen3/Eigen/Dense>
 
-namespace rmcs_core::filter {
+namespace rmcs_core::utility {
 
 template <int variable_number = 1>
 requires(variable_number > 0) class LowPassFilter {
@@ -63,4 +63,4 @@ private:
     Value previous_output_;
 };
 
-} // namespace rmcs_core::filter
+} // namespace rmcs_core::utility
