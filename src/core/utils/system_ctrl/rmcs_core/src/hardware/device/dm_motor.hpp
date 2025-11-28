@@ -1,6 +1,6 @@
 #pragma once
 
-// #include "filter/low_pass_filter.hpp"
+#include "filter/low_pass_filter.hpp"
 #include <librmcs/device/dm_motor.hpp>
 #include <rmcs_executor/component.hpp>
 
@@ -16,11 +16,12 @@ public:
         status_component.register_output(name_prefix + "/velocity", velocity_, 0.0);
         status_component.register_output(name_prefix + "/torque", torque_, 0.0);
         status_component.register_output(name_prefix + "/max_torque", max_torque_, 0.0);
-        // status_component.register_output(
-        //     name_prefix + "/velocity_filtered", velocity_filtered_, 0.0);
 
+        command_component.register_input(name_prefix + "/control_torque", control_torque_, false);
         command_component.register_input(
             name_prefix + "/control_velocity", control_velocity_, false);
+        status_component.register_output(
+            name_prefix + "/velocity_filtered", velocity_filtered_, 0.0);
     }
 
     DmMotor(
@@ -41,7 +42,7 @@ public:
         *angle_ = angle();
         *velocity_ = velocity();
         *torque_ = torque();
-        // *velocity_filtered_ = velocity_lpf_.update(velocity());
+        *velocity_filtered_ = velocity_lpf_.update(velocity());
     }
 
     double control_velocity() const {
@@ -51,20 +52,30 @@ public:
             return 0.0;
     }
 
-    uint64_t generate_command() {
-        return librmcs::device::DmMotor::generate_command(control_velocity());
+    double control_torque() const {
+        if (control_torque_.ready()) [[likely]]
+            return *control_torque_;
+        else
+            return 0.0;
     }
+
+    using librmcs::device::DmMotor::generate_torque_command;
+    uint64_t generate_torque_command() { return generate_torque_command(control_torque()); }
+
+    using librmcs::device::DmMotor::generate_velocity_command;
+    uint64_t generate_velocity_command() { return generate_velocity_command(control_velocity()); }
 
 private:
     rmcs_executor::Component::OutputInterface<double> angle_;
     rmcs_executor::Component::OutputInterface<double> velocity_;
-    // rmcs_executor::Component::OutputInterface<double> velocity_filtered_;
+    rmcs_executor::Component::OutputInterface<double> velocity_filtered_;
     rmcs_executor::Component::OutputInterface<double> torque_;
     rmcs_executor::Component::OutputInterface<double> max_torque_;
 
     rmcs_executor::Component::InputInterface<double> control_velocity_;
+    rmcs_executor::Component::InputInterface<double> control_torque_;
 
-    // rmcs_core::filter::LowPassFilter<> velocity_lpf_{4, 1000};
+    rmcs_core::filter::LowPassFilter<> velocity_lpf_{4, 1000};
 };
 
 } // namespace rmcs_core::hardware::device
