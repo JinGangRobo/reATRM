@@ -200,9 +200,9 @@ private:
             can_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
 
-            uint64_t can_pitch_command = gimbal_pitch_motor_.generate_command();
+            uint64_t can_pitch_command = gimbal_pitch_motor_.generate_velocity_command();
             transmit_buffer_.add_can2_transmission(
-                0x207, can_pitch_command, false, false,
+                0x7, can_pitch_command, false, false,
                 can_pitch_command > 0xf0ffffffffffffff ? 8 : 4);
 
             transmit_buffer_.trigger_transmission();

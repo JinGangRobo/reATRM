@@ -26,27 +26,30 @@ public:
         register_input("/gimbal/friction_ready", friction_ready_);
 
         register_input("/gimbal/bullet_feeder/angle", bullet_feeder_angle_);
-        register_input("/gimbal/bullet_feeder/velocity", bullet_feeder_velocity_);
+        register_input("/gimbal/bullet_feeder/velocity_filtered", bullet_feeder_velocity_);
 
         register_input(
             "/gimbal/control_bullet_allowance/limited_by_heat",
             control_bullet_allowance_limited_by_heat_);
 
-        bullet_feeder_velocity_pid_.kp = 50.0;
-        bullet_feeder_velocity_pid_.ki = 10.0;
-        bullet_feeder_velocity_pid_.kd = 0.0;
-        bullet_feeder_velocity_pid_.integral_max = 60.0;
-        bullet_feeder_velocity_pid_.integral_min = 0.0;
+        bullet_feeder_velocity_pid_.kp = 0.15;
+        bullet_feeder_velocity_pid_.ki = 0.01;
+        bullet_feeder_velocity_pid_.kd = 1.8;
+        bullet_feeder_velocity_pid_.integral_max = 3.0;
+        bullet_feeder_velocity_pid_.integral_min = -3.0;
 
-        bullet_feeder_angle_pid_.kp = 50.0;
-        bullet_feeder_angle_pid_.ki = 0.0;
-        bullet_feeder_angle_pid_.kd = 2.0;
+        bullet_feeder_angle_pid_.kp = 5.0;
+        bullet_feeder_angle_pid_.ki = 0.01;
+        bullet_feeder_angle_pid_.kd = 0.0;
 
         register_output(
             "/gimbal/bullet_feeder/control_torque", bullet_feeder_control_torque_, nan_);
 
         // For compatibility
         register_output("/gimbal/shooter/mode", shoot_mode_, rmcs_msgs::ShootMode::SINGLE);
+
+        register_output("/debug/friction/ready", debug_friction_ready_);
+        register_output("/debug/feeder/ctrl_angle", debug_bullet_feeder_angle_);
     }
 
     void update() override {
@@ -54,6 +57,9 @@ public:
         const auto switch_left = *switch_left_;
         const auto mouse = *mouse_;
         const auto keyboard = *keyboard_;
+
+        *debug_friction_ready_ = *friction_ready_;
+        *debug_bullet_feeder_angle_ = bullet_feeder_control_angle_;
 
         using namespace rmcs_msgs;
         if ((switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
@@ -128,8 +134,6 @@ public:
             // bullet_feeder_velocity_pid_.integral_max = std::clamp(1000.0 * velocity_err,
             // 0.0, 60.0);
             *bullet_feeder_control_torque_ = bullet_feeder_velocity_pid_.update(velocity_err);
-            // RCLCPP_INFO(
-            //     get_logger(), "%.2f %.2f", velocity_err, *bullet_feeder_control_torque_);
 
             update_jam_detection();
         }
@@ -201,19 +205,17 @@ private:
     void update_jam_detection() {
         // RCLCPP_INFO(get_logger(), "%.2f --", *bullet_feeder_control_torque_);
 
-        // TODO: Generalize jam detection method
+        if (*bullet_feeder_control_torque_ < 300.0) {
+            bullet_feeder_faulty_count_ = 0;
+            return;
+        }
 
-        // if (*bullet_feeder_control_torque_ < 300.0) {
-        //     bullet_feeder_faulty_count_ = 0;
-        //     return;
-        // }
-
-        // if (bullet_feeder_faulty_count_ < 1000)
-        //     bullet_feeder_faulty_count_++;
-        // else {
-        //     bullet_feeder_faulty_count_ = 0;
-        //     enter_jam_protection();
-        // }
+        if (bullet_feeder_faulty_count_ < 1000)
+            bullet_feeder_faulty_count_++;
+        else {
+            bullet_feeder_faulty_count_ = 0;
+            enter_jam_protection();
+        }
     }
 
     void enter_jam_protection() {
@@ -257,6 +259,9 @@ private:
     pid::PidCalculator bullet_feeder_velocity_pid_;
     pid::PidCalculator bullet_feeder_angle_pid_;
     OutputInterface<double> bullet_feeder_control_torque_;
+
+    OutputInterface<double> debug_friction_ready_;
+    OutputInterface<double> debug_bullet_feeder_angle_;
 
     int bullet_feeder_faulty_count_ = 0;
     int bullet_feeder_cool_down_ = 0;

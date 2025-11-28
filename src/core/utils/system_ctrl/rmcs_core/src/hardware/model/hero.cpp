@@ -89,6 +89,9 @@ private:
             , tf_(hero.tf_)
             , imu_(10.0f, 0.001f, 1000000.0f)
             , dr16_(hero)
+            , imu_bias_x(hero.get_parameter("imu_bias_x").as_int())
+            , imu_bias_y(hero.get_parameter("imu_bias_y").as_int())
+            , imu_bias_z(hero.get_parameter("imu_bias_z").as_int())
             , gimbal_pitch_motor_(
                   hero, hero_command, "/gimbal/pitch",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
@@ -105,11 +108,15 @@ private:
             // TODO: Bad CAN ID sequence, needs to be adjusted.
             , gimbal_friction_wheels_(
                   {hero, hero_command, "/gimbal/first_friction",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.)},
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reduction_ratio(1.)
+                       .set_reversed()},
                   {hero, hero_command, "/gimbal/second_friction",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.)},
                   {hero, hero_command, "/gimbal/third_friction",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.)})
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reduction_ratio(1.)
+                       .set_reversed()})
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
@@ -131,6 +138,9 @@ private:
 
             hero.register_output("/debug/pitch/raw_angle", debug_pitch_raw_angle_);
             hero.register_output("/debug/pitch/temp", debug_pitch_temp);
+            hero.register_output("/debug/imu/gx_bais", debug_imu_gx_bais_);
+            hero.register_output("/debug/imu/gy_bais", debug_imu_gy_bais_);
+            hero.register_output("/debug/imu/gz_bais", debug_imu_gz_bais_);
         }
 
         ~TopBoard() final {
@@ -141,6 +151,10 @@ private:
         void update() {
             imu_.update_status();
             Eigen::Quaterniond gimbal_imu_pose{imu_.q0(), imu_.q1(), imu_.q2(), imu_.q3()};
+
+            *debug_imu_gx_bais_ = imu_.cali_gx_ref();
+            *debug_imu_gy_bais_ = imu_.cali_gy_ref();
+            *debug_imu_gz_bais_ = imu_.cali_gz_ref();
 
             tf_->set_transform<rmcs_description::PitchLink, rmcs_description::OdomImu>(
                 gimbal_imu_pose.conjugate());
@@ -183,8 +197,10 @@ private:
             batch_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(batch_commands));
 
-            transmit_buffer_.add_can2_transmission(0x209, gimbal_pitch_motor_.generate_command());
-            transmit_buffer_.add_can2_transmission(0x204, gimbal_bullet_feeder_.generate_command());
+            transmit_buffer_.add_can2_transmission(
+                0x9, gimbal_pitch_motor_.generate_torque_command());
+            transmit_buffer_.add_can2_transmission(
+                0x4, gimbal_bullet_feeder_.generate_torque_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -229,7 +245,7 @@ private:
         }
 
         void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
-            imu_.store_gyroscope_status(x, y, z);
+            imu_.store_gyroscope_status(x - imu_bias_x, y - imu_bias_y, z - imu_bias_z);
         }
 
         OutputInterface<rmcs_description::Tf>& tf_;
@@ -237,17 +253,23 @@ private:
         device::Bmi088 imu_;
         device::Dr16 dr16_;
 
+        int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
+
         OutputInterface<double> gimbal_yaw_velocity_imu_;
         OutputInterface<double> gimbal_pitch_velocity_imu_;
         OutputInterface<double> debug_pitch_raw_angle_;
         OutputInterface<double> debug_pitch_temp;
+        OutputInterface<double> debug_imu_gx_bais_;
+        OutputInterface<double> debug_imu_gy_bais_;
+        OutputInterface<double> debug_imu_gz_bais_;
+
         device::DmMotor gimbal_pitch_motor_;
         device::DjiMotor gimbal_yaw_motor_;
 
         device::DmMotor gimbal_bullet_feeder_;
         device::DjiMotor gimbal_friction_wheels_[3];
 
-        rmcs_core::filter::LowPassFilter<> imu_gy_velocity_filter_{40.0f, 1000.0f};
+        rmcs_core::filter::LowPassFilter<> imu_gy_velocity_filter_{60.0f, 1000.0f};
         rmcs_core::filter::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
@@ -284,7 +306,7 @@ private:
                 // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
                 // std::cout << mapping << std::endl;
 
-                return std::make_tuple(x, y, z);
+                return std::make_tuple(x, z, y);
             });
 
             hero.register_output("/referee/serial", referee_serial_);
@@ -308,7 +330,7 @@ private:
         void update() {
             imu_.update_status();
 
-            *chassis_yaw_velocity_imu_ = imu_.gz();
+            *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
 
             for (auto& motor : chassis_wheel_motors_)
                 motor.update_status();
@@ -365,6 +387,8 @@ private:
 
         device::Bmi088 imu_;
         OutputInterface<rmcs_description::Tf>& tf_;
+
+        rmcs_core::filter::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         OutputInterface<double> chassis_yaw_velocity_imu_;
 
