@@ -65,7 +65,6 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-angles \
     ros-jazzy-nav2-common \
     ros-jazzy-foxglove-bridge \
-    ros-jazzy-joint-state-publisher \
     ros-jazzy-rviz2 \
     libusb-1.0-0-dev \
     iproute2 net-tools \
