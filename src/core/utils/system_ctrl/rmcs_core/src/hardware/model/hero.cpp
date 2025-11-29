@@ -130,7 +130,7 @@ private:
                 // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
                 // std::cout << mapping << std::endl;
 
-                return std::make_tuple(y, x, z);
+                return std::make_tuple(-y, x, z);
             });
 
             hero.register_output("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);

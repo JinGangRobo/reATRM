@@ -55,15 +55,15 @@ hero_hardware:
     usb_pid_top_board: 0xaaa3
     usb_pid_bottom_board: 0x9f00
     yaw_motor_zero_point: 5500
-    pitch_motor_zero_point: 30900
+    pitch_motor_zero_point: 30671
     
-    imu_bias_x: 0
-    imu_bias_y: 0
+    imu_bias_x: 1
+    imu_bias_y: 3
     imu_bias_z: 3
 
 gimbal_controller:
   ros__parameters:
-    upper_limit: -0.4
+    upper_limit: -0.6
     lower_limit: 0.2
 
     joystick_left_bias_y: 0.0
@@ -72,7 +72,7 @@ gimbal_controller:
 yaw_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/yaw/control_angle_error
-    feedforward: -/chassis/yaw/velocity_imu
+    # feedforward: -/chassis/yaw/velocity_imu
     control: /gimbal/yaw/control_velocity
     kp: 12.0
     ki: 0.01
