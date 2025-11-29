@@ -31,7 +31,6 @@ public:
         register_output("/referee/shooter/cooling", robot_shooter_cooling_, 0);
         register_output("/referee/shooter/heat_limit", robot_shooter_heat_limit_, 0);
         register_output("/referee/chassis/power_limit", robot_chassis_power_limit_, 0.0);
-        register_output("/referee/chassis/power", robot_chassis_power_, 0.0);
         register_output("/referee/chassis/buffer_energy", robot_buffer_energy_, 60.0);
         register_output("/referee/chassis/output_status", chassis_output_status_, false);
 
@@ -89,7 +88,6 @@ public:
         }
         if (power_heat_data_watchdog_.tick()) {
             RCLCPP_ERROR(logger_, "Power heat data receiving timeout. Set to initial values.");
-            *robot_chassis_power_ = 0.0;
             *robot_buffer_energy_ = 60.0;
         }
     }
@@ -153,7 +151,6 @@ private:
         power_heat_data_watchdog_.reset(3'000);
 
         auto& data = reinterpret_cast<PowerHeatData&>(frame_.body.data);
-        *robot_chassis_power_ = data.chassis_power;
         *robot_buffer_energy_ = static_cast<double>(data.buffer_energy);
     }
 
@@ -201,7 +198,6 @@ private:
     OutputInterface<bool> chassis_output_status_;
 
     rmcs_utility::TickTimer power_heat_data_watchdog_;
-    OutputInterface<double> robot_chassis_power_;
     OutputInterface<double> robot_buffer_energy_;
 
     OutputInterface<GameRobotHp> robots_hp_;
