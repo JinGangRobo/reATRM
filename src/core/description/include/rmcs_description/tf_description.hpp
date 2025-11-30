@@ -37,6 +37,10 @@ struct OdomImu : fast_tf::Link<OdomImu> {
     static constexpr char name[] = "odom_imu";
 };
 
+struct RawImu : fast_tf::Link<RawImu> {
+    static constexpr char name[] = "raw_imu";
+};
+
 struct GimbalCenterLink : fast_tf::Link<GimbalCenterLink> {
     static constexpr char name[] = "gimbal_center_link";
 };
@@ -75,6 +79,12 @@ template <>
 struct fast_tf::Joint<rmcs_description::GimbalCenterLink> : fast_tf::ModificationTrackable {
     using Parent = rmcs_description::BaseLink;
     Eigen::Translation3d transform = Eigen::Translation3d::Identity();
+};
+
+template <>
+struct fast_tf::Joint<rmcs_description::RawImu> : fast_tf::ModificationTrackable {
+    using Parent = rmcs_description::BaseLink;
+    Eigen::Quaterniond transform = Eigen::Quaterniond::Identity();
 };
 
 template <>
@@ -180,7 +190,7 @@ struct fast_tf::Joint<rmcs_description::RightFrontWheelLink> : fast_tf::Modifica
 namespace rmcs_description {
 
 using Tf = fast_tf::JointCollection<
-    GimbalCenterLink, YawLink, PitchLink, MuzzleLink, TransmitterLink, CameraLink, OdomImu,
+    GimbalCenterLink, YawLink, PitchLink, MuzzleLink, TransmitterLink, CameraLink, OdomImu, RawImu,
     LeftFrontWheelLink, LeftBackWheelLink, RightBackWheelLink, RightFrontWheelLink, ViewerLink>;
 
 using InfantryTf = fast_tf::JointCollection<

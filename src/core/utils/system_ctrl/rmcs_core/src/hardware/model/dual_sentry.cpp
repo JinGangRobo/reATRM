@@ -163,6 +163,8 @@ private:
 
             tf_->set_transform<rmcs_description::PitchLink, rmcs_description::OdomImu>(
                 gimbal_imu_pose.conjugate());
+            tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
+                gimbal_imu_pose);
 
             gy614_.update_status();
             dr16_.update_status();
@@ -200,10 +202,8 @@ private:
             can_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
 
-            uint64_t can_pitch_command = gimbal_pitch_motor_.generate_velocity_command();
             transmit_buffer_.add_can2_transmission(
-                0x7, can_pitch_command, false, false,
-                can_pitch_command > 0xf0ffffffffffffff ? 8 : 4);
+                0x7, gimbal_pitch_motor_.generate_torque_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -275,7 +275,7 @@ private:
 
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 
-        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{40.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{4.0f, 1000.0f};
         rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         device::DjiMotor gimbal_top_yaw_motor_;
