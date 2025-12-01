@@ -5,16 +5,8 @@ rmcs_executor:
       - rmcs_core::hardware::PidTuneTool -> hardware
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
-      # - rmcs_core::controller::pid::ErrorPidController -> angle_err_pid_controller
       - rmcs_core::controller::pid::PidController -> velocity_pid_controller
     
-angle_err_pid_controller:
-  ros__parameters:
-    measurement: /motor/angle_error
-    control: /motor/control_velocity_pid
-    kp: 25.0
-    ki: 0.00
-    kd: 40.0
 
 velocity_pid_controller:
   ros__parameters:
