@@ -1,0 +1,58 @@
+rmcs_executor:
+  ros__parameters:
+    update_rate: 1000.0
+    components:
+      - rmcs_core::hardware::PidTuneTool -> hardware
+      - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
+
+      # - rmcs_core::controller::pid::ErrorPidController -> angle_err_pid_controller
+      - rmcs_core::controller::pid::PidController -> velocity_pid_controller
+    
+angle_err_pid_controller:
+  ros__parameters:
+    measurement: /motor/angle_error
+    control: /motor/control_velocity_pid
+    kp: 25.0
+    ki: 0.00
+    kd: 40.0
+
+velocity_pid_controller:
+  ros__parameters:
+    measurement: /imu/gy
+    setpoint: /motor/control_velocity
+    control: /motor/control_torque
+    kp: 5.0
+    ki: 0.02
+    kd: 100.0
+    # integral_min: -30.0
+    # integral_max: 30.0
+    # output_max: 3.0
+    # output_min: -3.0
+
+value_broadcaster:
+  ros__parameters:
+    forward_list:
+      - /imu/gz
+      - /imu/gy
+      - /motor/raw_angle
+      - /motor/angle
+      - /motor/velocity
+      - /motor/angle_error
+      - /motor/control_angle
+      - /motor/control_velocity
+      - /motor/control_velocity_pid
+      - /motor/velocity_filtered
+      - /motor/control_torque
+
+hardware:
+  ros__parameters:
+    usb_pid_bottom_board: 0xaaa3
+    motor_zero_point: 31128
+
+    velocity_step: 2.0
+    step_time: 200.0
+
+    imu_bias_x: 0
+    imu_bias_y: 0
+    imu_bias_z: 0
+
