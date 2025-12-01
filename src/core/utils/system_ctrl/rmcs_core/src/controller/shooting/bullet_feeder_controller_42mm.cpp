@@ -32,14 +32,12 @@ public:
             "/gimbal/control_bullet_allowance/limited_by_heat",
             control_bullet_allowance_limited_by_heat_);
 
-        bullet_feeder_velocity_pid_.kp = 0.15;
-        bullet_feeder_velocity_pid_.ki = 0.01;
-        bullet_feeder_velocity_pid_.kd = 1.8;
-        bullet_feeder_velocity_pid_.integral_max = 3.0;
-        bullet_feeder_velocity_pid_.integral_min = -3.0;
+        bullet_feeder_velocity_pid_.kp = 1.5;
+        bullet_feeder_velocity_pid_.ki = 0.012;
+        bullet_feeder_velocity_pid_.kd = 30.0;
 
         bullet_feeder_angle_pid_.kp = 5.0;
-        bullet_feeder_angle_pid_.ki = 0.01;
+        bullet_feeder_angle_pid_.ki = 0.0;
         bullet_feeder_angle_pid_.kd = 0.0;
 
         register_output(
@@ -94,9 +92,13 @@ public:
                 bullet_fed_count_ = static_cast<int>(
                     (*bullet_feeder_angle_ - bullet_feeder_compressed_zero_point_ - 0.1)
                     / bullet_feeder_angle_per_bullet_);
+
+                bullet_feeder_velocity_pid_.output_max = 0.0;
             }
 
             if (*friction_ready_) {
+                bullet_feeder_velocity_pid_.output_max = inf_;
+
                 if (switch_right != Switch::DOWN) {
                     if ((!last_mouse_.left && mouse.left)
                         || (last_switch_left_ == rmcs_msgs::Switch::MIDDLE
@@ -158,6 +160,7 @@ private:
 
         bullet_feeder_control_angle_ = nan_;
         bullet_feeder_angle_pid_.output_max = inf_;
+        bullet_feeder_velocity_pid_.output_max = inf_;
 
         bullet_feeder_velocity_pid_.reset();
         bullet_feeder_angle_pid_.reset();
