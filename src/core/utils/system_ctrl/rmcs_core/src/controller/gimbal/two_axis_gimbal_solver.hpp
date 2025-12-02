@@ -5,6 +5,7 @@
 #include <limits>
 #include <utility>
 
+#include "utility/low_pass_filter.hpp"
 #include <eigen3/Eigen/Dense>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
@@ -37,6 +38,9 @@ public:
         component.register_output("/debug/solver/yaw_err", debug_yaw_err_);
         component.register_output("/debug/solver/pitch", debug_control_pitch_);
         component.register_output("/debug/solver/yaw", debug_control_yaw_);
+        component.register_output("/debug/solver/var1", debug_var1);
+        component.register_output("/debug/solver/var2", debug_var2);
+        component.register_output("/debug/solver/var3", debug_var3);
     }
 
     class SetDisabled : public Operation {
@@ -184,9 +188,10 @@ private:
         const auto& [c, s] = pitch;
 
         AngleError result;
-        result.yaw_angle_error = std::atan2(y, x);
+        result.yaw_angle_error = yaw_output_filter_.update(std::atan2(y, x));
         double x_projected = std::sqrt(x * x + y * y);
-        result.pitch_angle_error = -std::atan2(z * c - x_projected * s, z * s + x_projected * c);
+        result.pitch_angle_error = pitch_output_filter_.update(
+            -std::atan2(z * c - x_projected * s, z * s + x_projected * c));
 
         *debug_pitch_err_ = result.pitch_angle_error;
         *debug_yaw_err_ = result.yaw_angle_error;
@@ -205,8 +210,13 @@ private:
     rmcs_executor::Component::OutputInterface<double> debug_yaw_err_;
     rmcs_executor::Component::OutputInterface<double> debug_control_pitch_;
     rmcs_executor::Component::OutputInterface<double> debug_control_yaw_;
+    rmcs_executor::Component::OutputInterface<double> debug_var1;
+    rmcs_executor::Component::OutputInterface<double> debug_var2;
+    rmcs_executor::Component::OutputInterface<double> debug_var3;
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
+    rmcs_core::utility::LowPassFilter<> pitch_output_filter_{5.0f, 1000.0f};
+    rmcs_core::utility::LowPassFilter<> yaw_output_filter_{8.0f, 1000.0f};
 
     bool control_enabled_ = false;
     OdomImu::DirectionVector control_direction_;

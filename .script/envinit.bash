@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # export ROS_LOCALHOST_ONLY=1
+export RMCS_ROBOT_TYPE=
 
 source /opt/ros/jazzy/setup.bash
 

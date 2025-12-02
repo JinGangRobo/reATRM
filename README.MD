@@ -14,5 +14,9 @@
 
 3. 关于如何永久设置SLAVE权限
     ```bash
-    echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="a11c", MODE="0666"' | sudo tee /etc/udev/rules.d/95-rmcs-slave.rules && sudo udevadm control --reload-rules && sudo udevadm trigger
+    echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0d00", MODE="0666"' | sudo tee /etc/udev/rules.d/95-rmcs-slave.rules && sudo udevadm control --reload-rules && sudo udevadm trigger
     ```
+4. 关于云台飘移
+    - 请检查是否校准遥控器
+    - 请检查是否校准IMU零飘
+    - TwoAxisGimbalSolver中存在复杂的闭环计算，请检查是否妥善设置IMU安装映射与电机标零

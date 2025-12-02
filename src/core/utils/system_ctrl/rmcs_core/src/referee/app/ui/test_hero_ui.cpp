@@ -10,22 +10,20 @@
 #include <rmcs_msgs/shoot_mode.hpp>
 
 #include "referee/app/ui/shape/shape.hpp"
-#include "referee/app/ui/widget/rangefinder.hpp"
 #include "referee/app/ui/widget/status_ring.hpp"
 
 namespace rmcs_core::referee::app::ui {
 using namespace std::chrono_literals;
 
-class Hero
+class TestHeroUI
     : public rmcs_executor::Component
     , public rclcpp::Node {
 public:
-    Hero()
+    TestHeroUI()
         : Node{
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
         , status_ring_(26.5, 26.5, 600, 40)
-        , rangefinder_()
         , chassis_direction_indicator_(Shape::Color::PINK, 8, x_center, y_center, 0, 0, 84, 84)
         , time_reminder_(Shape::Color::PINK, 50, 5, x_center + 150, y_center + 65, 0, false) {
 
@@ -38,8 +36,7 @@ public:
         register_input("/chassis/control_angle", chassis_control_angle_);
 
         register_input("/chassis/supercap/voltage", supercap_voltage_);
-        // register_input("/chassis/supercap/control_enable", supercap_control_enabled_);
-
+        
         register_input("/chassis/voltage", chassis_voltage_);
         register_input("/chassis/power", chassis_power_);
         register_input("/chassis/control_power_limit", chassis_control_power_limit_);
@@ -48,15 +45,12 @@ public:
         register_input("/referee/shooter/42mm_bullet_allowance", robot_bullet_allowance_);
 
         register_input(
-            "/gimbal/first_left_friction/control_velocity", left_friction_control_velocity_);
-        register_input("/gimbal/first_left_friction/velocity", left_friction_velocity_);
-        register_input("/gimbal/first_right_friction/velocity", right_friction_velocity_);
+            "/gimbal/first_friction/control_velocity", first_friction_control_velocity_);
+        register_input("/gimbal/first_friction/velocity", first_friction_velocity_);
 
         register_input("/gimbal/pitch/angle", gimbal_pitch_angle_);
-        register_input("/gimbal/auto_aim/laser_distance", laser_distance_);
 
         register_input("/gimbal/shooter/mode", shoot_mode_);
-        register_input("/gimbal/scope/active", is_scope_active_);
 
         register_input("/remote/mouse", mouse_);
 
@@ -65,15 +59,8 @@ public:
 
     void update() override {
         update_normal_ui();
-        update_sniper_ui();
 
-        if (*is_scope_active_) {
-            set_normal_ui_visible(false);
-            rangefinder_.set_visible(true);
-        } else {
-            set_normal_ui_visible(true);
-            rangefinder_.set_visible(false);
-        }
+        set_normal_ui_visible(true);
     }
 
 private:
@@ -89,26 +76,11 @@ private:
 
         status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
         status_ring_.update_friction_wheel_speed(
-            std::min(*left_friction_velocity_, *right_friction_velocity_),
-            *left_friction_control_velocity_ > 0);
+            *first_friction_velocity_,
+            *first_friction_control_velocity_ > 0);
         status_ring_.update_supercap(*supercap_voltage_, true);
         status_ring_.update_battery_power(*chassis_voltage_);
         update_static_status_ring();
-    }
-
-    void update_sniper_ui() {
-        auto display_angle = *gimbal_pitch_angle_ > std::numbers::pi / 2
-                               ? *gimbal_pitch_angle_ - 2 * std::numbers::pi
-                               : *gimbal_pitch_angle_;
-
-        rangefinder_.update_pitch_angle(-display_angle);
-
-        double raw_height = -display_angle / 0.7 * static_cast<double>(height_max);
-        raw_height = std::clamp(raw_height, 0.0, static_cast<double>(height_max));
-        uint16_t lift_height = static_cast<uint16_t>(std::round(raw_height));
-
-        lift_height = std::clamp(lift_height, height_min, height_max);
-        rangefinder_.update_vertical_rangefinder(lift_height);
     }
 
     void update_time_reminder() {
@@ -175,9 +147,8 @@ private:
 
     InputInterface<uint16_t> robot_bullet_allowance_;
 
-    InputInterface<double> left_friction_control_velocity_;
-    InputInterface<double> left_friction_velocity_;
-    InputInterface<double> right_friction_velocity_;
+    InputInterface<double> first_friction_control_velocity_;
+    InputInterface<double> first_friction_velocity_;
 
     InputInterface<rmcs_msgs::Mouse> mouse_;
 
@@ -185,13 +156,10 @@ private:
 
     InputInterface<double> gimbal_pitch_angle_;
     InputInterface<double> gimbal_player_viewer_angle_;
-    InputInterface<double> laser_distance_;
 
     InputInterface<rmcs_msgs::ShootMode> shoot_mode_;
-    InputInterface<bool> is_scope_active_;
 
     StatusRing status_ring_;
-    Rangefinder rangefinder_;
 
     Arc chassis_direction_indicator_, chassis_control_direction_indicator_;
 
@@ -202,4 +170,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(rmcs_core::referee::app::ui::Hero, rmcs_executor::Component)
+PLUGINLIB_EXPORT_CLASS(rmcs_core::referee::app::ui::TestHeroUI, rmcs_executor::Component)

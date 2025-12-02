@@ -130,7 +130,7 @@ private:
                 // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
                 // std::cout << mapping << std::endl;
 
-                return std::make_tuple(y, x, z);
+                return std::make_tuple(-y, x, z);
             });
 
             hero.register_output("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
@@ -269,8 +269,8 @@ private:
         device::DmMotor gimbal_bullet_feeder_;
         device::DjiMotor gimbal_friction_wheels_[3];
 
-        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{60.0f, 1000.0f};
-        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{4.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
 
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;
@@ -375,6 +375,11 @@ private:
             if (can_id == 0x300) {
                 supercap_.store_status(can_data);
             }
+        }
+
+        void uart1_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
+            referee_ring_buffer_receive_.emplace_back_multi(
+                [&uart_data](std::byte* storage) { *storage = *uart_data++; }, uart_data_length);
         }
 
         void accelerometer_receive_callback(int16_t x, int16_t y, int16_t z) override {

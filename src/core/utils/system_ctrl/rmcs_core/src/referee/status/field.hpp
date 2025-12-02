@@ -12,22 +12,14 @@ struct __attribute__((packed)) GameStatus {
 };
 
 struct __attribute__((packed)) GameRobotHp {
-    uint16_t red_1;
-    uint16_t red_2;
-    uint16_t red_3;
-    uint16_t red_4;
-    uint16_t red_5;
-    uint16_t red_7;
-    uint16_t red_outpost;
-    uint16_t red_base;
-    uint16_t blue_1;
-    uint16_t blue_2;
-    uint16_t blue_3;
-    uint16_t blue_4;
-    uint16_t blue_5;
-    uint16_t blue_7;
-    uint16_t blue_outpost;
-    uint16_t blue_base;
+    uint16_t robot_1;
+    uint16_t robot_2;
+    uint16_t robot_3;
+    uint16_t robot_4;
+    uint16_t reserved;
+    uint16_t robot_7;
+    uint16_t robot_outpost;
+    uint16_t robot_base;
 };
 
 struct __attribute__((packed)) RobotStatus {
@@ -44,12 +36,11 @@ struct __attribute__((packed)) RobotStatus {
 };
 
 struct __attribute__((packed)) PowerHeatData {
-    uint16_t chassis_voltage;
-    uint16_t chassis_current;
-    float chassis_power;
+    uint16_t reserved_0;
+    uint16_t reserved_1;
+    float reserved_2;
     uint16_t buffer_energy;
     uint16_t shooter_17mm_1_barrel_heat;
-    uint16_t shooter_17mm_2_barrel_heat;
     uint16_t shooter_42mm_barrel_heat;
 };
 
@@ -75,6 +66,7 @@ struct __attribute__((packed)) BulletAllowance {
     uint16_t bullet_allowance_17mm;
     uint16_t bullet_allowance_42mm;
     uint16_t remaining_gold_coin;
+    uint16_t projectile_allowance_fortress;
 };
 
 struct __attribute__((packed)) GameRobotPosition {
@@ -86,8 +78,8 @@ struct __attribute__((packed)) GameRobotPosition {
     float infantry_3_y;
     float infantry_4_x;
     float infantry_4_y;
-    float infantry_5_x;
-    float infantry_5_y;
+    float reserved_0;
+    float reserved_1;
 };
 
 } // namespace rmcs_core::referee::status
