@@ -13,9 +13,9 @@ velocity_pid_controller:
     measurement: /imu/gy
     setpoint: /motor/control_velocity
     control: /motor/control_torque
-    kp: 5.0
+    kp: 2.0
     ki: 0.02
-    kd: 100.0
+    kd: 60.0
     # integral_min: -30.0
     # integral_max: 30.0
     # output_max: 3.0
@@ -38,11 +38,11 @@ value_broadcaster:
 
 hardware:
   ros__parameters:
-    usb_pid_bottom_board: 0xaaa3
+    usb_pid_bottom_board: 0xf18a
     motor_zero_point: 31128
 
-    velocity_step: 2.0
-    step_time: 200.0
+    velocity_step: -1.0
+    step_time: 400.0
 
     imu_bias_x: 0
     imu_bias_y: 0

@@ -81,13 +81,13 @@ private:
             , event_thread_([this]() { handle_events(); }) {
 
             //@TODO: IF YOU NEED TO CHANGE MOTOR, CHANGE IT HERE
-            motor_.configure(
-                device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
-                    static_cast<int>(pid_tune_tool.get_parameter("motor_zero_point").as_int())));
             // motor_.configure(
-            //     device::DjiMotor::Config{device::DjiMotor::Type::GM6020}.set_encoder_zero_point(
-            //         static_cast<int>(
-            //             pid_tune_tool.get_parameter("motor_zero_point").as_int())));
+            //     device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
+            //         static_cast<int>(pid_tune_tool.get_parameter("motor_zero_point").as_int())));
+            motor_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::GM6020}.set_encoder_zero_point(
+                    static_cast<int>(
+                        pid_tune_tool.get_parameter("motor_zero_point").as_int())).set_reversed());
 
             imu_.set_coordinate_mapping([](double x, double y, double z) {
                 // Get the mapping with the following code.
@@ -99,7 +99,7 @@ private:
                 // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
                 // std::cout << mapping << std::endl;
 
-                return std::make_tuple(-y, -x, z);
+                return std::make_tuple(x, y, z);
             });
 
             pid_tune_tool.register_output("/imu/gz", imu_gz);
@@ -164,15 +164,15 @@ private:
         void command_update() {
             //@TODO: IF YOU NEED TO CHANGE MOTOR, CHANGE IT HERE
 
-            // uint16_t can_commands[4];
+            uint16_t can_commands[4];
 
-            // can_commands[0] = 0;
-            // can_commands[1] = motor_.generate_command();
-            // can_commands[2] = 0;
-            // can_commands[3] = 0;
-            // transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(can_commands));
+            can_commands[0] = 0;
+            can_commands[1] = 0;
+            can_commands[2] = motor_.generate_command();
+            can_commands[3] = 0;
+            transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(can_commands));
 
-            transmit_buffer_.add_can2_transmission(0x9, motor_.generate_torque_command());
+            // transmit_buffer_.add_can2_transmission(0x7, motor_.generate_torque_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -186,9 +186,9 @@ private:
                 return;
 
             //@TODO: IF YOU NEED TO CHANGE MOTOR, CHANGE IT HERE
-            // if (can_id == 0x206) {
-            //     motor_.store_status(can_data);
-            // }
+            if (can_id == 0x207) {
+                motor_.store_status(can_data);
+            }
         }
 
         void can2_receive_callback(
@@ -198,9 +198,9 @@ private:
                 return;
 
             //@TODO: IF YOU NEED TO CHANGE MOTOR, CHANGE IT HERE
-            if (can_id == 0x219) {
-                motor_.store_status(can_data);
-            }
+            // if (can_id == 0x217) {
+            //     motor_.store_status(can_data);
+            // }
         }
 
         void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
@@ -241,8 +241,8 @@ private:
         rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
         //@TODO: IF YOU NEED TO CHANGE MOTOR, CHANGE IT HERE
-        device::DmMotor motor_;
-        // device::DjiMotor motor_;
+        // device::DmMotor motor_;
+        device::DjiMotor motor_;
 
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;

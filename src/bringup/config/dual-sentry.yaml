@@ -13,6 +13,7 @@ rmcs_executor:
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
+      - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
 
       - rmcs_core::controller::shooting::FrictionWheelController -> friction_wheel_controller
       - rmcs_core::controller::shooting::HeatController -> heat_controller
@@ -31,13 +32,19 @@ value_broadcaster:
   ros__parameters:
     forward_list:
       - /gimbal/pitch/control_velocity
+      - /gimbal/pitch/velocity_filtered
       - /debug/pitch/raw_angle
       - /gimbal/pitch/angle
-      - /gimbal/yaw/angle
+      - /gimbal/pitch/control_torque
       - /gimbal/pitch/control_angle_error
       - /debug/solver/pitch
-      - /debug/can_counter
-  
+      - /gimbal/pitch/velocity_imu
+      - /debug/pitch/filtered_velocity_imu
+      - /debug/solver/var1
+      - /debug/solver/var2
+      - /debug/solver/var3
+      - /debug/solver/pitch_err
+      - /debug/solver/yaw_err
 
 dual_sentry_hardware:
   ros__parameters:
@@ -45,7 +52,7 @@ dual_sentry_hardware:
     usb_pid_bottom_board: 0x247f
     bottom_yaw_motor_zero_point: 0
     top_yaw_motor_zero_point: -350
-    pitch_motor_zero_point: 6500
+    pitch_motor_zero_point: 2200
 
     imu_bias_x: 3
     imu_bias_y: 8
@@ -54,8 +61,8 @@ dual_sentry_hardware:
 
 gimbal_controller:
   ros__parameters:
-    upper_limit: -0.189
-    lower_limit: 0.4
+    upper_limit: -0.28
+    lower_limit: 0.35
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
@@ -75,14 +82,26 @@ dual_yaw_controller:
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
 
-
 pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    kp: 7.0
-    ki: 0.008
-    kd: 0.008
+    kp: 10.0
+    ki: 0.03
+    kd: 0.0
+    integral_min: -5.0
+    integral_max: 5.0
+
+pitch_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/pitch/velocity_imu
+    setpoint: /gimbal/pitch/control_velocity
+    control: /gimbal/pitch/control_torque
+    kp: 2.0
+    ki: 0.02
+    kd: 60.0
+    integral_min: -20.0
+    integral_max: 20.0
 
 friction_wheel_controller:
   ros__parameters:
