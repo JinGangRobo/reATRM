@@ -158,6 +158,8 @@ private:
 
             tf_->set_transform<rmcs_description::PitchLink, rmcs_description::OdomImu>(
                 gimbal_imu_pose.conjugate());
+            tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
+                gimbal_imu_pose);
             fast_tf::rcl::broadcast_all(*tf_);
 
             dr16_.update_status();
@@ -166,7 +168,6 @@ private:
             *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
 
             *debug_pitch_raw_angle_ = gimbal_pitch_motor_.last_raw_angle();
-            *debug_pitch_temp = gimbal_pitch_motor_.temperature();
 
             gimbal_pitch_motor_.update_status();
             tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(

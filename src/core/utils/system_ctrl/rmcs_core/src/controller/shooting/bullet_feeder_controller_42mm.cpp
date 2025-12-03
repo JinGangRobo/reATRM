@@ -233,7 +233,7 @@ private:
     static constexpr double inf_ = std::numeric_limits<double>::infinity();
 
     static constexpr double bullet_feeder_compressed_zero_point_ = 0.58;
-    static constexpr double bullet_feeder_angle_per_bullet_ = 2 * std::numbers::pi / 6;
+    static constexpr double bullet_feeder_angle_per_bullet_ = 2 * std::numbers::pi / 5;
 
     InputInterface<bool> friction_ready_;
 
