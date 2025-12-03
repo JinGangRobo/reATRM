@@ -33,21 +33,17 @@ rmcs_executor:
 value_broadcaster:
   ros__parameters:
     forward_list:
-      - /gimbal/bullet_feeder/angle
-      - /gimbal/bullet_feeder/velocity
-      - /gimbal/bullet_feeder/velocity_filtered
+      - /debug/pitch/raw_angle
+      - /gimbal/pitch/angle
+      - /gimbal/yaw/angle
+      - /gimbal/pitch/control_torque
+      - /gimbal/yaw/control_angle_error
+      - /gimbal/pitch/control_angle_error
+      - /gimbal/pitch/velocity_imu
+      - /gimbal/yaw/velocity_imu
+      - /debug/feeder/temp
+      - /debug/feeder/mos_temp
       - /gimbal/bullet_feeder/control_torque
-      - /debug/friction/ready
-      - /debug/feeder/ctrl_angle
-      - /chassis/yaw/velocity_imu
-      # - /debug/pitch/raw_angle
-      # - /gimbal/pitch/angle
-      # - /gimbal/yaw/angle
-      # - /gimbal/pitch/control_torque
-      # - /gimbal/yaw/control_angle_error
-      # - /gimbal/pitch/control_angle_error
-      # - /gimbal/pitch/velocity_imu
-      # - /gimbal/yaw/velocity_imu
 
 
 hero_hardware:
@@ -64,7 +60,7 @@ hero_hardware:
 gimbal_controller:
   ros__parameters:
     upper_limit: -0.6
-    lower_limit: 0.2
+    lower_limit: 0.15
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
