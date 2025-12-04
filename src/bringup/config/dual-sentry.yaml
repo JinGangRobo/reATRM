@@ -40,11 +40,10 @@ value_broadcaster:
       - /debug/solver/pitch
       - /gimbal/pitch/velocity_imu
       - /debug/pitch/filtered_velocity_imu
-      - /debug/solver/var1
-      - /debug/solver/var2
-      - /debug/solver/var3
-      - /debug/solver/pitch_err
-      - /debug/solver/yaw_err
+      - /gimbal/bullet_feeder/control_velocity
+      - /gimbal/bullet_feeder/control_torque
+      - /gimbal/bullet_feeder/velocity
+      - /gimbal/bullet_feeder/velocity_filtered
 
 dual_sentry_hardware:
   ros__parameters:
@@ -115,19 +114,19 @@ friction_wheel_controller:
 
 heat_controller:
   ros__parameters:
-    heat_per_shot: 10000
-    reserved_heat: -100
+    heat_per_shot: 1
+    reserved_heat: -10000000
 
 bullet_feeder_controller:
   ros__parameters:
-    bullets_per_feeder_turn: 9.0
-    shot_frequency: 24.0
+    bullets_per_feeder_turn: 8.0
+    shot_frequency: 12.0
     safe_shot_frequency: 10.0
-    eject_frequency: 15.0
+    eject_frequency: 10.0
     eject_time: 0.15
     deep_eject_frequency: 15.0
     deep_eject_time: 0.20
-    single_shot_max_stop_delay: 2.0
+    single_shot_max_stop_delay: 0.0
 
 left_friction_velocity_pid_controller:
   ros__parameters:
@@ -149,9 +148,9 @@ right_friction_velocity_pid_controller:
 
 bullet_feeder_velocity_pid_controller:
   ros__parameters:
-    measurement: /gimbal/bullet_feeder/velocity
+    measurement: /gimbal/bullet_feeder/velocity_filtered
     setpoint: /gimbal/bullet_feeder/control_velocity
     control: /gimbal/bullet_feeder/control_torque
-    kp: 1.0
+    kp: 5.0
     ki: 0.0
-    kd: 0.0
+    kd: 50.0
