@@ -126,7 +126,7 @@ bullet_feeder_controller:
     eject_time: 0.15
     deep_eject_frequency: 15.0
     deep_eject_time: 0.20
-    single_shot_max_stop_delay: 0.0
+    single_shot_max_stop_delay: 2.0
 
 left_friction_velocity_pid_controller:
   ros__parameters:
