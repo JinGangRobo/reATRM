@@ -7,3 +7,6 @@
 [submodule "src/core/drivers/serial"]
 	path = src/core/drivers/serial
 	url = https://github.com/JinGangRobo/ros2-serial
+[submodule "src/core/utils/system_ctrl/rmcs_auto_aim_v2"]
+	path = src/core/utils/system_ctrl/rmcs_auto_aim_v2
+	url = https://github.com/JinGangRobo/rmcs_auto_aim_v2.git
