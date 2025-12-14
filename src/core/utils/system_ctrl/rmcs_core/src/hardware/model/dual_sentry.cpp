@@ -300,7 +300,7 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {dual_sentry, dual_sentry_command, "/chassis/left_back_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
-            , supercap_(dual_sentry, dual_sentry_command)
+            , supercap_(dual_sentry)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
@@ -368,6 +368,8 @@ private:
 
             if (can_id == 0x205) {
                 gimbal_bottom_yaw_motor_.store_status(can_data);
+            } else if (can_id == 0x20c) {
+                supercap_.store_status(can_data);
             }
         }
 

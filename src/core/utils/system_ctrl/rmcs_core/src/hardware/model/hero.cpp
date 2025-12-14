@@ -293,7 +293,7 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {hero, hero_command, "/chassis/right_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
-            , supercap_(hero, hero_command)
+            , supercap_(hero)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
