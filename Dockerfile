@@ -56,6 +56,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN apt-get update && apt-get install -y \
     clangd clang clang-format python3-pip vim htop \
+    gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
     libopencv-dev \
     libceres-dev \
     ros-jazzy-camera-info-manager \
