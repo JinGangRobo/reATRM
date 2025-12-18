@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include <cstdint>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 #include <rmcs_executor/component.hpp>
@@ -24,8 +25,8 @@ public:
     void update_status() {
         auto status = can_data_.load(std::memory_order::relaxed);
 
-        *chassis_power_ = std::bit_cast<float>(status.chassis_pow); // chassis_pow 以 float 解析
-        *supercap_voltage_ = status.voltage_B / 100.0;              // voltage_B 单位 0.01V
+        *chassis_power_ = std::bit_cast<float>(status.chassis_pow);
+        *supercap_voltage_ = ((status.voltage_B1 << 8) | status.voltage_B2) / 100.0; 
         *supercap_enabled_ = status.supcap_status;
     }
 
@@ -42,7 +43,8 @@ private:
     }
 
     struct __attribute__((packed, aligned(8))) SupercapStatus {
-        uint16_t voltage_B;
+        uint8_t voltage_B1;
+        uint8_t voltage_B2;
         uint8_t reserved;
         uint32_t chassis_pow;
         uint8_t supcap_status;
