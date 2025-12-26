@@ -11,6 +11,9 @@
   <class type="rmcs_core::hardware::DualInfantry" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
+  <class type="rmcs_core::hardware::MiniInfantry" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
   <class type="rmcs_core::hardware::Hero" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
