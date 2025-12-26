@@ -10,22 +10,24 @@ rmcs_executor:
 
 velocity_pid_controller:
   ros__parameters:
-    measurement: /imu/gy
+    measurement: /top/imu/gz
     setpoint: /motor/control_velocity
     control: /motor/control_torque
-    kp: 2.0
+    kp: 3.0
     ki: 0.02
-    kd: 60.0
-    # integral_min: -30.0
-    # integral_max: 30.0
+    kd: 40.0
+    integral_min: -30.0
+    integral_max: 30.0
     # output_max: 3.0
     # output_min: -3.0
 
 value_broadcaster:
   ros__parameters:
     forward_list:
-      - /imu/gz
-      - /imu/gy
+      - /top/imu/gz
+      - /top/imu/gy
+      - /bottom/imu/gz
+      - /bottom/imu/gy
       - /motor/raw_angle
       - /motor/angle
       - /motor/velocity
@@ -38,10 +40,11 @@ value_broadcaster:
 
 hardware:
   ros__parameters:
-    usb_pid_bottom_board: 0xf18a
-    motor_zero_point: 31128
+    usb_pid_top_board: 0xa513
+    usb_pid_bottom_board: 0x4ca4
+    motor_zero_point: 0
 
-    velocity_step: -1.0
+    velocity_step: 1.0
     step_time: 400.0
 
     imu_bias_x: 0
