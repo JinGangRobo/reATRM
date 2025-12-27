@@ -103,6 +103,13 @@ private:
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
+            gimbal_left_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                    .set_reduction_ratio(1.)
+                    .set_reversed());
+            gimbal_right_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
+
             imu_.set_coordinate_mapping([](double x, double y, double z) {
                 // Get the mapping with the following code.
                 // The rotation angle must be an exact multiple of 90 degrees, otherwise use a
@@ -260,32 +267,30 @@ private:
                           mini_infantry.get_parameter("yaw_motor_zero_point").as_int())))
             , gimbal_bullet_feeder_(
                   mini_infantry, mini_infantry_command, "/gimbal/bullet_feeder",
-                  device::DjiMotor::Config{device::DjiMotor::Type::M2006}.enable_multi_turn_angle())
+                  device::DjiMotor::Config{device::DjiMotor::Type::M2006}
+                      .set_reduction_ratio((33.0 / 27.0) * 36.0)
+                      .enable_multi_turn_angle()
+                      .set_reversed())
             , chassis_wheel_motors_(
                   {mini_infantry, mini_infantry_command, "/chassis/left_front_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reduction_ratio(268.0 / 17.0)
+                       .set_reversed()},
                   {mini_infantry, mini_infantry_command, "/chassis/left_back_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reduction_ratio(268.0 / 17.0)
+                       .set_reversed()},
                   {mini_infantry, mini_infantry_command, "/chassis/right_back_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reduction_ratio(268.0 / 17.0)
+                       .set_reversed()},
                   {mini_infantry, mini_infantry_command, "/chassis/right_front_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reduction_ratio(268.0 / 17.0)
+                       .set_reversed()})
             , supercap_(mini_infantry)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
-
-            imu_.set_coordinate_mapping([](double x, double y, double z) {
-                // Get the mapping with the following code.
-                // The rotation angle must be an exact multiple of 90 degrees, otherwise use a
-                // matrix.
-
-                // Eigen::AngleAxisd pitch_link_to_imu_link{
-                //     std::numbers::pi, Eigen::Vector3d::UnitZ()};
-                // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
-                // std::cout << mapping << std::endl;
-
-                return std::make_tuple(x, y, z);
-            });
 
             mini_infantry.register_output("/referee/serial", referee_serial_);
             referee_serial_->read = [this](std::byte* buffer, size_t size) {

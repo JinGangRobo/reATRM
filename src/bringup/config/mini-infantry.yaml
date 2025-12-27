@@ -22,6 +22,7 @@ rmcs_executor:
       - rmcs_core::controller::shooting::BulletFeederController17mm -> bullet_feeder_controller
       - rmcs_core::controller::pid::PidController -> left_friction_velocity_pid_controller
       - rmcs_core::controller::pid::PidController -> right_friction_velocity_pid_controller
+      - rmcs_core::controller::pid::PidController -> bullet_feeder_velocity_pid_controller
 
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
@@ -44,13 +45,14 @@ value_broadcaster:
       - /debug/feeder/temp
       - /debug/feeder/mos_temp
       - /gimbal/bullet_feeder/control_torque
+      - /chassis/yaw/velocity_imu
 
 
 mini_infantry_hardware:
   ros__parameters:
     usb_pid_top_board: 0xa513
     usb_pid_bottom_board: 0x4ca4
-    yaw_motor_zero_point: -2500
+    yaw_motor_zero_point: 1600
     pitch_motor_zero_point: 2802
     
     imu_bias_x: 1
@@ -71,7 +73,7 @@ yaw_angle_pid_controller:
     # feedforward: -/chassis/yaw/velocity_imu
     control: /gimbal/yaw/control_velocity
     kp: 9.0
-    ki: 0.01
+    ki: 0.0
     kd: 0.0
     integral_min: -10.0
     integral_max: 10.0
@@ -91,8 +93,8 @@ pitch_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    kp: 10.0
-    ki: 0.01
+    kp: 9.0
+    ki: 0.0
     kd: 0.0
     integral_min: -1.0
     integral_max: 1.0
@@ -102,9 +104,9 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
-    kp: 4.0
-    ki: 0.03
-    kd: 70.0
+    kp: 3.0
+    ki: 0.02
+    kd: 50.0
     integral_min: -30.0
     integral_max: 30.0
 
@@ -120,7 +122,7 @@ friction_wheel_controller:
 
 bullet_feeder_controller:
   ros__parameters:
-    bullets_per_feeder_turn: 8.0
+    bullets_per_feeder_turn: 39.0
     shot_frequency: 12.0
     safe_shot_frequency: 10.0
     eject_frequency: 10.0
@@ -152,3 +154,11 @@ right_friction_velocity_pid_controller:
     ki: 0.00
     kd: 0.009373434
 
+bullet_feeder_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/bullet_feeder/velocity_filtered
+    setpoint: /gimbal/bullet_feeder/control_velocity
+    control: /gimbal/bullet_feeder/control_torque
+    kp: 4.0
+    ki: 0.0
+    kd: 20.0
