@@ -26,11 +26,16 @@ rmcs_executor:
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
 
+      - rmcs::AutoAimComponent -> auto_aim
+
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
   ros__parameters:
     forward_list:
+      - /debug/auto_aim/x
+      - /debug/auto_aim/y
+      - /debug/auto_aim/z
       - /gimbal/pitch/control_velocity
       - /gimbal/pitch/velocity_filtered
       - /debug/pitch/raw_angle
