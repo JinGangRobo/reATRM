@@ -36,7 +36,7 @@ public:
         register_input("/chassis/control_angle", chassis_control_angle_);
 
         register_input("/chassis/supercap/voltage", supercap_voltage_);
-        
+
         register_input("/chassis/voltage", chassis_voltage_);
         register_input("/chassis/power", chassis_power_);
         register_input("/chassis/control_power_limit", chassis_control_power_limit_);
@@ -44,8 +44,7 @@ public:
 
         register_input("/referee/shooter/42mm_bullet_allowance", robot_bullet_allowance_);
 
-        register_input(
-            "/gimbal/first_friction/control_velocity", first_friction_control_velocity_);
+        register_input("/gimbal/first_friction/control_velocity", first_friction_control_velocity_);
         register_input("/gimbal/first_friction/velocity", first_friction_velocity_);
 
         register_input("/gimbal/pitch/angle", gimbal_pitch_angle_);
@@ -76,8 +75,7 @@ private:
 
         status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
         status_ring_.update_friction_wheel_speed(
-            *first_friction_velocity_,
-            *first_friction_control_velocity_ > 0);
+            *first_friction_velocity_, *first_friction_control_velocity_ > 0);
         status_ring_.update_supercap(*supercap_voltage_, true);
         status_ring_.update_battery_power(*chassis_voltage_);
         update_static_status_ring();

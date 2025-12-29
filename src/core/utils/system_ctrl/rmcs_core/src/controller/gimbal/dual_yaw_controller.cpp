@@ -68,8 +68,6 @@ public:
             *bottom_yaw_control_torque_ = bottom_yaw_velocity_pid_.update(
                 bottom_yaw_angle_pid_.update(bottom_yaw_control_error())
                 - bottom_yaw_velocity_imu());
-
-            
         }
 
         if (std::isnan(*control_angle_shift_)) {

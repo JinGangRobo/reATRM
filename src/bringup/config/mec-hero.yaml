@@ -45,14 +45,13 @@ value_broadcaster:
       - /debug/feeder/mos_temp
       - /gimbal/bullet_feeder/control_torque
 
-
 hero_hardware:
   ros__parameters:
     usb_pid_top_board: 0xaaa3
     usb_pid_bottom_board: 0x9f00
     yaw_motor_zero_point: 5500
     pitch_motor_zero_point: 33685
-    
+
     imu_bias_x: 1
     imu_bias_y: 3
     imu_bias_z: 3
@@ -149,4 +148,3 @@ third_friction_velocity_pid_controller:
     kp: 0.003436926
     ki: 0.00
     kd: 0.009373434
-

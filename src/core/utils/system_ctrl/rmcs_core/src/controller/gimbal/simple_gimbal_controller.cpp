@@ -66,7 +66,7 @@ public:
             double pitch_err = std::atan2(target_cam.z(), distance_xy);
 
             // 比例
-            constexpr double auto_aim_sensitivity = 0.008; 
+            constexpr double auto_aim_sensitivity = 0.008;
 
             double yaw_shift = yaw_err * auto_aim_sensitivity;
             double pitch_shift = -pitch_err * auto_aim_sensitivity;
