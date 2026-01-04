@@ -54,8 +54,8 @@ dual_sentry_hardware:
     pitch_motor_zero_point: 2200
 
     imu_bias_x: 3
-    imu_bias_y: 8
-    imu_bias_z: 2
+    imu_bias_y: 0
+    imu_bias_z: 3
 
 
 gimbal_controller:
@@ -86,7 +86,7 @@ pitch_angle_err_pid_controller:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
     kp: 10.0
-    ki: 0.03
+    ki: 0.001
     kd: 0.0
     integral_min: -5.0
     integral_max: 5.0
@@ -98,7 +98,7 @@ pitch_velocity_pid_controller:
     control: /gimbal/pitch/control_torque
     kp: 2.0
     ki: 0.02
-    kd: 60.0
+    kd: 24.0
     integral_min: -20.0
     integral_max: 20.0
 
@@ -120,9 +120,9 @@ heat_controller:
 bullet_feeder_controller:
   ros__parameters:
     bullets_per_feeder_turn: 8.0
-    shot_frequency: 12.0
-    safe_shot_frequency: 10.0
-    eject_frequency: 10.0
+    shot_frequency: 6.0
+    safe_shot_frequency: 5.0
+    eject_frequency: 8.0
     eject_time: 0.15
     deep_eject_frequency: 15.0
     deep_eject_time: 0.20
