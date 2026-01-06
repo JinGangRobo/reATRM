@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <limits>
 
 #include <rclcpp/node.hpp>
@@ -22,9 +23,10 @@ public:
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , two_axis_gimbal_solver(
               *this, get_parameter("upper_limit").as_double(),
-              get_parameter("lower_limit").as_double())
-        , joystick_left_bias_y_(get_parameter("joystick_left_bias_y").as_double())
-        , joystick_left_bias_x_(get_parameter("joystick_left_bias_x").as_double()) {
+              get_parameter("lower_limit").as_double()) {
+        get_parameter("shift_control_clamp", shift_control_clamp_);
+        get_parameter("joystick_left_bias_y", joystick_left_bias_y_);
+        get_parameter("joystick_left_bias_x", joystick_left_bias_x_);
 
         register_input("/remote/joystick/left", joystick_left_);
         register_input("/remote/switch/right", switch_right_);
@@ -42,6 +44,10 @@ public:
         auto angle_error = calculate_angle_error();
         *yaw_angle_error_ = angle_error.yaw_angle_error;
         *pitch_angle_error_ = angle_error.pitch_angle_error;
+    }
+
+    double value_abs_clamp(double value) {
+        return std::copysign(std::min(std::abs(value), shift_control_clamp_), value);
     }
 
     TwoAxisGimbalSolver::AngleError calculate_angle_error() {
@@ -66,10 +72,12 @@ public:
         constexpr double joystick_sensitivity = 0.004;
         constexpr double mouse_sensitivity = 0.5;
         
-        double yaw_shift = joystick_sensitivity * (joystick_left_->y() - joystick_left_bias_y_)
-                         + mouse_sensitivity * mouse_velocity_->y();
-        double pitch_shift = -joystick_sensitivity * (joystick_left_->x() - joystick_left_bias_x_)
-                           - mouse_sensitivity * mouse_velocity_->x();
+        double yaw_shift = value_abs_clamp(
+            joystick_sensitivity * (joystick_left_->y() - joystick_left_bias_y_)
+            + mouse_sensitivity * mouse_velocity_->y());
+        double pitch_shift = value_abs_clamp(
+            -joystick_sensitivity * (joystick_left_->x() - joystick_left_bias_x_)
+            + mouse_sensitivity * mouse_velocity_->x());
 
         return two_axis_gimbal_solver.update(
             TwoAxisGimbalSolver::SetControlShift(yaw_shift, pitch_shift));
@@ -92,6 +100,7 @@ private:
 
     double joystick_left_bias_y_ = 0.0;
     double joystick_left_bias_x_ = 0.0;
+    double shift_control_clamp_ = 0.0045;
 };
 
 } // namespace rmcs_core::controller::gimbal
