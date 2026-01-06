@@ -28,6 +28,12 @@ public:
         , translational_velocity_pid_calculator_(5.0, 0.0, 0.0)
         , angular_velocity_pid_calculator_(5.0, 0.0, 0.0)
         , wheel_velocity_pid_(0.6, 0.0, 0.0) {
+        get_parameter("mass", mess_);
+        get_parameter("moment_of_inertia", moment_of_inertia_);
+        get_parameter("chassis_radius_x", chassis_radius_x_);
+        get_parameter("chassis_radius_y", chassis_radius_y_);
+        get_parameter("wheel_radius", wheel_radius_);
+        get_parameter("friction_coefficient", friction_coefficient_);
 
         register_input("/chassis/left_front_wheel/max_torque", wheel_motor_max_control_torque_);
 
@@ -93,7 +99,7 @@ private:
         *right_front_control_torque_ = 0.0;
     }
 
-    static Eigen::Vector3d calculate_chassis_velocity(const Eigen::Vector4d& wheel_velocities) {
+    Eigen::Vector3d calculate_chassis_velocity(const Eigen::Vector4d& wheel_velocities) {
         const auto& [w1, w2, w3, w4] = wheel_velocities;
         Eigen::Vector3d velocity;
         velocity.x() = -w1 - w2 + w3 + w4;
@@ -129,7 +135,7 @@ private:
     Eigen::Vector4d calculate_wheel_pid_torques(
         const Eigen::Vector4d& wheel_velocities, const Eigen::Vector3d& chassis_velocity) {
         const auto& [x, y, z] = chassis_velocity;
-        constexpr double a_plus_b = chassis_radius_x_ + chassis_radius_y_;
+        double a_plus_b = chassis_radius_x_ + chassis_radius_y_;
         Eigen::Vector4d wheel_control_velocity = {
             -x + y + a_plus_b * z,
             -x - y + a_plus_b * z,                                   //
@@ -192,11 +198,11 @@ private:
 
     static constexpr double g_ = 9.81;
 
-    static constexpr double mess_ = 22.0;
-    static constexpr double moment_of_inertia_ = 4.08;
-    static constexpr double chassis_radius_x_ = 0.5, chassis_radius_y_ = 0.5;
-    static constexpr double wheel_radius_ = 0.07;
-    static constexpr double friction_coefficient_ = 0.6;
+    double mess_ = 22.0;
+    double moment_of_inertia_ = 4.08;
+    double chassis_radius_x_ = 0.25, chassis_radius_y_ = 0.25;
+    double wheel_radius_ = 0.07;
+    double friction_coefficient_ = 0.6;
 
     InputInterface<double> wheel_motor_max_control_torque_;
 

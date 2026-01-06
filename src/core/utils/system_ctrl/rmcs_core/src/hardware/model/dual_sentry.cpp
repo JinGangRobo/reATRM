@@ -16,7 +16,6 @@
 
 #include "hardware/device/bmi088.hpp"
 #include "hardware/device/dji_motor.hpp"
-#include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
 #include "hardware/device/gy614.hpp"
 #include "hardware/device/supercap.hpp"

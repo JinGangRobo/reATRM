@@ -180,7 +180,7 @@ private:
     static constexpr int64_t safe_shooter_cooling = 40;
     static constexpr int64_t safe_shooter_heat_limit = 50'000;
     // Chassis: Health priority with level 1
-    static constexpr double safe_chassis_power_limit = 45;
+    static constexpr double safe_chassis_power_limit = 50;
 
     rclcpp::Logger logger_;
 

@@ -31,19 +31,14 @@ rmcs_executor:
 value_broadcaster:
   ros__parameters:
     forward_list:
+      - /gimbal/pitch/angle
+      - /debug/pitch/raw_angle
       - /gimbal/pitch/control_velocity
       - /gimbal/pitch/velocity_filtered
-      - /debug/pitch/raw_angle
-      - /gimbal/pitch/angle
       - /gimbal/pitch/control_torque
       - /gimbal/pitch/control_angle_error
-      - /debug/solver/pitch
-      - /gimbal/pitch/velocity_imu
-      - /debug/pitch/filtered_velocity_imu
-      - /gimbal/bullet_feeder/control_velocity
-      - /gimbal/bullet_feeder/control_torque
-      - /gimbal/bullet_feeder/velocity
-      - /gimbal/bullet_feeder/velocity_filtered
+      - /chassis/power
+      - /chassis/supercap/voltage
 
 dual_sentry_hardware:
   ros__parameters:
@@ -56,7 +51,6 @@ dual_sentry_hardware:
     imu_bias_x: 3
     imu_bias_y: 0
     imu_bias_z: 3
-
 
 gimbal_controller:
   ros__parameters:
@@ -80,6 +74,11 @@ dual_yaw_controller:
     bottom_yaw_velocity_kp: 2.3
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
+
+omni_wheel_controller:
+  ros__parameters:
+    chassis_radius_x: 0.275
+    chassis_radius_y: 0.275
 
 pitch_angle_err_pid_controller:
   ros__parameters:
