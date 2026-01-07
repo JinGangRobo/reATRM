@@ -1,3 +1,4 @@
+#include <cmath>
 #include <eigen3/Eigen/Dense>
 #include <rclcpp/node.hpp>
 #include <rmcs_description/tf_description.hpp>
@@ -22,6 +23,7 @@ public:
         , following_velocity_controller_(6.0, 0.0, 0.0) {
         following_velocity_controller_.output_max = angular_velocity_max;
         following_velocity_controller_.output_min = -angular_velocity_max;
+        get_parameter("spinning_bais_coefficient", spinning_bais_coefficient_);
 
         register_input("/remote/joystick/right", joystick_right_);
         register_input("/remote/joystick/left", joystick_left_);
@@ -121,8 +123,12 @@ public:
         auto keyboard = *keyboard_;
         Eigen::Vector2d keyboard_move{keyboard.w - keyboard.s, keyboard.a - keyboard.d};
 
-        Eigen::Vector2d translational_velocity =
-            Eigen::Rotation2Dd{*gimbal_yaw_angle_} * (*joystick_right_ + keyboard_move);
+        Eigen::Vector2d translational_velocity = // TODO: It needs a better solution.
+            Eigen::Rotation2Dd{
+                *gimbal_yaw_angle_
+                + std::copysign(1.0, chassis_control_velocity_->vector.z())
+                      * (*mode_ == rmcs_msgs::ChassisMode::SPIN ? spinning_bais_coefficient_ : 0.0)}
+            * (*joystick_right_ + keyboard_move);
 
         if (translational_velocity.norm() > 1.0)
             translational_velocity.normalize();
@@ -201,8 +207,9 @@ private:
     static constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 
     // Maximum control velocities
+    double spinning_bais_coefficient_ = 1.0;
     static constexpr double translational_velocity_max = 10.0;
-    static constexpr double angular_velocity_max = 10.0;
+    static constexpr double angular_velocity_max = 14.0;
 
     InputInterface<Eigen::Vector2d> joystick_right_;
     InputInterface<Eigen::Vector2d> joystick_left_;

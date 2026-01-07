@@ -39,12 +39,13 @@ value_broadcaster:
       - /gimbal/pitch/control_angle_error
       - /chassis/power
       - /chassis/supercap/voltage
+      - /chassis/yaw/velocity_imu
 
 dual_sentry_hardware:
   ros__parameters:
     usb_pid_top_board: 0xf18a
     usb_pid_bottom_board: 0x247f
-    bottom_yaw_motor_zero_point: 0
+    bottom_yaw_motor_zero_point: -200
     top_yaw_motor_zero_point: -350
     pitch_motor_zero_point: 2200
 
@@ -75,10 +76,21 @@ dual_yaw_controller:
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
 
+    top_yaw_integral_max: 4.0
+    top_yaw_integral_min: 4.0
+    bottom_yaw_integral_max: 10.0
+    bottom_yaw_integral_min: 10.0
+
+chassis_controller:
+  ros__parameters:
+    spinning_bais_coefficient: -0.283
+
 omni_wheel_controller:
   ros__parameters:
-    chassis_radius_x: 0.275
-    chassis_radius_y: 0.275
+    chassis_radius_x: 0.165
+    chassis_radius_y: 0.165
+    wheel_radius_: 0.07
+    friction_coefficient: 0.6
 
 pitch_angle_err_pid_controller:
   ros__parameters:
