@@ -20,6 +20,9 @@ public:
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , following_velocity_controller_(6.0, 0.0, 0.0) {
+        get_parameter("translational_velocity_max", translational_velocity_max);
+        get_parameter("angular_velocity_max", angular_velocity_max);
+
         following_velocity_controller_.output_max = angular_velocity_max;
         following_velocity_controller_.output_min = -angular_velocity_max;
 
@@ -201,8 +204,8 @@ private:
     static constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 
     // Maximum control velocities
-    static constexpr double translational_velocity_max = 10.0;
-    static constexpr double angular_velocity_max = 14.0;
+    double translational_velocity_max = 10.0;
+    double angular_velocity_max = 14.0;
 
     InputInterface<Eigen::Vector2d> joystick_right_;
     InputInterface<Eigen::Vector2d> joystick_left_;
