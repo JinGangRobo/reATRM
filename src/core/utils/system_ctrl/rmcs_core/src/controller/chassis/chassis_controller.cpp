@@ -1,5 +1,6 @@
 #include <cmath>
 #include <eigen3/Eigen/Dense>
+#include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
@@ -23,7 +24,8 @@ public:
         , following_velocity_controller_(6.0, 0.0, 0.0) {
         following_velocity_controller_.output_max = angular_velocity_max;
         following_velocity_controller_.output_min = -angular_velocity_max;
-        get_parameter("spinning_bais_coefficient", spinning_bais_coefficient_);
+        get_parameter("spinning_bais_coefficient_forward", spinning_bais_coefficient_forward_);
+        get_parameter("spinning_bais_coefficient_reverse", spinning_bais_coefficient_reverse_);
 
         register_input("/remote/joystick/right", joystick_right_);
         register_input("/remote/joystick/left", joystick_left_);
@@ -36,6 +38,8 @@ public:
 
         register_input("/gimbal/yaw/angle", gimbal_yaw_angle_, false);
         register_input("/gimbal/yaw/control_angle_error", gimbal_yaw_angle_error_, false);
+
+        register_input("/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_);
 
         register_output("/chassis/angle", chassis_angle_, nan);
         register_output("/chassis/control_angle", chassis_control_angle_, nan);
@@ -126,8 +130,11 @@ public:
         Eigen::Vector2d translational_velocity = // TODO: It needs a better solution.
             Eigen::Rotation2Dd{
                 *gimbal_yaw_angle_
-                + std::copysign(1.0, chassis_control_velocity_->vector.z())
-                      * (*mode_ == rmcs_msgs::ChassisMode::SPIN ? spinning_bais_coefficient_ : 0.0)}
+                + *chassis_yaw_velocity_imu_
+                      * (*mode_ == rmcs_msgs::ChassisMode::SPIN
+                             ? (spinning_forward_ ? spinning_bais_coefficient_forward_
+                                                  : spinning_bais_coefficient_reverse_)
+                             : 0.0)}
             * (*joystick_right_ + keyboard_move);
 
         if (translational_velocity.norm() > 1.0)
@@ -207,7 +214,8 @@ private:
     static constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 
     // Maximum control velocities
-    double spinning_bais_coefficient_ = 1.0;
+    double spinning_bais_coefficient_forward_ = 0.0;
+    double spinning_bais_coefficient_reverse_ = 0.0;
     static constexpr double translational_velocity_max = 10.0;
     static constexpr double angular_velocity_max = 14.0;
 
@@ -219,6 +227,7 @@ private:
     InputInterface<rmcs_msgs::Mouse> mouse_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
     InputInterface<double> rotary_knob_;
+    InputInterface<double> chassis_yaw_velocity_imu_;
 
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;

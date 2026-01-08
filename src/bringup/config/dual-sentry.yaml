@@ -83,7 +83,8 @@ dual_yaw_controller:
 
 chassis_controller:
   ros__parameters:
-    spinning_bais_coefficient: -0.283
+    spinning_bais_coefficient_forward: -0.08
+    spinning_bais_coefficient_reverse: -0.05
 
 omni_wheel_controller:
   ros__parameters:
