@@ -50,12 +50,26 @@ hero_hardware:
   ros__parameters:
     usb_pid_top_board: 0xaaa3
     usb_pid_bottom_board: 0x9f00
-    yaw_motor_zero_point: 5500
+    yaw_motor_zero_point: -1800
     pitch_motor_zero_point: 33685
-    
+
     imu_bias_x: 1
     imu_bias_y: 3
     imu_bias_z: 3
+
+chassis_controller:
+  ros__parameters:
+    translational_velocity_max: 10.0
+    angular_velocity_max: 10.0
+
+omni_wheel_controller:
+  ros__parameters:
+    chassis_radius_x: 0.164
+    chassis_radius_y: 0.162
+    wheel_radius_: 0.077
+    friction_coefficient: 0.6
+
+    spinning_bais_coefficient: -0.05
 
 gimbal_controller:
   ros__parameters:
@@ -149,4 +163,3 @@ third_friction_velocity_pid_controller:
     kp: 0.003436926
     ki: 0.00
     kd: 0.009373434
-
