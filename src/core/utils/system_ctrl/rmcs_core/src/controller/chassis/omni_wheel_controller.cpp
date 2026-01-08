@@ -34,6 +34,7 @@ public:
         get_parameter("chassis_radius_y", chassis_radius_y_);
         get_parameter("wheel_radius", wheel_radius_);
         get_parameter("friction_coefficient", friction_coefficient_);
+        get_parameter("spinning_bais_coefficient", spinning_bais_coefficient_);
 
         register_input("/chassis/left_front_wheel/max_torque", wheel_motor_max_control_torque_);
 
@@ -112,7 +113,18 @@ private:
     ChassisControlTorque calculate_chassis_control_torque(const Eigen::Vector3d& chassis_velocity) {
         ChassisControlTorque result;
 
-        Eigen::Vector3d err = chassis_control_velocity_->vector - chassis_velocity;
+        // Fix spinning bais
+        Eigen::Vector3d control_velocity_rotated;
+        control_velocity_rotated.head<2>() =
+            Eigen::Rotation2Dd{
+                spinning_bais_coefficient_ * chassis_velocity.z()
+                * chassis_velocity.head<2>().norm()
+                * static_cast<double>(chassis_control_velocity_->vector[2] != 0)}
+            * chassis_control_velocity_->vector.head<2>();
+
+        control_velocity_rotated[2] = chassis_control_velocity_->vector[2];
+
+        Eigen::Vector3d err = control_velocity_rotated - chassis_velocity;
         Eigen::Vector2d translational_torque =
             (-std::numbers::sqrt2 / 4 * wheel_radius_) * mess_
             * translational_velocity_pid_calculator_.update(err.head<2>());
@@ -203,6 +215,8 @@ private:
     double chassis_radius_x_ = 0.25, chassis_radius_y_ = 0.25;
     double wheel_radius_ = 0.07;
     double friction_coefficient_ = 0.6;
+
+    double spinning_bais_coefficient_ = 0.0;
 
     InputInterface<double> wheel_motor_max_control_torque_;
 
