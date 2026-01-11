@@ -45,7 +45,6 @@ value_broadcaster:
       - /debug/feeder/mos_temp
       - /gimbal/bullet_feeder/control_torque
 
-
 hero_hardware:
   ros__parameters:
     usb_pid_top_board: 0xaaa3

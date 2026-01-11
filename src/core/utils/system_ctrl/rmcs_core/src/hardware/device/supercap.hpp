@@ -26,7 +26,7 @@ public:
         auto status = can_data_.load(std::memory_order::relaxed);
 
         *chassis_power_ = std::bit_cast<float>(status.chassis_pow);
-        *supercap_voltage_ = ((status.voltage_B1 << 8) | status.voltage_B2) / 100.0; 
+        *supercap_voltage_ = ((status.voltage_B1 << 8) | status.voltage_B2) / 100.0;
         *supercap_enabled_ = status.supcap_status;
     }
 

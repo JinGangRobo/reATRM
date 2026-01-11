@@ -56,7 +56,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN apt-get update && apt-get install -y \
     clangd clang clang-format python3-pip vim htop \
+    gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
     libopencv-dev \
+    libceres-dev \
     ros-jazzy-camera-info-manager \
     ros-jazzy-image-transport \
     ros-jazzy-serial-driver \
@@ -69,6 +71,16 @@ RUN apt-get update && apt-get install -y \
     libusb-1.0-0-dev \
     iproute2 net-tools \
     screen tini
+
+# Install openvino runtime
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    apt-key add ./GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    rm ./GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    echo "deb https://apt.repos.intel.com/openvino ubuntu24 main" > /etc/apt/sources.list.d/intel-openvino.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends openvino-2025.2.0 && \
+    apt-get autoremove -y && apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN apt-get autoremove -y && apt-get clean
 
