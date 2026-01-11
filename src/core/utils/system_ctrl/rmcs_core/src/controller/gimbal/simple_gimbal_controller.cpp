@@ -61,25 +61,10 @@ public:
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
 
         if (auto_aim_control_direction_.ready() && (mouse.right || switch_right == Switch::UP)
-            && !auto_aim_control_direction_->isZero()) {
-
-            // 相对坐标
-            Eigen::Vector3d target_cam = *auto_aim_control_direction_;
-
-            double yaw_err = std::atan2(target_cam.y(), target_cam.x());
-            double distance_xy =
-                std::sqrt(target_cam.x() * target_cam.x() + target_cam.y() * target_cam.y());
-            double pitch_err = std::atan2(target_cam.z(), distance_xy);
-
-            // 比例
-            constexpr double auto_aim_sensitivity = 0.008;
-
-            double yaw_shift = yaw_err * auto_aim_sensitivity;
-            double pitch_shift = -pitch_err * auto_aim_sensitivity;
-
+            && !auto_aim_control_direction_->isZero())
             return two_axis_gimbal_solver.update(
-                TwoAxisGimbalSolver::SetControlShift(yaw_shift, pitch_shift));
-        }
+                TwoAxisGimbalSolver::SetControlDirection(
+                    OdomImu::DirectionVector(*auto_aim_control_direction_)));
 
         if (!two_axis_gimbal_solver.enabled())
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetToLevel());
