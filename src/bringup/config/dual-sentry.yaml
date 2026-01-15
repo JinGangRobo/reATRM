@@ -26,6 +26,8 @@ rmcs_executor:
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
 
+      - rmcs::AutoAimComponent -> auto_aim_component
+
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
@@ -39,7 +41,12 @@ value_broadcaster:
       - /gimbal/pitch/control_angle_error
       - /chassis/power
       - /chassis/supercap/voltage
-      - /chassis/yaw/velocity_imu
+      - /debug/aim/x
+      - /debug/aim/y
+      - /debug/aim/z
+      - /debug/solver/pitch
+      - /debug/solver/yaw
+      - /debug/aim/delay
 
 dual_sentry_hardware:
   ros__parameters:
