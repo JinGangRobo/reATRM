@@ -7,8 +7,9 @@ rmcs_executor:
       - rmcs_core::referee::Status -> referee_status
       - rmcs_core::referee::Command -> referee_command
 
-      # - rmcs_core::referee::command::Interaction -> referee_interaction
-      # - rmcs_core::referee::command::interaction::Ui -> referee_ui
+      - rmcs_core::referee::command::Interaction -> referee_interaction
+      - rmcs_core::referee::command::interaction::Ui -> referee_ui
+      - rmcs_core::referee::app::ui::DualSentry -> dual_sentry
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
@@ -24,7 +25,7 @@ rmcs_executor:
 
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
-      - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
+      # - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
 
       - rmcs::AutoAimComponent -> auto_aim_component
 
