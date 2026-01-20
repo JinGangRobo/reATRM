@@ -50,6 +50,16 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
             )
         )
 
+        entities.append(
+            Node(
+                package="rmcs_auto_aim_v2",
+                executable="rmcs_auto_aim_v2_runtime",
+                respawn=True,
+                respawn_delay=1.0,
+                output="screen",
+            )
+        )
+
         if is_automatic:
             pass
 
