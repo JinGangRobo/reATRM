@@ -22,6 +22,7 @@ rmcs_executor:
       - rmcs_core::controller::pid::PidController -> right_friction_velocity_pid_controller
       - rmcs_core::controller::pid::PidController -> bullet_feeder_velocity_pid_controller
 
+
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
@@ -44,14 +45,18 @@ value_broadcaster:
       - /gimbal/bullet_feeder/control_torque
       - /gimbal/bullet_feeder/velocity
       - /gimbal/bullet_feeder/velocity_filtered
+      - /chassis/power
+      - /chassis/supercap/voltage
+      - /chassis/angular_velocity_max
+      - /chassis/translational_velocity_max
 
 dual_infantry_hardware:
   ros__parameters:
     usb_pid_top_board: 0xf112
     usb_pid_bottom_board: 0x9d15
     bottom_yaw_motor_zero_point: -2800
-    top_yaw_motor_zero_point: -350
-    pitch_motor_zero_point: 5474
+    top_yaw_motor_zero_point: 7800
+    pitch_motor_zero_point: 1600
 
     imu_bias_x: 3
     imu_bias_y: 8
@@ -67,11 +72,11 @@ gimbal_controller:
 
 dual_yaw_controller:
   ros__parameters:
-    top_yaw_angle_kp: 20.0
+    top_yaw_angle_kp: 15.0
     top_yaw_angle_ki: 0.01
     top_yaw_angle_kd: 0.0
-    top_yaw_velocity_kp: 3.4
-    top_yaw_velocity_ki: 0.02
+    top_yaw_velocity_kp: 2.8
+    top_yaw_velocity_ki: 0.01
     top_yaw_velocity_kd: 0.0
     bottom_yaw_angle_kp: 5.0
     bottom_yaw_angle_ki: 0.0
@@ -79,6 +84,19 @@ dual_yaw_controller:
     bottom_yaw_velocity_kp: 2.3
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
+
+omni_wheel_controller:
+  ros__parameters:
+    chassis_radius_x: 0.165
+    chassis_radius_y: 0.165
+    wheel_radius_: 0.07
+    friction_coefficient: 0.6
+    
+    spinning_bais_coefficient: -0.055
+
+
+
+ 
 
 pitch_angle_err_pid_controller:
   ros__parameters:
@@ -95,7 +113,7 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
-    kp: 2.0
+    kp: 1.8
     ki: 0.02
     kd: 60.0
     integral_min: -20.0
