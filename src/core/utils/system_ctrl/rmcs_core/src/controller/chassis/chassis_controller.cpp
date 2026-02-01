@@ -20,8 +20,8 @@ public:
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , following_velocity_controller_(6.0, 0.0, 0.0) {
-        get_parameter("translational_velocity_max", translational_velocity_max);
-        get_parameter("angular_velocity_max", angular_velocity_max);
+        get_parameter("translational_velocity_max_default", translational_velocity_max);
+        get_parameter("angular_velocity_max_default", angular_velocity_max);
 
         following_velocity_controller_.output_max = angular_velocity_max;
         following_velocity_controller_.output_min = -angular_velocity_max;
@@ -34,6 +34,9 @@ public:
         register_input("/remote/mouse", mouse_);
         register_input("/remote/keyboard", keyboard_);
         register_input("/remote/rotary_knob", rotary_knob_);
+
+        register_input("/chassis/translational_vmax", translational_velocity_max_);
+        register_input("/chassis/angular_vmax", angular_velocity_max_);
 
         register_input("/gimbal/yaw/angle", gimbal_yaw_angle_, false);
         register_input("/gimbal/yaw/control_angle_error", gimbal_yaw_angle_error_, false);
@@ -63,6 +66,19 @@ public:
         auto switch_right = *switch_right_;
         auto switch_left = *switch_left_;
         auto keyboard = *keyboard_;
+
+        // Update maximum velocities
+        if (translational_velocity_max_.ready()) {
+            if (*translational_velocity_max_ != nan)
+                translational_velocity_max = *translational_velocity_max_;
+        }
+        if (angular_velocity_max_.ready()) {
+            if (*angular_velocity_max_ != nan) {
+                angular_velocity_max = *angular_velocity_max_;
+                following_velocity_controller_.output_max = angular_velocity_max;
+                following_velocity_controller_.output_min = -angular_velocity_max;
+            }
+        }
 
         do {
             if ((switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
@@ -215,6 +231,8 @@ private:
     InputInterface<rmcs_msgs::Mouse> mouse_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
     InputInterface<double> rotary_knob_;
+    InputInterface<double> translational_velocity_max_;
+    InputInterface<double> angular_velocity_max_;
 
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;

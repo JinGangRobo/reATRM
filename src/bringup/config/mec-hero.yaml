@@ -58,8 +58,8 @@ hero_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_max: 10.0
-    angular_velocity_max: 10.0
+    translational_velocity_max_default: 10.0
+    angular_velocity_max_default: 10.0
 
 omni_wheel_controller:
   ros__parameters:
