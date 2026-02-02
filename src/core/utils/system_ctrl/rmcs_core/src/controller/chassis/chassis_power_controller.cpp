@@ -33,14 +33,15 @@ public:
 
         register_input("/referee/chassis/power_limit", chassis_power_limit_referee_);
         register_input("/referee/chassis/buffer_energy", chassis_buffer_energy_referee_);
+        register_input("/chassis/boost_mode", boost_mode_status_);
 
         register_output("/chassis/supercap/charge_power_limit", supercap_charge_power_limit_, 0.0);
         register_output("/chassis/control_power_limit", chassis_control_power_limit_, 0.0);
 
         register_output(
-            "/chassis/supercap/voltage/control_line", supercap_voltage_control_line_, 12.5);
-        register_output("/chassis/supercap/voltage/base_line", supercap_voltage_base_line_, 12.0);
-        register_output("/chassis/supercap/voltage/dead_line", supercap_voltage_dead_line_, 11.0);
+            "/chassis/supercap/voltage/control_line", supercap_voltage_control_line_, 28.5);
+        register_output("/chassis/supercap/voltage/base_line", supercap_voltage_base_line_, 10.0);
+        register_output("/chassis/supercap/voltage/dead_line", supercap_voltage_dead_line_, 9.0);
     }
 
     void update() override {
@@ -63,7 +64,7 @@ public:
 
         update_virtual_buffer_energy();
 
-        boost_mode_ = keyboard.shift || rotary_knob < -0.9;
+        boost_mode_ = keyboard.shift || rotary_knob < -0.9 || *boost_mode_status_ == 1.0;
         update_control_power_limit();
     }
 
@@ -116,8 +117,8 @@ private:
         chassis_power_limit_expected_ = power_limit;
 
         //                 chassis_control_power_limit =
-        constexpr double supercap_voltage_control_line = 12.5; // = supercap
-        constexpr double supercap_voltage_base_line = 12.0;    // = referee
+        constexpr double supercap_voltage_control_line = 19.5; // = supercap
+        constexpr double supercap_voltage_base_line = 9.0;    // = referee
         power_limit = *chassis_power_limit_referee_
                     + (power_limit - *chassis_power_limit_referee_)
                           * std::clamp(
@@ -149,6 +150,7 @@ private:
     InputInterface<rmcs_msgs::Switch> switch_left_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
     InputInterface<double> rotary_knob_;
+    InputInterface<double> boost_mode_status_;
 
     InputInterface<double> chassis_power_;
     static constexpr double virtual_buffer_energy_limit_ = 30.0;
