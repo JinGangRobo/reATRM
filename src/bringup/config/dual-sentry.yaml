@@ -69,6 +69,11 @@ gimbal_controller:
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
 
+    depond_motors:
+      - /gimbal/pitch
+      - /gimbal/top_yaw
+      - /gimbal/bottom_yaw
+
 dual_yaw_controller:
   ros__parameters:
     top_yaw_angle_kp: 20.0
@@ -102,6 +107,7 @@ pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
+    executor_timestamp: /gimbal/pitch/last_update_time
     kp: 10.0
     ki: 0.001
     kd: 0.0
@@ -113,6 +119,7 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
+    executor_timestamp: /gimbal/pitch/last_update_time
     kp: 2.0
     ki: 0.02
     kd: 24.0
