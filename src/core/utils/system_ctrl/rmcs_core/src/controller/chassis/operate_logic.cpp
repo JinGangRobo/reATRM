@@ -101,7 +101,7 @@ private:
     rmcs_msgs::Mouse last_mouse_ = rmcs_msgs::Mouse::zero();
 
     double comfort_translational_velocity = 10.0;
-    double comfort_angular_velocity = 14.0;
+    double comfort_angular_velocity = 15.0;
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;
 
