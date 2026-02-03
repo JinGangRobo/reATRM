@@ -1,6 +1,9 @@
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
 #include <limits>
-
+#include <memory>
+#include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
@@ -27,6 +30,13 @@ public:
         get_parameter("shift_control_clamp", shift_control_clamp_);
         get_parameter("joystick_left_bias_y", joystick_left_bias_y_);
         get_parameter("joystick_left_bias_x", joystick_left_bias_x_);
+        get_parameter("depond_motors", depond_motors_);
+
+        for (const auto& motor_ : depond_motors_) {
+            auto timestamp_input = std::make_unique<InputInterface<int64_t>>();
+            register_input(motor_ + "/last_update_time", *timestamp_input);
+            depond_motor_timestamp_inputs_.push_back(std::move(timestamp_input));
+        }
 
         register_input("/remote/joystick/left", joystick_left_);
         register_input("/remote/switch/right", switch_right_);
@@ -60,6 +70,15 @@ public:
             || (switch_left == Switch::DOWN && switch_right == Switch::DOWN))
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
 
+        auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       std::chrono::steady_clock::now().time_since_epoch())
+                       .count();
+        for (const auto& timestamp_input : depond_motor_timestamp_inputs_) {
+            if (now - **timestamp_input > timeout_ms_) {
+                return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
+            }
+        }
+
         if (auto_aim_control_direction_.ready() && (mouse.right || switch_right == Switch::UP)
             && !auto_aim_control_direction_->isZero())
             return two_axis_gimbal_solver.update(
@@ -85,6 +104,7 @@ public:
 
 private:
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
+    static constexpr int64_t timeout_ms_ = 200;
 
     InputInterface<Eigen::Vector2d> joystick_left_;
     InputInterface<rmcs_msgs::Switch> switch_right_;
@@ -101,6 +121,8 @@ private:
     double joystick_left_bias_y_ = 0.0;
     double joystick_left_bias_x_ = 0.0;
     double shift_control_clamp_ = 0.0045;
+    std::vector<std::string> depond_motors_ = {};
+    std::vector<std::unique_ptr<InputInterface<int64_t>>> depond_motor_timestamp_inputs_ = {};
 };
 
 } // namespace rmcs_core::controller::gimbal

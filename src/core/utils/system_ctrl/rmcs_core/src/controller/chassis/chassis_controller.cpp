@@ -35,8 +35,8 @@ public:
         register_input("/remote/keyboard", keyboard_);
         register_input("/remote/rotary_knob", rotary_knob_);
 
-        register_input("/chassis/translational_vmax", translational_velocity_max_);
-        register_input("/chassis/angular_vmax", angular_velocity_max_);
+        register_input("/chassis/translational_vmax", translational_velocity_max_, false);
+        register_input("/chassis/angular_vmax", angular_velocity_max_, false);
 
         register_input("/gimbal/yaw/angle", gimbal_yaw_angle_, false);
         register_input("/gimbal/yaw/control_angle_error", gimbal_yaw_angle_error_, false);
