@@ -117,7 +117,7 @@ private:
         chassis_power_limit_expected_ = power_limit;
 
         //                 chassis_control_power_limit =
-        constexpr double supercap_voltage_control_line = 19.5; // = supercap
+        constexpr double supercap_voltage_control_line = 28.5; // = supercap
         constexpr double supercap_voltage_base_line = 9.0;    // = referee
         power_limit = *chassis_power_limit_referee_
                     + (power_limit - *chassis_power_limit_referee_)
