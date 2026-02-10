@@ -12,4 +12,10 @@ endif()
 find_package (ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies ()
 
+add_executable(fast_tf_dummy src/dummy.cpp)
+target_include_directories(fast_tf_dummy PRIVATE 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+ament_target_dependencies(fast_tf_dummy ${${PROJECT_NAME}_FOUND_BUILD_DEPENDS})
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
