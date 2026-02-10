@@ -1,0 +1,6 @@
+<library path="autopilot_client_component">
+  <class type="autopilot::AutoPilotComponent" base_class_type="rmcs_executor::Component">
+    <description>Autopilot client.</description>
+  </class>
+
+</library>
