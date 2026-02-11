@@ -84,6 +84,7 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
 
 RUN apt-get autoremove -y && apt-get clean
 
+RUN echo "export ROS_DOMAIN_ID=12" >> /home/$USERNAME/.bashrc
 RUN echo 'export PATH=$PATH:/home/ws/.script' >> /home/$USERNAME/.bashrc
 RUN echo 'alias wsi="source /opt/ros/jazzy/setup.bash"' >> /home/$USERNAME/.bashrc
 RUN echo 'alias ini="source install/setup.bash"' >> /home/$USERNAME/.bashrc
