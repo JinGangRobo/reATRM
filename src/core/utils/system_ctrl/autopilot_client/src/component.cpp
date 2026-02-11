@@ -1,3 +1,4 @@
+#include "rclcpp/logging.hpp"
 #include "rclcpp/node_options.hpp"
 #include <cstdint>
 #include <rclcpp/node.hpp>
@@ -28,10 +29,13 @@ public:
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
 
-        // May cause error here, need handle it in the future
-        communication_.startReceiving(
-            pilot_data_receiving_host_, pilot_data_receiving_port_,
-            [this](const PilotData& data) { pilot_data_callback(data); });
+        if (!communication_.startReceiving(
+                pilot_data_receiving_host_, pilot_data_receiving_port_,
+                [this](const PilotData& data) { pilot_data_callback(data); })) {
+            RCLCPP_FATAL(
+                get_logger(), "Init pilot data receiving failed. reason: %s",
+                communication_.getLastReceivingError().c_str());
+        }
     }
 
     ~AutoPilotComponent() { communication_.stop(); }
@@ -39,16 +43,21 @@ public:
     void before_updating() override {}
 
     void update() override {
-        // RCLCPP_INFO(get_logger(), "Update AutoPilotComponent");
         StateData state_data;
         state_data.gimbal_faceing[0] = 1.0;
         state_data.gimbal_faceing[1] = 0.0;
         state_data.gimbal_faceing[2] = 0.0;
-        communication_.sendStateData(
-            state_data, state_data_sending_host_, state_data_sending_port_);
+
+        if (!communication_.sendStateData(
+                state_data, state_data_sending_host_, state_data_sending_port_)) {
+            RCLCPP_ERROR(
+                get_logger(), "Failed to send state data. reason: %s",
+                communication_.getLastSendingError().c_str());
+        }
     }
 
     void pilot_data_callback(const PilotData& pilotData) {
+        latest_pilot_data_ = pilotData;
         RCLCPP_INFO(
             get_logger(), "Received pilot data: %f,%f,%f", pilotData.chassis_vel[0],
             pilotData.chassis_vel[1], pilotData.chassis_vel[2]);
@@ -56,6 +65,7 @@ public:
 
 private:
     Communication communication_;
+    PilotData latest_pilot_data_;
 
     uint16_t state_data_update_rate_;
     std::string state_data_sending_host_;

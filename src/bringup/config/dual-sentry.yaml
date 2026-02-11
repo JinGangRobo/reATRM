@@ -183,7 +183,7 @@ bullet_feeder_velocity_pid_controller:
 auto_pilot_component:
   ros__parameters:
     state_data_update_rate: 500
-    state_data_sending_host: localhost
+    state_data_sending_host: 127.0.0.1
     state_data_sending_port: 42330
-    pilot_data_receiving_host: localhost
+    pilot_data_receiving_host: 127.0.0.1
     pilot_data_receiving_port: 42331

@@ -1,7 +1,10 @@
+#pragma once
+
 #include <arpa/inet.h>
 #include <atomic>
 #include <cstring>
 #include <functional>
+#include <string>
 #include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
@@ -47,6 +50,7 @@ public:
         if (bind(sockfd_, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             close(sockfd_);
             sockfd_ = -1;
+            last_receiving_error_ = strerror(errno);
             return false;
         }
 
@@ -80,9 +84,16 @@ public:
             send_sock, &data, sizeof(StateData), 0, (struct sockaddr*)&dest_addr,
             sizeof(dest_addr));
 
+        if (sent < 0) {
+            last_sending_error_ = strerror(errno);
+        }
+
         close(send_sock);
         return sent == sizeof(StateData);
     }
+
+    std::string getLastReceivingError() const { return last_receiving_error_; }
+    std::string getLastSendingError() const { return last_sending_error_; }
 
 private:
     void receiveThread() {
@@ -96,11 +107,13 @@ private:
 
             if (recv_len == sizeof(PilotData) && callback_) {
                 callback_(data);
-            }
+            } // TODO: handle errors or log them
         }
     }
 
     int sockfd_;
+    std::string last_receiving_error_;
+    std::string last_sending_error_;
     std::atomic<bool> running_;
     std::thread recv_thread_;
     std::function<void(const PilotData&)> callback_;
