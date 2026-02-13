@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <functional>
 #include <string>
@@ -10,6 +11,9 @@
 #include <unistd.h>
 
 namespace autopilot {
+
+using Clock = std::chrono::steady_clock;
+
 struct StateData {
     double gimbal_faceing[3];
 };
@@ -21,6 +25,7 @@ class Communication {
 public:
     Communication()
         : sockfd_(-1)
+        , send_sockfd_(-1)
         , running_(false) {}
 
     ~Communication() {
@@ -28,16 +33,37 @@ public:
         if (sockfd_ >= 0) {
             close(sockfd_);
         }
+        if (send_sockfd_ >= 0) {
+            close(send_sockfd_);
+        }
+    }
+
+    bool startSending(std::string* error = nullptr) {
+        if (send_sockfd_ >= 0) {
+            return true;   // Already initialized
+        }
+
+        send_sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
+        if (send_sockfd_ < 0) {
+            if (error)
+                *error = strerror(errno);
+
+            return false;
+        }
+        return true;
     }
 
     bool startReceiving(
-        const std::string& ip, uint16_t port, std::function<void(const PilotData&)> callback) {
+        const std::string& ip, uint16_t port,
+        std::function<void(const PilotData&, std::string)> callback, std::string* error = nullptr) {
         if (running_) {
             return false;
         }
 
         sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
         if (sockfd_ < 0) {
+            if (error)
+                *error = strerror(errno);
             return false;
         }
 
@@ -50,7 +76,8 @@ public:
         if (bind(sockfd_, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             close(sockfd_);
             sockfd_ = -1;
-            last_receiving_error_ = strerror(errno);
+            if (error)
+                *error = strerror(errno);
             return false;
         }
 
@@ -68,9 +95,12 @@ public:
         }
     }
 
-    bool sendStateData(const StateData& data, const std::string& ip, uint16_t port) {
-        int send_sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if (send_sock < 0) {
+    bool sendStateData(
+        const StateData& data, const std::string& ip, uint16_t port, std::string* error = nullptr) {
+        if (send_sockfd_ < 0) {
+            if (error) {
+                *error = "Send socket not initialized. Call startSending() first.";
+            }
             return false;
         }
 
@@ -81,19 +111,15 @@ public:
         dest_addr.sin_addr.s_addr = inet_addr(ip.c_str());
 
         ssize_t sent = sendto(
-            send_sock, &data, sizeof(StateData), 0, (struct sockaddr*)&dest_addr,
+            send_sockfd_, &data, sizeof(StateData), 0, (struct sockaddr*)&dest_addr,
             sizeof(dest_addr));
 
-        if (sent < 0) {
-            last_sending_error_ = strerror(errno);
+        if (error && sent < 0) {
+            *error = strerror(errno);
         }
 
-        close(send_sock);
         return sent == sizeof(StateData);
     }
-
-    std::string getLastReceivingError() const { return last_receiving_error_; }
-    std::string getLastSendingError() const { return last_sending_error_; }
 
 private:
     void receiveThread() {
@@ -105,17 +131,17 @@ private:
             ssize_t recv_len = recvfrom(
                 sockfd_, &data, sizeof(PilotData), 0, (struct sockaddr*)&sender_addr, &addr_len);
 
-            if (recv_len == sizeof(PilotData) && callback_) {
-                callback_(data);
-            } // TODO: handle errors or log them
+            if (recv_len == sizeof(PilotData) && callback_)
+                callback_(data, "");
+            else
+                callback_(data, strerror(errno));
         }
     }
 
     int sockfd_;
-    std::string last_receiving_error_;
-    std::string last_sending_error_;
+    int send_sockfd_;
     std::atomic<bool> running_;
     std::thread recv_thread_;
-    std::function<void(const PilotData&)> callback_;
+    std::function<void(const PilotData&, std::string)> callback_;
 };
 } // namespace autopilot
