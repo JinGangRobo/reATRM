@@ -79,7 +79,7 @@ public:
             }
         }
 
-        if (auto_aim_control_direction_.ready() && (mouse.right || switch_right == Switch::UP)
+        if (auto_aim_control_direction_.ready() && mouse.right
             && !auto_aim_control_direction_->isZero())
             return two_axis_gimbal_solver.update(
                 TwoAxisGimbalSolver::SetControlDirection(

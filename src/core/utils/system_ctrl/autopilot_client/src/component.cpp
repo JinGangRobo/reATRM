@@ -1,10 +1,10 @@
-#include "rclcpp/logging.hpp"
-#include "rclcpp/node_options.hpp"
-#include <cstdint>
-#include <rclcpp/node.hpp>
-
 #include "rmcs_executor/component.hpp"
-#include <rmcs_msgs/switch.hpp>
+#include <chrono>
+#include <cstdint>
+#include <eigen3/Eigen/Dense>
+#include <rclcpp/logging.hpp>
+#include <rclcpp/node.hpp>
+#include <rclcpp/node_options.hpp>
 
 #include "communication.hpp"
 
@@ -26,15 +26,24 @@ public:
         pilot_data_receiving_host_ = get_parameter("pilot_data_receiving_host").as_string();
         pilot_data_receiving_port_ = get_parameter("pilot_data_receiving_port").as_int();
 
-        register_input("/remote/switch/right", switch_right_);
-        register_input("/remote/switch/left", switch_left_);
+        register_output("/autopilot/chassis/velocity", auto_pilot_velocity_);
 
+        std::string send_init_errmsg;
+        if (!communication_.startSending(&send_init_errmsg)) {
+            RCLCPP_FATAL(
+                get_logger(), "Init pilot data sending failed. reason: %s",
+                send_init_errmsg.c_str());
+        }
+        std::string recv_init_errmsg;
         if (!communication_.startReceiving(
                 pilot_data_receiving_host_, pilot_data_receiving_port_,
-                [this](const PilotData& data) { pilot_data_callback(data); })) {
+                [this](const PilotData& data, const std::string err_msg) {
+                    pilot_data_callback(data, err_msg);
+                },
+                &recv_init_errmsg)) {
             RCLCPP_FATAL(
                 get_logger(), "Init pilot data receiving failed. reason: %s",
-                communication_.getLastReceivingError().c_str());
+                recv_init_errmsg.c_str());
         }
     }
 
@@ -43,29 +52,45 @@ public:
     void before_updating() override {}
 
     void update() override {
-        StateData state_data;
-        state_data.gimbal_faceing[0] = 1.0;
-        state_data.gimbal_faceing[1] = 0.0;
-        state_data.gimbal_faceing[2] = 0.0;
+        // StateData state_data;
+        // state_data.gimbal_faceing[0] = 1.0;
+        // state_data.gimbal_faceing[1] = 0.0;
+        // state_data.gimbal_faceing[2] = 0.0;
 
-        if (!communication_.sendStateData(
-                state_data, state_data_sending_host_, state_data_sending_port_)) {
-            RCLCPP_ERROR(
-                get_logger(), "Failed to send state data. reason: %s",
-                communication_.getLastSendingError().c_str());
+        // std::string sending_errmsg;
+        // if (!communication_.sendStateData(
+        //         state_data, state_data_sending_host_, state_data_sending_port_, &sending_errmsg))
+        //         {
+        //     RCLCPP_ERROR(
+        //         get_logger(), "Failed to send state data. reason: %s", sending_errmsg.c_str());
+        // }
+
+        if (Clock::now() - last_valid_pilot_time_ > std::chrono::milliseconds(100)
+            && (*auto_pilot_velocity_)[3] != 0.0) {
+            RCLCPP_WARN(
+                get_logger(),
+                "No valid pilot data received for 100ms, resetting velocity to zero.");
+            *auto_pilot_velocity_ << 0.0, 0.0, 0.0, 0.0;
         }
     }
 
-    void pilot_data_callback(const PilotData& pilotData) {
-        latest_pilot_data_ = pilotData;
-        RCLCPP_INFO(
-            get_logger(), "Received pilot data: %f,%f,%f", pilotData.chassis_vel[0],
-            pilotData.chassis_vel[1], pilotData.chassis_vel[2]);
+    void pilot_data_callback(const PilotData& pilotData, const std::string error_msg = "") {
+        if (!error_msg.empty()) {
+            RCLCPP_ERROR(get_logger(), "Error receiving pilot data: %s", error_msg.c_str());
+            return;
+        }
+
+        *auto_pilot_velocity_ << pilotData.chassis_vel[0], pilotData.chassis_vel[1],
+            pilotData.chassis_vel[2], 1.0;
+
+        RCLCPP_INFO(get_logger(), "got autopilot data");
+
+        last_valid_pilot_time_ = Clock::now();
     }
 
 private:
     Communication communication_;
-    PilotData latest_pilot_data_;
+    Clock::time_point last_valid_pilot_time_;
 
     uint16_t state_data_update_rate_;
     std::string state_data_sending_host_;
@@ -73,8 +98,7 @@ private:
     std::string pilot_data_receiving_host_;
     uint16_t pilot_data_receiving_port_;
 
-    InputInterface<rmcs_msgs::Switch> switch_left_;
-    InputInterface<rmcs_msgs::Switch> switch_right_;
+    OutputInterface<Eigen::Vector4d> auto_pilot_velocity_;
 };
 } // namespace autopilot
 
