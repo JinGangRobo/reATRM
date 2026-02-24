@@ -1,10 +1,12 @@
-#include "rmcs_executor/component.hpp"
 #include <chrono>
 #include <cstdint>
 #include <eigen3/Eigen/Dense>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/node_options.hpp>
+#include <rmcs_executor/component.hpp>
+#include <rmcs_msgs/switch.hpp>
+#include <rmcs_utility/tick_timer.hpp>
 
 #include "communication.hpp"
 
@@ -20,12 +22,16 @@ public:
         , communication_() {
         RCLCPP_INFO(get_logger(), "AutoPilotComponent has been initialized.");
 
-        state_data_update_rate_ = get_parameter("state_data_update_rate").as_int();
+        state_data_update_cycles_ = get_parameter("state_data_update_cycles").as_int();
         state_data_sending_host_ = get_parameter("state_data_sending_host").as_string();
         state_data_sending_port_ = get_parameter("state_data_sending_port").as_int();
         pilot_data_receiving_host_ = get_parameter("pilot_data_receiving_host").as_string();
         pilot_data_receiving_port_ = get_parameter("pilot_data_receiving_port").as_int();
 
+        state_data_limiter_.reset(state_data_update_cycles_);
+
+        register_input("/remote/switch/right", switch_right_);
+        register_input("/remote/switch/left", switch_left_);
         register_output("/autopilot/chassis/velocity", auto_pilot_velocity_);
 
         std::string send_init_errmsg;
@@ -52,18 +58,24 @@ public:
     void before_updating() override {}
 
     void update() override {
-        // StateData state_data;
-        // state_data.gimbal_faceing[0] = 1.0;
-        // state_data.gimbal_faceing[1] = 0.0;
-        // state_data.gimbal_faceing[2] = 0.0;
+        if (state_data_limiter_.tick()) {
+            StateData state_data;
+            state_data.gimbal_faceing[0] = 1.0; // Dummy data.
+            state_data.gimbal_faceing[1] = 0.0;
+            state_data.gimbal_faceing[2] = 0.0;
+            state_data.autopilot_enabled = (*switch_left_ != rmcs_msgs::Switch::UNKNOWN
+                                            && *switch_left_ != rmcs_msgs::Switch::DOWN)
+                                        && *switch_right_ == rmcs_msgs::Switch::UP;
 
-        // std::string sending_errmsg;
-        // if (!communication_.sendStateData(
-        //         state_data, state_data_sending_host_, state_data_sending_port_, &sending_errmsg))
-        //         {
-        //     RCLCPP_ERROR(
-        //         get_logger(), "Failed to send state data. reason: %s", sending_errmsg.c_str());
-        // }
+            std::string sending_errmsg;
+            if (!communication_.sendStateData(
+                    state_data, state_data_sending_host_, state_data_sending_port_,
+                    &sending_errmsg)) {
+                RCLCPP_ERROR(
+                    get_logger(), "Failed to send state data. reason: %s", sending_errmsg.c_str());
+            }
+            state_data_limiter_.reset(state_data_update_cycles_);
+        }
 
         if (Clock::now() - last_valid_pilot_time_ > std::chrono::milliseconds(100)
             && (*auto_pilot_velocity_)[3] != 0.0) {
@@ -83,8 +95,6 @@ public:
         *auto_pilot_velocity_ << pilotData.chassis_vel[0], pilotData.chassis_vel[1],
             pilotData.chassis_vel[2], 1.0;
 
-        RCLCPP_INFO(get_logger(), "got autopilot data");
-
         last_valid_pilot_time_ = Clock::now();
     }
 
@@ -92,11 +102,16 @@ private:
     Communication communication_;
     Clock::time_point last_valid_pilot_time_;
 
-    uint16_t state_data_update_rate_;
+    rmcs_utility::TickTimer state_data_limiter_;
+
+    uint16_t state_data_update_cycles_;
     std::string state_data_sending_host_;
     uint16_t state_data_sending_port_;
     std::string pilot_data_receiving_host_;
     uint16_t pilot_data_receiving_port_;
+
+    InputInterface<rmcs_msgs::Switch> switch_right_;
+    InputInterface<rmcs_msgs::Switch> switch_left_;
 
     OutputInterface<Eigen::Vector4d> auto_pilot_velocity_;
 };

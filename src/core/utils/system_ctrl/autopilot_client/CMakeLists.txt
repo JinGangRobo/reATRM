@@ -17,6 +17,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(rmcs_executor REQUIRED)
 find_package(rmcs_msgs REQUIRED)
 find_package(rmcs_description REQUIRED)
+find_package(rmcs_utility REQUIRED)
 find_package(fast_tf REQUIRED)
 
 ## 目录包含
@@ -31,6 +32,7 @@ include_directories(
     ${geometry_msgs_INCLUDE_DIRS}
 
     ${rmcs_executor_INCLUDE_DIRS}
+    ${rmcs_utility_INCLUDE_DIRS}
     ${rmcs_msgs_INCLUDE_DIRS}
     ${rmcs_description_INCLUDE_DIRS}
     ${fast_tf_INCLUDE_DIRS}

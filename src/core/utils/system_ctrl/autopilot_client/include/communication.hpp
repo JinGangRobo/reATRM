@@ -16,6 +16,7 @@ using Clock = std::chrono::steady_clock;
 
 struct StateData {
     double gimbal_faceing[3];
+    bool autopilot_enabled;
 };
 struct PilotData {
     double chassis_vel[3]; // x, y, w

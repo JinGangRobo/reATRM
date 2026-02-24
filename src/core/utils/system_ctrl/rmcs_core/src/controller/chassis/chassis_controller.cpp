@@ -25,6 +25,7 @@ public:
         get_parameter("translational_velocity_max_default", translational_velocity_max);
         get_parameter("angular_velocity_max_default", angular_velocity_max);
         get_parameter("autopilot_yaw_lidar_offset", autopilot_yaw_lidar_offset);
+        get_parameter("autopilot_spin_velocity_default", autopilot_spin_velocity_default);
 
         following_velocity_controller_.output_max = angular_velocity_max;
         following_velocity_controller_.output_min = -angular_velocity_max;
@@ -119,6 +120,9 @@ public:
                 }
                 if (switch_right == Switch::UP) {
                     mode = rmcs_msgs::ChassisMode::AUTO_PILOT;
+                } else {
+                    if (mode == rmcs_msgs::ChassisMode::AUTO_PILOT)
+                        mode = rmcs_msgs::ChassisMode::AUTO;
                 }
                 *mode_ = mode;
             }
@@ -157,7 +161,9 @@ public:
         }
 
         auto translational_velocity = update_translational_velocity_control();
-        auto angular_velocity = update_angular_velocity_control();
+        auto angular_velocity = *mode_ == rmcs_msgs::ChassisMode::AUTO_PILOT
+                                  ? autopilot_spin_velocity_default
+                                  : update_angular_velocity_control();
 
         chassis_control_velocity_->vector << translational_velocity, angular_velocity;
     }
@@ -250,6 +256,7 @@ private:
     double translational_velocity_max = 10.0;
     double angular_velocity_max = 14.0;
     double autopilot_yaw_lidar_offset = 0.78;
+    double autopilot_spin_velocity_default = 2.0;
 
     InputInterface<Eigen::Vector2d> joystick_right_;
     InputInterface<Eigen::Vector2d> joystick_left_;
