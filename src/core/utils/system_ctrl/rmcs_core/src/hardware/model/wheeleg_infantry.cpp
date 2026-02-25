@@ -23,11 +23,9 @@ class WheelLegInfantry
     , public rclcpp::Node {
 public:
     WheelLegInfantry()
-        : Node{
-              get_component_name(),
-              rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
-        , command_component_(
-              create_partner_component<WheelLegInfantryCommand>(get_component_name() + "_command", *this)) {
+        : Node{get_component_name(), rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
+        , command_component_(create_partner_component<WheelLegInfantryCommand>(
+              get_component_name() + "_command", *this)) {
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
@@ -40,13 +38,9 @@ public:
 
     ~WheelLegInfantry() override = default;
 
-    void update() override {
-        bottom_board_->update();
-    }
+    void update() override { bottom_board_->update(); }
 
-    void command_update() {
-        bottom_board_->command_update();
-    }
+    void command_update() { bottom_board_->command_update(); }
 
 private:
     class WheelLegInfantryCommand : public rmcs_executor::Component {
@@ -63,10 +57,54 @@ private:
     class BottomBoard final : private librmcs::client::CBoard {
     public:
         friend class WheelLegInfantry;
-        explicit BottomBoard(WheelLegInfantry& wheeleg_infantry, WheelLegInfantryCommand& wheeleg_infantry_command, int usb_pid = -1)
+        explicit BottomBoard(
+            WheelLegInfantry& wheeleg_infantry, WheelLegInfantryCommand& wheeleg_infantry_command,
+            int usb_pid = -1)
             : librmcs::client::CBoard(usb_pid)
             , imu_(10.0f, 0.001f, 1000000.0f)
             , tf_(wheeleg_infantry.tf_)
+            , imu_bias_x(wheeleg_infantry.get_parameter("imu_bias_x").as_int())
+            , imu_bias_y(wheeleg_infantry.get_parameter("imu_bias_y").as_int())
+            , imu_bias_z(wheeleg_infantry.get_parameter("imu_bias_z").as_int())
+
+            , chassis_wheel_motors_(
+                  {wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_wheel",
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reversed()},
+                  {wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_wheel",
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reversed()
+
+                  })
+            , left_front_hip_motors_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_front_hip",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}
+                      .set_reversed()
+                      .set_encoder_zero_point(static_cast<int>(
+                          wheeleg_infantry.get_parameter("left_front_hip_motors_zero_point")
+                              .as_int())))
+            , left_back_hip_motors_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_back_hip",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}
+                      .set_reversed()
+                      .set_encoder_zero_point(static_cast<int>(
+                          wheeleg_infantry.get_parameter("left_back_hip_motors_zero_point")
+                              .as_int())))
+            , right_front_hip_motors_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_front_hip",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}
+
+                      .set_reversed()
+                      .set_encoder_zero_point(static_cast<int>(
+                          wheeleg_infantry.get_parameter("right_front_hip_motors_zero_point")
+                              .as_int())))
+            , right_back_hip_motors_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_back_hip",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}
+
+                      .set_reversed()
+                      .set_encoder_zero_point(static_cast<int>(
+                          wheeleg_infantry.get_parameter("right_back_hip_motors_zero_point")
+                              .as_int())))
+            , dr16_{wheeleg_infantry}
 
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
@@ -77,14 +115,42 @@ private:
                 // matrix.
 
                 // Eigen::AngleAxisd pitch_link_to_imu_link{
-                //     std::numbers::pi, Eigen::Vector3d::UnitZ()};
                 // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
                 // std::cout << mapping << std::endl;
 
-                return std::make_tuple(x, z, y);
+                return std::make_tuple(-x, -y, z);
             });
+            wheeleg_infantry.register_output("/debug/imu/gx_bais", debug_imu_gx_bais_);
+            wheeleg_infantry.register_output("/debug/imu/gy_bais", debug_imu_gy_bais_);
+            wheeleg_infantry.register_output("/debug/imu/gz_bais", debug_imu_gz_bais_);
 
+            wheeleg_infantry.register_output("/referee/serial", referee_serial_);
+            referee_serial_->read = [this](std::byte* buffer, size_t size) {
+                return referee_ring_buffer_receive_.pop_front_multi(
+                    [&buffer](std::byte byte) { *buffer++ = byte; }, size);
+            };
+            referee_serial_->write = [this](const std::byte* buffer, size_t size) {
+                transmit_buffer_.add_uart1_transmission(buffer, size);
+                return size;
+            };
+            wheeleg_infantry.register_output(
+                "/chassis/imu/pitch_velocity", chassis_pitch_velocity_imu_);
+            wheeleg_infantry.register_output(
+                "/chassis/imu/yaw_velocity", chassis_yaw_velocity_imu_);
+            wheeleg_infantry.register_output(
+                "/chassis/imu/roll_velocity", chassis_roll_velocity_imu_);
 
+            wheeleg_infantry.register_output("/chassis/imu/pitch", chassis_pitch_angle_imu_);
+            wheeleg_infantry.register_output("/chassis/imu/roll", chassis_roll_angle_imu_);
+
+            wheeleg_infantry.register_output(
+                "/debug/left_front_hip/raw_angle", debug_left_front_hip_raw_angle_);
+            wheeleg_infantry.register_output(
+                "/debug/left_back_hip/raw_angle", debug_left_back_hip_raw_angle_);
+            wheeleg_infantry.register_output(
+                "/debug/right_front_hip/raw_angle", debug_right_front_hip_raw_angle_);
+            wheeleg_infantry.register_output(
+                "/debug/right_back_hip/raw_angle", debug_right_back_hip_raw_angle_);
         }
 
         ~BottomBoard() final {
@@ -94,11 +160,68 @@ private:
 
         void update() {
             imu_.update_status();
+            Eigen::Quaterniond chassis_imu_pose{imu_.q0(), imu_.q1(), imu_.q2(), imu_.q3()};
+
+            // 2. 将世界系向量投影到机体系（推荐方法，防止 Yaw 耦合）
+            Eigen::Vector3d up_in_chassis = chassis_imu_pose.conjugate() * Eigen::Vector3d::UnitZ();
+            *chassis_pitch_angle_imu_ = std::asin(up_in_chassis.x());
+            *chassis_roll_angle_imu_ = std::atan2(-up_in_chassis.y(), up_in_chassis.z());
+
+            *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
+            *chassis_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
+            *chassis_roll_velocity_imu_ = imu_gx_velocity_filter_.update(imu_.gx());
+
+            tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
+                chassis_imu_pose);
+            fast_tf::rcl::broadcast_all(*tf_);
+            dr16_.update_status();
+            chassis_wheel_motors_[0].update_status();
+            chassis_wheel_motors_[1].update_status();
+            left_front_hip_motors_.update_status();
+            left_back_hip_motors_.update_status();
+            right_front_hip_motors_.update_status();
+            right_back_hip_motors_.update_status();
+
+            *debug_left_front_hip_raw_angle_ = left_front_hip_motors_.last_raw_angle();
+            *debug_left_back_hip_raw_angle_ = left_back_hip_motors_.last_raw_angle();
+            *debug_right_front_hip_raw_angle_ = right_front_hip_motors_.last_raw_angle();
+            *debug_right_back_hip_raw_angle_ = right_back_hip_motors_.last_raw_angle();
+
+            *debug_imu_gx_bais_ = imu_.cali_gx_ref();
+            *debug_imu_gy_bais_ = imu_.cali_gy_ref();
+            *debug_imu_gz_bais_ = imu_.cali_gz_ref();
+            // transmit_buffer_.add_can1_transmission(0x01, motor_.generate_torque_command(10));
+        }
+
+        void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
+            dr16_.store_status(uart_data, uart_data_length);
+        }
+
+        void accelerometer_receive_callback(int16_t x, int16_t y, int16_t z) override {
+            imu_.store_accelerometer_status(x, y, z);
+        }
+
+        void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
+            imu_.store_gyroscope_status(x - imu_bias_x, y - imu_bias_y, z - imu_bias_z);
         }
 
         void command_update() {
-            uint16_t batch_commands[4];
+            uint16_t can_commands[4];
 
+            can_commands[0] = chassis_wheel_motors_[0].generate_command();
+            can_commands[1] = chassis_wheel_motors_[1].generate_command();
+            can_commands[2] = 0;
+            can_commands[3] = 0;
+            transmit_buffer_.add_can2_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
+
+            transmit_buffer_.add_can1_transmission(
+                0x01, left_front_hip_motors_.generate_torque_command());
+            transmit_buffer_.add_can1_transmission(
+                0x02, left_back_hip_motors_.generate_torque_command());
+            transmit_buffer_.add_can1_transmission(
+                0x03, right_front_hip_motors_.generate_torque_command());
+            transmit_buffer_.add_can1_transmission(
+                0x04, right_back_hip_motors_.generate_torque_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -110,6 +233,15 @@ private:
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
 
+            if (can_id == 0x211) {
+                left_front_hip_motors_.store_status(can_data);
+            } else if (can_id == 0x212) {
+                left_back_hip_motors_.store_status(can_data);
+            } else if (can_id == 0x213) {
+                right_front_hip_motors_.store_status(can_data);
+            } else if (can_id == 0x214) {
+                right_back_hip_motors_.store_status(can_data);
+            }
         }
 
         void can2_receive_callback(
@@ -117,23 +249,51 @@ private:
             bool is_remote_transmission, uint8_t can_data_length) override {
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
-
+            if (can_id == 0x201) {
+                chassis_wheel_motors_[0].store_status(can_data);
+            } else if (can_id == 0x202) {
+                chassis_wheel_motors_[1].store_status(can_data);
+            }
         }
 
-        void accelerometer_receive_callback(int16_t x, int16_t y, int16_t z) override {
-            imu_.store_accelerometer_status(x, y, z);
-        }
+        device::DjiMotor chassis_wheel_motors_[2];
 
-        void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
-            imu_.store_gyroscope_status(x, y, z);
-        }
+        device::DmMotor left_front_hip_motors_;
+        device::DmMotor left_back_hip_motors_;
+        device::DmMotor right_front_hip_motors_;
+        device::DmMotor right_back_hip_motors_;
 
-        device::Bmi088 imu_;
+        device::Dr16 dr16_;
+
+        OutputInterface<double> imu_gz;
+        OutputInterface<double> imu_gy;
+        OutputInterface<double> debug_imu_g_z_;
+
+        int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
+
         OutputInterface<rmcs_description::Tf>& tf_;
+        OutputInterface<double> debug_imu_gx_bais_;
+        OutputInterface<double> debug_imu_gy_bais_;
+        OutputInterface<double> debug_imu_gz_bais_;
+
+        OutputInterface<double> chassis_yaw_velocity_imu_;
+        OutputInterface<double> chassis_pitch_velocity_imu_;
+        OutputInterface<double> chassis_roll_velocity_imu_;
+
+        OutputInterface<double> chassis_pitch_angle_imu_;
+        OutputInterface<double> chassis_roll_angle_imu_;
+
+        OutputInterface<double> debug_left_front_hip_raw_angle_;
+        OutputInterface<double> debug_left_back_hip_raw_angle_;
+        OutputInterface<double> debug_right_front_hip_raw_angle_;
+        OutputInterface<double> debug_right_back_hip_raw_angle_;
 
         librmcs::utility::RingBuffer<std::byte> referee_ring_buffer_receive_{256};
         OutputInterface<rmcs_msgs::SerialInterface> referee_serial_;
-
+        rmcs_core::utility::LowPassFilter<> imu_gx_velocity_filter_{4.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{4.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
+        device::Bmi088 imu_;
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;
     };
