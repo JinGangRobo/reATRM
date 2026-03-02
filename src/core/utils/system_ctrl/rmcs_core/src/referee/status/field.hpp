@@ -34,6 +34,11 @@ struct __attribute__((packed)) RobotStatus {
     uint8_t power_management_chassis_output : 1;
     uint8_t power_management_shooter_output : 1;
 };
+struct __attribute__((packed)) Rfid {
+    uint32_t rfid_status;
+    uint8_t rfid_status_2; 
+};
+
 
 struct __attribute__((packed)) PowerHeatData {
     uint16_t reserved_0;

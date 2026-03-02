@@ -34,6 +34,8 @@ public:
         register_output("/referee/chassis/buffer_energy", robot_buffer_energy_, 60.0);
         register_output("/referee/chassis/output_status", chassis_output_status_, false);
 
+        register_output("/referee/chassis/current_hp", robot_current_hp_, 0.0);
+
         register_output("/referee/robots/hp", robots_hp_);
         register_output("/referee/shooter/bullet_allowance", robot_bullet_allowance_, false);
         register_output(
@@ -41,6 +43,7 @@ public:
 
         register_output("/referee/shooter/initial_speed", robot_initial_speed_, false);
         register_output("/referee/shooter/shoot_timestamp", robot_shoot_timestamp_, false);
+        register_output("/referee/robots/rfid", robots_rfid_);
 
         robot_status_watchdog_.reset(5'000);
     }
@@ -111,7 +114,14 @@ private:
             update_shoot_data();
         else if (command_id == 0x0208)
             update_bullet_allowance();
-        else if (command_id == 0x020B)
+        else if (command_id == 0x0209) {
+            uint32_t* p = reinterpret_cast<uint32_t*>(&frame_.body.data);
+
+            RCLCPP_INFO(
+                this->get_logger(), "RFID Payload Debug: [%02X %02X %02X %02X %02X %02X %02X %02X]",
+                p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+            update_robot_rfid_position();
+        } else if (command_id == 0x020B)
             update_game_robot_position();
     }
 
@@ -125,7 +135,11 @@ private:
             game_status_watchdog_.reset(5'000);
     }
 
-    void update_game_robot_hp() {}
+    void update_game_robot_hp() {
+        auto& data = reinterpret_cast<GameRobotHp&>(frame_.body.data);
+
+        *robots_hp_ = data;
+    }
 
     void update_robot_status() {
         if (*game_stage_ == rmcs_msgs::GameStage::STARTED)
@@ -136,6 +150,7 @@ private:
         auto& data = reinterpret_cast<RobotStatus&>(frame_.body.data);
 
         *robot_id_ = static_cast<rmcs_msgs::RobotId>(data.robot_id);
+        *robot_current_hp_ = data.current_hp;
         *robot_shooter_cooling_ = data.shooter_barrel_cooling_value;
         *robot_shooter_heat_limit_ = static_cast<int64_t>(1000) * data.shooter_barrel_heat_limit;
 
@@ -171,6 +186,10 @@ private:
         *robot_bullet_allowance_ = data.bullet_allowance_17mm;
         *robot_42mm_bullet_allowance_ = data.bullet_allowance_42mm;
     }
+    void update_robot_rfid_position() {
+        auto& data = reinterpret_cast<Rfid&>(frame_.body.data);
+        *robots_rfid_ = data;
+    }
 
     void update_game_robot_position() {}
 
@@ -193,6 +212,7 @@ private:
 
     rmcs_utility::TickTimer robot_status_watchdog_;
     OutputInterface<rmcs_msgs::RobotId> robot_id_;
+    OutputInterface<double> robot_current_hp_;
     OutputInterface<int64_t> robot_shooter_cooling_, robot_shooter_heat_limit_;
     OutputInterface<double> robot_chassis_power_limit_;
     OutputInterface<bool> chassis_output_status_;
@@ -201,6 +221,8 @@ private:
     OutputInterface<double> robot_buffer_energy_;
 
     OutputInterface<GameRobotHp> robots_hp_;
+    OutputInterface<Rfid> robots_rfid_;
+
     OutputInterface<uint16_t> robot_bullet_allowance_;
     OutputInterface<uint16_t> robot_42mm_bullet_allowance_;
 
