@@ -31,7 +31,6 @@ public:
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
         register_input("/remote/keyboard", keyboard_);
-        // register_input("/gimbal/friction_wheel", friction_wheel_mode_);
 
         auto friction_wheels = get_parameter("friction_wheels").as_string_array();
         auto friction_working_velocities = get_parameter("friction_velocities").as_double_array();
@@ -78,10 +77,7 @@ public:
             if ((!last_keyboard_.v && keyboard.v)
                 || (last_switch_left_ == Switch::MIDDLE && switch_left == Switch::UP)) {
                 friction_enabled_ = !friction_enabled_;
-            } 
-            // else if (true){
-            //     friction_enabled_ = true;
-            // }
+            }
 
             update_friction_velocities();
             update_friction_status();
@@ -191,7 +187,6 @@ private:
     InputInterface<rmcs_msgs::Switch> switch_right_;
     InputInterface<rmcs_msgs::Switch> switch_left_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
-    InputInterface<double> friction_wheel_mode_;
 
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;
