@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/src/Core/Ref.h>
 #include <rclcpp/node.hpp>
@@ -32,7 +33,7 @@ public:
         register_input("/referee/id", robot_id_);
         register_input("/referee/chassis/current_hp", robots_hp_);
         register_input("/remote/mouse", mouse_);
-        register_input("/referee/robots/rfid", robots_rfid_);
+        register_input("/referee/robots/rmul_rfid", robots_rfid_);
 
         register_output("/chassis/translational_vmax", translational_velocity_max_);
         register_output("/chassis/angular_vmax", angular_velocity_max_);
@@ -96,14 +97,14 @@ private:
         // rfid检测
          
         // uint32_t bit_0 = robots_rfid_ -> rfid_status & 0x01;
-        uint32_t status = robots_rfid_->rfid_status;
-        bool bit_0 = (status & 0x01);
+        // uint32_t status = robots_rfid_->rfid_status;
+        // bool bit_0 = (status & 0x01);
 
-        if (bit_0)
-            rfid_status = 1.0;
-        else
-            rfid_status = 0.0;
-        *hurt_ = rfid_status;
+        // if (bit_0)
+        //     rfid_status = 1.0;
+        // else
+        //     rfid_status = 0.0;
+        // *hurt_ = rfid_status;
         // RCLCPP_INFO(this->get_logger(), "RAW RFID Status: 0x%08X", robots_rfid_ -> rfid_status);
         // RCLCPP_INFO(this->get_logger(), "RFID Status: %d", bit_0);
         
@@ -141,7 +142,7 @@ private:
     InputInterface<double> supercap_voltage_;
     InputInterface<rmcs_msgs::RobotId> robot_id_;
     InputInterface<double> robots_hp_;
-    InputInterface<rmcs_core::referee::status::Rfid> robots_rfid_;
+    InputInterface<uint8_t> robots_rfid_;
 
     InputInterface<rmcs_msgs::Mouse> mouse_;
     rmcs_msgs::Mouse last_mouse_ = rmcs_msgs::Mouse::zero();

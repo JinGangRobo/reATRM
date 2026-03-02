@@ -1,4 +1,6 @@
+#include <cstdint>
 #include <eigen3/Eigen/Eigen>
+#include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rmcs_executor/component.hpp>
 #include <rmcs_msgs/game_stage.hpp>
@@ -43,7 +45,7 @@ public:
 
         register_output("/referee/shooter/initial_speed", robot_initial_speed_, false);
         register_output("/referee/shooter/shoot_timestamp", robot_shoot_timestamp_, false);
-        register_output("/referee/robots/rfid", robots_rfid_);
+        register_output("/referee/robots/rmul_rfid", rmul_rfid_);
 
         robot_status_watchdog_.reset(5'000);
     }
@@ -115,11 +117,6 @@ private:
         else if (command_id == 0x0208)
             update_bullet_allowance();
         else if (command_id == 0x0209) {
-            uint32_t* p = reinterpret_cast<uint32_t*>(&frame_.body.data);
-
-            RCLCPP_INFO(
-                this->get_logger(), "RFID Payload Debug: [%02X %02X %02X %02X %02X %02X %02X %02X]",
-                p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
             update_robot_rfid_position();
         } else if (command_id == 0x020B)
             update_game_robot_position();
@@ -188,7 +185,8 @@ private:
     }
     void update_robot_rfid_position() {
         auto& data = reinterpret_cast<Rfid&>(frame_.body.data);
-        *robots_rfid_ = data;
+        *rmul_rfid_ = // 1 for home in rmul, 2 for center area in rmul, 0 for nothing detected.
+            ((data.rfid_status >> 19) & 0x1) ? 1 : (((data.rfid_status >> 23) & 0x1) ? 2 : 0);
     }
 
     void update_game_robot_position() {}
@@ -221,7 +219,7 @@ private:
     OutputInterface<double> robot_buffer_energy_;
 
     OutputInterface<GameRobotHp> robots_hp_;
-    OutputInterface<Rfid> robots_rfid_;
+    OutputInterface<uint8_t> rmul_rfid_;
 
     OutputInterface<uint16_t> robot_bullet_allowance_;
     OutputInterface<uint16_t> robot_42mm_bullet_allowance_;
