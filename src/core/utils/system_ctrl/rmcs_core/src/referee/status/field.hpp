@@ -11,6 +11,10 @@ struct __attribute__((packed)) GameStatus {
     uint64_t sync_timestamp;
 };
 
+struct __attribute__((packed)) EventData {
+    uint32_t event_data;
+};
+
 struct __attribute__((packed)) GameRobotHp {
     uint16_t robot_1;
     uint16_t robot_2;
@@ -36,9 +40,8 @@ struct __attribute__((packed)) RobotStatus {
 };
 struct __attribute__((packed)) Rfid {
     uint32_t rfid_status;
-    uint8_t rfid_status_2; 
+    uint8_t rfid_status_2;
 };
-
 
 struct __attribute__((packed)) PowerHeatData {
     uint16_t reserved_0;

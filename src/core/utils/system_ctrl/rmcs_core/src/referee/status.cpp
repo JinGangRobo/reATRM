@@ -28,6 +28,8 @@ public:
         register_input("/referee/serial", serial_);
 
         register_output("/referee/game/stage", game_stage_, rmcs_msgs::GameStage::UNKNOWN);
+        register_output("/referee/game/remain_time", game_stage_remain_time_);
+        register_output("/referee/game/center_area", center_area_status_, 0);
 
         register_output("/referee/id", robot_id_, rmcs_msgs::RobotId::UNKNOWN);
         register_output("/referee/shooter/cooling", robot_shooter_cooling_, 0);
@@ -102,8 +104,10 @@ private:
         auto command_id = frame_.body.command_id;
         if (command_id == 0x0001)
             update_game_status();
-        if (command_id == 0x0003)
+        else if (command_id == 0x0003)
             update_game_robot_hp();
+        else if (command_id == 0x0101)
+            update_event_data();
         else if (command_id == 0x0201)
             update_robot_status();
         else if (command_id == 0x0202)
@@ -126,10 +130,16 @@ private:
         auto& data = reinterpret_cast<GameStatus&>(frame_.body.data);
 
         *game_stage_ = static_cast<rmcs_msgs::GameStage>(data.game_stage);
+        *game_stage_remain_time_ = data.stage_remain_time;
         if (*game_stage_ == rmcs_msgs::GameStage::STARTED)
             game_status_watchdog_.reset(30'000);
         else
             game_status_watchdog_.reset(5'000);
+    }
+
+    void update_event_data() {
+        auto& data = reinterpret_cast<EventData&>(frame_.body.data);
+        *center_area_status_ = (data.event_data >> 23) & 0x3;
     }
 
     void update_game_robot_hp() {
@@ -207,6 +217,8 @@ private:
 
     rmcs_utility::TickTimer game_status_watchdog_;
     OutputInterface<rmcs_msgs::GameStage> game_stage_;
+    OutputInterface<double> game_stage_remain_time_;
+    OutputInterface<uint8_t> center_area_status_;
 
     rmcs_utility::TickTimer robot_status_watchdog_;
     OutputInterface<rmcs_msgs::RobotId> robot_id_;

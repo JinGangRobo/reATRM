@@ -9,6 +9,7 @@
 #include <rmcs_utility/tick_timer.hpp>
 
 #include "communication.hpp"
+#include "rmcs_msgs/game_stage.hpp"
 
 namespace autopilot {
 class AutoPilotComponent
@@ -32,6 +33,16 @@ public:
 
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
+        register_input(
+            "/gimbal/control_bullet_allowance/limited_by_heat", control_bullet_allowance_);
+        register_input("/referee/chassis/current_hp", current_hp_);
+        register_input("/referee/game/stage", game_stage_);
+        register_input("/referee/game/remain_time", stage_remain_time_);
+        register_input("/referee/robots/rmul_rfid", rfid_state_);
+        register_input("/referee/game/center_area", center_area_status_);
+
+        register_input("/gimbal/auto_aim/control_direction", auto_aim_tracking_);
+
         register_output("/autopilot/chassis/velocity", auto_pilot_velocity_);
 
         std::string send_init_errmsg;
@@ -66,6 +77,15 @@ public:
             state_data.autopilot_enabled = (*switch_left_ != rmcs_msgs::Switch::UNKNOWN
                                             && *switch_left_ != rmcs_msgs::Switch::DOWN)
                                         && *switch_right_ == rmcs_msgs::Switch::UP;
+
+            state_data.current_hp = *current_hp_;
+            state_data.game_state = static_cast<uint8_t>(*game_stage_);
+            state_data.state_remain_time = *stage_remain_time_;
+            state_data.rfid_state = *rfid_state_;
+            state_data.center_area_state = *center_area_status_;
+            state_data.projectile_allowance = *control_bullet_allowance_;
+
+            state_data.auto_aim_tracking = !auto_aim_tracking_->isZero();
 
             std::string sending_errmsg;
             if (!communication_.sendStateData(
@@ -112,6 +132,13 @@ private:
 
     InputInterface<rmcs_msgs::Switch> switch_right_;
     InputInterface<rmcs_msgs::Switch> switch_left_;
+    InputInterface<int64_t> control_bullet_allowance_;
+    InputInterface<double> current_hp_;
+    InputInterface<rmcs_msgs::GameStage> game_stage_;
+    InputInterface<double> stage_remain_time_;
+    InputInterface<uint8_t> rfid_state_;
+    InputInterface<uint8_t> center_area_status_;
+    InputInterface<Eigen::Vector3d> auto_aim_tracking_;
 
     OutputInterface<Eigen::Vector4d> auto_pilot_velocity_;
 };

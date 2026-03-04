@@ -33,7 +33,7 @@ public:
 
         register_input("/referee/chassis/power_limit", chassis_power_limit_referee_);
         register_input("/referee/chassis/buffer_energy", chassis_buffer_energy_referee_);
-        register_input("/chassis/boost_mode", boost_mode_status_);
+        register_input("/chassis/boost_mode", boost_mode_status_, false);
 
         register_output("/chassis/supercap/charge_power_limit", supercap_charge_power_limit_, 0.0);
         register_output("/chassis/control_power_limit", chassis_control_power_limit_, 0.0);
@@ -64,7 +64,8 @@ public:
 
         update_virtual_buffer_energy();
 
-        boost_mode_ = keyboard.shift || rotary_knob < -0.9 || *boost_mode_status_ == 1.0;
+        boost_mode_ = keyboard.shift || rotary_knob < -0.9
+                   || (boost_mode_status_.ready() && *boost_mode_status_ == 1.0);
         update_control_power_limit();
     }
 
@@ -118,7 +119,7 @@ private:
 
         //                 chassis_control_power_limit =
         constexpr double supercap_voltage_control_line = 28.5; // = supercap
-        constexpr double supercap_voltage_base_line = 9.0;    // = referee
+        constexpr double supercap_voltage_base_line = 9.0;     // = referee
         power_limit = *chassis_power_limit_referee_
                     + (power_limit - *chassis_power_limit_referee_)
                           * std::clamp(
