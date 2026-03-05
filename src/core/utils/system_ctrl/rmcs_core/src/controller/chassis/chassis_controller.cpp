@@ -24,7 +24,6 @@ public:
         , following_velocity_controller_(6.0, 0.0, 0.0) {
         get_parameter("translational_velocity_max_default", translational_velocity_max);
         get_parameter("angular_velocity_max_default", angular_velocity_max);
-        get_parameter("autopilot_yaw_lidar_offset", autopilot_yaw_lidar_offset);
         get_parameter("autopilot_spin_velocity_default", autopilot_spin_velocity_default);
 
         following_velocity_controller_.output_max = angular_velocity_max;
@@ -144,19 +143,17 @@ public:
     void update_velocity_control() {
         if (*mode_ == rmcs_msgs::ChassisMode::AUTO_PILOT && auto_pilot_velocity_.ready()
             && (*auto_pilot_velocity_)[3] != 0) {
-            Eigen::Vector2d autopilot_velocity_xy_rotated =
-                Eigen::Rotation2Dd{autopilot_yaw_lidar_offset} * auto_pilot_velocity_->head<2>();
+            Eigen::Vector2d autopilot_velocity_xy = auto_pilot_velocity_->head<2>();
 
             // do velocity limiting here.
-            if (autopilot_velocity_xy_rotated.norm() > translational_velocity_max) {
-                autopilot_velocity_xy_rotated.normalize();
-                autopilot_velocity_xy_rotated *= translational_velocity_max;
+            if (autopilot_velocity_xy.norm() > translational_velocity_max) {
+                autopilot_velocity_xy.normalize();
+                autopilot_velocity_xy *= translational_velocity_max;
             }
             double angular_velocity_clamped =
                 std::clamp((*auto_pilot_velocity_)[2], -angular_velocity_max, angular_velocity_max);
 
-            chassis_control_velocity_->vector << autopilot_velocity_xy_rotated,
-                angular_velocity_clamped;
+            chassis_control_velocity_->vector << autopilot_velocity_xy, angular_velocity_clamped;
             return;
         }
 
@@ -255,7 +252,6 @@ private:
     // Maximum control velocities
     double translational_velocity_max = 10.0;
     double angular_velocity_max = 14.0;
-    double autopilot_yaw_lidar_offset = 0.78;
     double autopilot_spin_velocity_default = 2.0;
 
     InputInterface<Eigen::Vector2d> joystick_right_;
