@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstdint>
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/src/Core/Matrix.h>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/node_options.hpp>
@@ -42,6 +43,7 @@ public:
         register_input("/referee/game/center_area", center_area_status_);
 
         register_input("/gimbal/auto_aim/control_direction", auto_aim_tracking_);
+        register_input("/gimbal/auto_aim/target_position", auto_aim_target_position_);
 
         register_output("/autopilot/chassis/velocity", auto_pilot_velocity_);
 
@@ -86,6 +88,9 @@ public:
             state_data.projectile_allowance = *control_bullet_allowance_;
 
             state_data.auto_aim_tracking = !auto_aim_tracking_->isZero();
+            state_data.target_position[0] = auto_aim_target_position_->x();
+            state_data.target_position[1] = auto_aim_target_position_->y();
+            state_data.target_position[2] = auto_aim_target_position_->z();
 
             std::string sending_errmsg;
             if (!communication_.sendStateData(
@@ -139,6 +144,7 @@ private:
     InputInterface<uint8_t> rfid_state_;
     InputInterface<uint8_t> center_area_status_;
     InputInterface<Eigen::Vector3d> auto_aim_tracking_;
+    InputInterface<Eigen::Vector3d> auto_aim_target_position_;
 
     OutputInterface<Eigen::Vector4d> auto_pilot_velocity_;
 };

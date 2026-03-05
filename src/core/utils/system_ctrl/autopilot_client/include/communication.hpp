@@ -27,6 +27,7 @@ struct StateData {
     int64_t projectile_allowance;
 
     bool auto_aim_tracking;
+    double target_position[3];
 };
 struct PilotData {
     double chassis_vel[3]; // x, y, w
