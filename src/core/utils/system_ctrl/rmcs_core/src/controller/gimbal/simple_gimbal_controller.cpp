@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -45,6 +46,7 @@ public:
         register_input("/remote/mouse", mouse_);
 
         register_input("/gimbal/auto_aim/control_direction", auto_aim_control_direction_, false);
+        register_input("/gimbal/auto_aim/scan_direction", auto_aim_scan_direction_, false);
 
         register_output("/gimbal/yaw/control_angle_error", yaw_angle_error_, nan_);
         register_output("/gimbal/pitch/control_angle_error", pitch_angle_error_, nan_);
@@ -79,11 +81,40 @@ public:
             }
         }
 
-        if (auto_aim_control_direction_.ready() && mouse.right
-            && !auto_aim_control_direction_->isZero())
+        bool autopilot_active = (switch_left != Switch::DOWN && switch_right == Switch::UP);
+
+        if (auto_aim_control_direction_.ready() && (mouse.right || autopilot_active)
+            && !auto_aim_control_direction_->isZero()) {
             return two_axis_gimbal_solver.update(
                 TwoAxisGimbalSolver::SetControlDirection(
                     OdomImu::DirectionVector(*auto_aim_control_direction_)));
+        } else {
+            if (autopilot_active) {
+                Eigen::Vector3d current_direction =
+                    two_axis_gimbal_solver.current_control_direction();
+                if (current_direction.norm() > 1e-9) {
+                    double scan_direction;
+                    if (auto_aim_scan_direction_.ready())
+                        scan_direction = *auto_aim_scan_direction_ > 0 ? 1 : -1;
+                    else {
+                        scan_direction = 1;
+                    }
+
+                    // TODO: use parameter instead of hardcoded speed.
+                    Eigen::Vector3d new_direction =
+                        Eigen::AngleAxis(scan_direction * 0.0013, Eigen::Vector3d::UnitZ())
+                        * current_direction;
+
+                    new_direction.z() =
+                        sin((now & 0xFFF) * 0.001534 * 2) * 0.2 - 0.1; // 0.001534=(1/4096)*2*pi
+                    new_direction.normalize();
+
+                    return two_axis_gimbal_solver.update(
+                        TwoAxisGimbalSolver::SetControlDirection(
+                            OdomImu::DirectionVector(new_direction)));
+                }
+            }
+        }
 
         if (!two_axis_gimbal_solver.enabled())
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetToLevel());
@@ -113,6 +144,7 @@ private:
     InputInterface<rmcs_msgs::Mouse> mouse_;
 
     InputInterface<Eigen::Vector3d> auto_aim_control_direction_;
+    InputInterface<int8_t> auto_aim_scan_direction_;
 
     TwoAxisGimbalSolver two_axis_gimbal_solver;
 

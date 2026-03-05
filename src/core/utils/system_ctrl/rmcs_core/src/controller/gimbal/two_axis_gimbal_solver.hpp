@@ -155,6 +155,12 @@ public:
         return calculate_control_errors(control_direction_yaw_link, pitch);
     }
 
+    Eigen::Vector3d current_control_direction() const {
+        if (!control_enabled_)
+            return {};
+        return control_direction_.vector;
+    }
+
     bool enabled() const { return control_enabled_; }
 
 private:
