@@ -1,6 +1,8 @@
 #include <atomic>
 #include <fast_tf/rcl.hpp>
 #include <memory>
+#include <rclcpp/logger.hpp>
+#include <rclcpp/logging.hpp>
 #include <thread>
 
 #include <librmcs/client/cboard.hpp>
@@ -64,7 +66,7 @@ private:
     void gimbal_calibrate_subscription_callback(std_msgs::msg::Int32::UniquePtr) {
         RCLCPP_INFO(
             get_logger(), "[gimbal calibration] New yaw offset: %d",
-            top_board_->gimbal_yaw_motor_.calibrate_zero_point());
+            bottom_board_->gimbal_yaw_motor_.calibrate_zero_point());
         RCLCPP_INFO(
             get_logger(), "[gimbal calibration] New pitch offset: %d",
             top_board_->gimbal_pitch_motor_.calibrate_zero_point());
@@ -98,13 +100,7 @@ private:
                       .set_encoder_zero_point(
                           static_cast<int>(hero.get_parameter("pitch_motor_zero_point").as_int()))
                       .set_reversed())
-            , gimbal_yaw_motor_(
-                  hero, hero_command, "/gimbal/yaw",
-                  device::DjiMotor::Config{device::DjiMotor::Type::GM6020}.set_encoder_zero_point(
-                      static_cast<int>(hero.get_parameter("yaw_motor_zero_point").as_int())))
-            , gimbal_bullet_feeder_(
-                  hero, hero_command, "/gimbal/bullet_feeder",
-                  device::DmMotor::Config{device::DmMotor::Type::J4310}.enable_multi_turn_angle())
+
             // TODO: Bad CAN ID sequence, needs to be adjusted.
             , gimbal_friction_wheels_(
                   {hero, hero_command, "/gimbal/first_friction",
@@ -168,17 +164,11 @@ private:
             *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
 
             *debug_pitch_raw_angle_ = gimbal_pitch_motor_.last_raw_angle();
-
             gimbal_pitch_motor_.update_status();
             tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
                 gimbal_pitch_motor_.angle());
-            gimbal_yaw_motor_.update_status();
-            tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
-                gimbal_yaw_motor_.angle());
 
             fast_tf::rcl::broadcast_all(*tf_);
-
-            gimbal_bullet_feeder_.update_status();
 
             for (auto& motor : gimbal_friction_wheels_)
                 motor.update_status();
@@ -192,16 +182,8 @@ private:
             batch_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(batch_commands));
 
-            batch_commands[0] = gimbal_yaw_motor_.generate_command();
-            batch_commands[1] = 0;
-            batch_commands[2] = 0;
-            batch_commands[3] = 0;
-            transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(batch_commands));
-
             transmit_buffer_.add_can2_transmission(
                 0x9, gimbal_pitch_motor_.generate_torque_command());
-            transmit_buffer_.add_can2_transmission(
-                0x4, gimbal_bullet_feeder_.generate_torque_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -219,8 +201,6 @@ private:
                 gimbal_friction_wheels_[1].store_status(can_data);
             } else if (can_id == 0x203) {
                 gimbal_friction_wheels_[2].store_status(can_data);
-            } else if (can_id == 0x205) {
-                gimbal_yaw_motor_.store_status(can_data);
             }
         }
 
@@ -232,8 +212,6 @@ private:
 
             if (can_id == 0x219) {
                 gimbal_pitch_motor_.store_status(can_data);
-            } else if (can_id == 0x214) {
-                gimbal_bullet_feeder_.store_status(can_data);
             }
         }
 
@@ -265,9 +243,7 @@ private:
         OutputInterface<double> debug_imu_gz_bais_;
 
         device::DmMotor gimbal_pitch_motor_;
-        device::DjiMotor gimbal_yaw_motor_;
 
-        device::DmMotor gimbal_bullet_feeder_;
         device::DjiMotor gimbal_friction_wheels_[3];
 
         rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{4.0f, 1000.0f};
@@ -293,7 +269,15 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {hero, hero_command, "/chassis/right_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
+
             , supercap_(hero)
+            , gimbal_yaw_motor_(
+                  hero, hero_command, "/gimbal/yaw",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
+                      static_cast<int>(hero.get_parameter("yaw_motor_zero_point").as_int())))
+            , gimbal_bullet_feeder_(
+                  hero, hero_command, "/gimbal/bullet_feeder",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}.enable_multi_turn_angle())
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
@@ -321,6 +305,7 @@ private:
             };
 
             hero.register_output("/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_, 0);
+            hero.register_output("/debug/yaw/raw_angle", debug_yaw_raw_angle_);
         }
 
         ~BottomBoard() final {
@@ -330,13 +315,19 @@ private:
 
         void update() {
             imu_.update_status();
-
+            gimbal_yaw_motor_.update_status();
             *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
+
+            tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
+                gimbal_yaw_motor_.angle());
 
             for (auto& motor : chassis_wheel_motors_)
                 motor.update_status();
+            gimbal_bullet_feeder_.update_status();
 
             supercap_.update_status();
+
+            *debug_yaw_raw_angle_ = gimbal_yaw_motor_.last_raw_angle();
         }
 
         void command_update() {
@@ -346,7 +337,15 @@ private:
                 batch_commands[i] = chassis_wheel_motors_[i].generate_command();
             transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(batch_commands));
 
+            transmit_buffer_.add_can2_transmission(
+                0x4, gimbal_bullet_feeder_.generate_torque_command());
+            transmit_buffer_.add_can2_transmission(
+                0x2, gimbal_yaw_motor_.generate_torque_command());
+
             transmit_buffer_.trigger_transmission();
+            // RCLCPP_INFO(
+            //     rclcpp::get_logger("MOTOR"), "send command: %d, %d, %d, %d", batch_commands[0],
+            //     batch_commands[1], batch_commands[2], batch_commands[3]);
         }
 
     private:
@@ -364,6 +363,8 @@ private:
                 chassis_wheel_motors_[2].store_status(can_data);
             } else if (can_id == 0x204) {
                 chassis_wheel_motors_[3].store_status(can_data);
+            } else if (can_id == 0x20c) {
+                supercap_.store_status(can_data);
             }
         }
 
@@ -373,8 +374,13 @@ private:
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
 
-            if (can_id == 0x300) {
-                supercap_.store_status(can_data);
+            // if (can_id == 0x300) {
+            //     supercap_.store_status(can_data);
+            // }
+            if (can_id == 0x214) {
+                gimbal_bullet_feeder_.store_status(can_data);
+            } else if (can_id == 0x212) {
+                gimbal_yaw_motor_.store_status(can_data);
             }
         }
 
@@ -393,6 +399,7 @@ private:
 
         device::Bmi088 imu_;
         OutputInterface<rmcs_description::Tf>& tf_;
+        OutputInterface<double> debug_yaw_raw_angle_;
 
         rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
 
@@ -400,6 +407,9 @@ private:
 
         device::DjiMotor chassis_wheel_motors_[4];
         device::Supercap supercap_;
+        device::DmMotor gimbal_yaw_motor_;
+
+        device::DmMotor gimbal_bullet_feeder_;
 
         librmcs::utility::RingBuffer<std::byte> referee_ring_buffer_receive_{256};
         OutputInterface<rmcs_msgs::SerialInterface> referee_serial_;
