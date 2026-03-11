@@ -1,4 +1,6 @@
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/src/Core/Matrix.h>
+#include <eigen3/Eigen/src/Geometry/Rotation2D.h>
 #include <rclcpp/node.hpp>
 #include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
@@ -20,8 +22,9 @@ public:
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , following_velocity_controller_(6.0, 0.0, 0.0) {
-        get_parameter("translational_velocity_max", translational_velocity_max);
-        get_parameter("angular_velocity_max", angular_velocity_max);
+        get_parameter("translational_velocity_max_default", translational_velocity_max);
+        get_parameter("angular_velocity_max_default", angular_velocity_max);
+        get_parameter("autopilot_spin_velocity_default", autopilot_spin_velocity_default);
 
         following_velocity_controller_.output_max = angular_velocity_max;
         following_velocity_controller_.output_min = -angular_velocity_max;
@@ -35,8 +38,13 @@ public:
         register_input("/remote/keyboard", keyboard_);
         register_input("/remote/rotary_knob", rotary_knob_);
 
+        register_input("/chassis/translational_vmax", translational_velocity_max_, false);
+        register_input("/chassis/angular_vmax", angular_velocity_max_, false);
+
         register_input("/gimbal/yaw/angle", gimbal_yaw_angle_, false);
         register_input("/gimbal/yaw/control_angle_error", gimbal_yaw_angle_error_, false);
+
+        register_input("/autopilot/chassis/velocity", auto_pilot_velocity_, false);
 
         register_output("/chassis/angle", chassis_angle_, nan);
         register_output("/chassis/control_angle", chassis_control_angle_, nan);
@@ -63,6 +71,19 @@ public:
         auto switch_right = *switch_right_;
         auto switch_left = *switch_left_;
         auto keyboard = *keyboard_;
+
+        // Update maximum velocities
+        if (translational_velocity_max_.ready()) {
+            if (*translational_velocity_max_ != nan)
+                translational_velocity_max = *translational_velocity_max_;
+        }
+        if (angular_velocity_max_.ready()) {
+            if (*angular_velocity_max_ != nan) {
+                angular_velocity_max = *angular_velocity_max_;
+                following_velocity_controller_.output_max = angular_velocity_max;
+                following_velocity_controller_.output_min = -angular_velocity_max;
+            }
+        }
 
         do {
             if ((switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
@@ -96,6 +117,12 @@ public:
                              ? rmcs_msgs::ChassisMode::AUTO
                              : rmcs_msgs::ChassisMode::STEP_DOWN;
                 }
+                if (switch_right == Switch::UP) {
+                    mode = rmcs_msgs::ChassisMode::AUTO_PILOT;
+                } else {
+                    if (mode == rmcs_msgs::ChassisMode::AUTO_PILOT)
+                        mode = rmcs_msgs::ChassisMode::AUTO;
+                }
                 *mode_ = mode;
             }
 
@@ -114,8 +141,26 @@ public:
     }
 
     void update_velocity_control() {
+        if (*mode_ == rmcs_msgs::ChassisMode::AUTO_PILOT && auto_pilot_velocity_.ready()
+            && (*auto_pilot_velocity_)[3] != 0) {
+            Eigen::Vector2d autopilot_velocity_xy = auto_pilot_velocity_->head<2>();
+
+            // do velocity limiting here.
+            if (autopilot_velocity_xy.norm() > translational_velocity_max) {
+                autopilot_velocity_xy.normalize();
+                autopilot_velocity_xy *= translational_velocity_max;
+            }
+            double angular_velocity_clamped =
+                std::clamp((*auto_pilot_velocity_)[2], -angular_velocity_max, angular_velocity_max);
+
+            chassis_control_velocity_->vector << autopilot_velocity_xy, angular_velocity_clamped;
+            return;
+        }
+
         auto translational_velocity = update_translational_velocity_control();
-        auto angular_velocity = update_angular_velocity_control();
+        auto angular_velocity = *mode_ == rmcs_msgs::ChassisMode::AUTO_PILOT
+                                  ? autopilot_spin_velocity_default
+                                  : update_angular_velocity_control();
 
         chassis_control_velocity_->vector << translational_velocity, angular_velocity;
     }
@@ -173,6 +218,7 @@ public:
 
             angular_velocity = following_velocity_controller_.update(err);
         } break;
+        case rmcs_msgs::ChassisMode::AUTO_PILOT: break;
         }
         *chassis_angle_ = 2 * std::numbers::pi - *gimbal_yaw_angle_;
         *chassis_control_angle_ = chassis_control_angle;
@@ -206,6 +252,7 @@ private:
     // Maximum control velocities
     double translational_velocity_max = 10.0;
     double angular_velocity_max = 14.0;
+    double autopilot_spin_velocity_default = 2.0;
 
     InputInterface<Eigen::Vector2d> joystick_right_;
     InputInterface<Eigen::Vector2d> joystick_left_;
@@ -215,6 +262,10 @@ private:
     InputInterface<rmcs_msgs::Mouse> mouse_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
     InputInterface<double> rotary_knob_;
+    InputInterface<double> translational_velocity_max_;
+    InputInterface<double> angular_velocity_max_;
+
+    InputInterface<Eigen::Vector4d> auto_pilot_velocity_; // [x, y, w, isActive(1/0)]
 
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;

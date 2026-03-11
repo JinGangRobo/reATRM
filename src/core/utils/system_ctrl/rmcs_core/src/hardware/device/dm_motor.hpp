@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include "utility/low_pass_filter.hpp"
 #include <librmcs/device/dm_motor.hpp>
 #include <rmcs_executor/component.hpp>
@@ -13,9 +15,11 @@ public:
         const std::string& name_prefix)
         : librmcs::device::DmMotor() {
         status_component.register_output(name_prefix + "/angle", angle_, 0.0);
+        status_component.register_output(name_prefix + "/raw_angle", raw_angle_, 0.0);
         status_component.register_output(name_prefix + "/velocity", velocity_, 0.0);
         status_component.register_output(name_prefix + "/torque", torque_, 0.0);
         status_component.register_output(name_prefix + "/max_torque", max_torque_, 0.0);
+        status_component.register_output(name_prefix + "/last_update_time", last_update_time_, 0);
 
         command_component.register_input(name_prefix + "/control_torque", control_torque_, false);
         command_component.register_input(
@@ -40,9 +44,17 @@ public:
     void update_status() {
         librmcs::device::DmMotor::update_status();
         *angle_ = angle();
+        *raw_angle_ = last_raw_angle();
         *velocity_ = velocity();
         *torque_ = torque();
         *velocity_filtered_ = velocity_lpf_.update(velocity());
+    }
+
+    void store_status(uint64_t can_data) {
+        librmcs::device::DmMotor::store_status(can_data);
+        *last_update_time_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 std::chrono::steady_clock::now().time_since_epoch())
+                                 .count();
     }
 
     double control_velocity() const {
@@ -67,10 +79,12 @@ public:
 
 private:
     rmcs_executor::Component::OutputInterface<double> angle_;
+    rmcs_executor::Component::OutputInterface<double> raw_angle_;
     rmcs_executor::Component::OutputInterface<double> velocity_;
     rmcs_executor::Component::OutputInterface<double> velocity_filtered_;
     rmcs_executor::Component::OutputInterface<double> torque_;
     rmcs_executor::Component::OutputInterface<double> max_torque_;
+    rmcs_executor::Component::OutputInterface<int64_t> last_update_time_;
 
     rmcs_executor::Component::InputInterface<double> control_velocity_;
     rmcs_executor::Component::InputInterface<double> control_torque_;

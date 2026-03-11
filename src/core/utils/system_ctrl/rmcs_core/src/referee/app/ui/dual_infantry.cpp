@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -15,11 +14,11 @@
 namespace rmcs_core::referee::app::ui {
 using namespace std::chrono_literals;
 
-class TestHeroUI
+class DualInfantry
     : public rmcs_executor::Component
     , public rclcpp::Node {
 public:
-    TestHeroUI()
+    DualInfantry()
         : Node{
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
@@ -30,25 +29,19 @@ public:
         chassis_control_direction_indicator_.set_x(x_center);
         chassis_control_direction_indicator_.set_y(y_center);
 
-        register_input("/chassis/control_mode", chassis_mode_);
+        register_input("/chassis/supercap/voltage", supercap_voltage_);
 
+        register_input("/gimbal/left_friction/control_velocity", first_friction_control_velocity_);
+        register_input("/gimbal/left_friction/velocity", first_friction_velocity_);
+        
+        register_input("/referee/shooter/bullet_allowance", robot_bullet_allowance_);
+
+        register_input("/chassis/control_mode", chassis_mode_);
         register_input("/chassis/angle", chassis_angle_);
         register_input("/chassis/control_angle", chassis_control_angle_);
 
-        register_input("/chassis/supercap/voltage", supercap_voltage_);
-        
-        register_input("/chassis/voltage", chassis_voltage_);
-        register_input("/chassis/power", chassis_power_);
         register_input("/chassis/control_power_limit", chassis_control_power_limit_);
         register_input("/chassis/supercap/charge_power_limit", supercap_charge_power_limit_);
-
-        register_input("/referee/shooter/42mm_bullet_allowance", robot_bullet_allowance_);
-
-        register_input(
-            "/gimbal/first_friction/control_velocity", first_friction_control_velocity_);
-        register_input("/gimbal/first_friction/velocity", first_friction_velocity_);
-
-        register_input("/gimbal/pitch/angle", gimbal_pitch_angle_);
 
         register_input("/gimbal/shooter/mode", shoot_mode_);
 
@@ -76,10 +69,9 @@ private:
 
         status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
         status_ring_.update_friction_wheel_speed(
-            *first_friction_velocity_,
-            *first_friction_control_velocity_ > 0);
+            *first_friction_velocity_, *first_friction_control_velocity_ > 0);
         status_ring_.update_supercap(*supercap_voltage_, true);
-        status_ring_.update_battery_power(*chassis_voltage_);
+        status_ring_.update_battery_power(0.5);
         update_static_status_ring();
     }
 
@@ -140,8 +132,6 @@ private:
     InputInterface<double> supercap_voltage_;
     InputInterface<bool> supercap_control_enabled_;
 
-    InputInterface<double> chassis_voltage_;
-    InputInterface<double> chassis_power_;
     InputInterface<double> chassis_control_power_limit_;
     InputInterface<double> supercap_charge_power_limit_;
 
@@ -153,8 +143,6 @@ private:
     InputInterface<rmcs_msgs::Mouse> mouse_;
 
     InputInterface<rmcs_msgs::GameStage> game_stage_;
-
-    InputInterface<double> gimbal_pitch_angle_;
     InputInterface<double> gimbal_player_viewer_angle_;
 
     InputInterface<rmcs_msgs::ShootMode> shoot_mode_;
@@ -170,4 +158,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(rmcs_core::referee::app::ui::TestHeroUI, rmcs_executor::Component)
+PLUGINLIB_EXPORT_CLASS(rmcs_core::referee::app::ui::DualInfantry, rmcs_executor::Component)

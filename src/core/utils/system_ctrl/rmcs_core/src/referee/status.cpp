@@ -1,4 +1,6 @@
+#include <cstdint>
 #include <eigen3/Eigen/Eigen>
+#include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rmcs_executor/component.hpp>
 #include <rmcs_msgs/game_stage.hpp>
@@ -26,6 +28,8 @@ public:
         register_input("/referee/serial", serial_);
 
         register_output("/referee/game/stage", game_stage_, rmcs_msgs::GameStage::UNKNOWN);
+        register_output("/referee/game/remain_time", game_stage_remain_time_);
+        register_output("/referee/game/center_area", center_area_status_, 0);
 
         register_output("/referee/id", robot_id_, rmcs_msgs::RobotId::UNKNOWN);
         register_output("/referee/shooter/cooling", robot_shooter_cooling_, 0);
@@ -34,6 +38,8 @@ public:
         register_output("/referee/chassis/buffer_energy", robot_buffer_energy_, 60.0);
         register_output("/referee/chassis/output_status", chassis_output_status_, false);
 
+        register_output("/referee/chassis/current_hp", robot_current_hp_, 0.0);
+
         register_output("/referee/robots/hp", robots_hp_);
         register_output("/referee/shooter/bullet_allowance", robot_bullet_allowance_, false);
         register_output(
@@ -41,6 +47,7 @@ public:
 
         register_output("/referee/shooter/initial_speed", robot_initial_speed_, false);
         register_output("/referee/shooter/shoot_timestamp", robot_shoot_timestamp_, false);
+        register_output("/referee/robots/rmul_rfid", rmul_rfid_);
 
         robot_status_watchdog_.reset(5'000);
     }
@@ -97,8 +104,10 @@ private:
         auto command_id = frame_.body.command_id;
         if (command_id == 0x0001)
             update_game_status();
-        if (command_id == 0x0003)
+        else if (command_id == 0x0003)
             update_game_robot_hp();
+        else if (command_id == 0x0101)
+            update_event_data();
         else if (command_id == 0x0201)
             update_robot_status();
         else if (command_id == 0x0202)
@@ -111,7 +120,9 @@ private:
             update_shoot_data();
         else if (command_id == 0x0208)
             update_bullet_allowance();
-        else if (command_id == 0x020B)
+        else if (command_id == 0x0209) {
+            update_robot_rfid_position();
+        } else if (command_id == 0x020B)
             update_game_robot_position();
     }
 
@@ -119,13 +130,23 @@ private:
         auto& data = reinterpret_cast<GameStatus&>(frame_.body.data);
 
         *game_stage_ = static_cast<rmcs_msgs::GameStage>(data.game_stage);
+        *game_stage_remain_time_ = data.stage_remain_time;
         if (*game_stage_ == rmcs_msgs::GameStage::STARTED)
             game_status_watchdog_.reset(30'000);
         else
             game_status_watchdog_.reset(5'000);
     }
 
-    void update_game_robot_hp() {}
+    void update_event_data() {
+        auto& data = reinterpret_cast<EventData&>(frame_.body.data);
+        *center_area_status_ = (data.event_data >> 23) & 0x3;
+    }
+
+    void update_game_robot_hp() {
+        auto& data = reinterpret_cast<GameRobotHp&>(frame_.body.data);
+
+        *robots_hp_ = data;
+    }
 
     void update_robot_status() {
         if (*game_stage_ == rmcs_msgs::GameStage::STARTED)
@@ -136,6 +157,7 @@ private:
         auto& data = reinterpret_cast<RobotStatus&>(frame_.body.data);
 
         *robot_id_ = static_cast<rmcs_msgs::RobotId>(data.robot_id);
+        *robot_current_hp_ = data.current_hp;
         *robot_shooter_cooling_ = data.shooter_barrel_cooling_value;
         *robot_shooter_heat_limit_ = static_cast<int64_t>(1000) * data.shooter_barrel_heat_limit;
 
@@ -171,6 +193,11 @@ private:
         *robot_bullet_allowance_ = data.bullet_allowance_17mm;
         *robot_42mm_bullet_allowance_ = data.bullet_allowance_42mm;
     }
+    void update_robot_rfid_position() {
+        auto& data = reinterpret_cast<Rfid&>(frame_.body.data);
+        *rmul_rfid_ = // 1 for home in rmul, 2 for center area in rmul, 0 for nothing detected.
+            ((data.rfid_status >> 19) & 0x1) ? 1 : (((data.rfid_status >> 23) & 0x1) ? 2 : 0);
+    }
 
     void update_game_robot_position() {}
 
@@ -190,9 +217,12 @@ private:
 
     rmcs_utility::TickTimer game_status_watchdog_;
     OutputInterface<rmcs_msgs::GameStage> game_stage_;
+    OutputInterface<double> game_stage_remain_time_;
+    OutputInterface<uint8_t> center_area_status_;
 
     rmcs_utility::TickTimer robot_status_watchdog_;
     OutputInterface<rmcs_msgs::RobotId> robot_id_;
+    OutputInterface<double> robot_current_hp_;
     OutputInterface<int64_t> robot_shooter_cooling_, robot_shooter_heat_limit_;
     OutputInterface<double> robot_chassis_power_limit_;
     OutputInterface<bool> chassis_output_status_;
@@ -201,6 +231,8 @@ private:
     OutputInterface<double> robot_buffer_energy_;
 
     OutputInterface<GameRobotHp> robots_hp_;
+    OutputInterface<uint8_t> rmul_rfid_;
+
     OutputInterface<uint16_t> robot_bullet_allowance_;
     OutputInterface<uint16_t> robot_42mm_bullet_allowance_;
 

@@ -44,9 +44,6 @@ value_broadcaster:
       - /debug/feeder/temp
       - /debug/feeder/mos_temp
       - /gimbal/bullet_feeder/control_torque
-      - /chassis/power
-      - /chassis/supercap/voltage
-      - /debug/yaw/raw_angle
 
 hero_hardware:
   ros__parameters:
@@ -61,8 +58,8 @@ hero_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_max: 10.0
-    angular_velocity_max: 10.0
+    translational_velocity_max_default: 10.0
+    angular_velocity_max_default: 10.0
 
 omni_wheel_controller:
   ros__parameters:

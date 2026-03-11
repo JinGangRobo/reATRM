@@ -7,8 +7,9 @@ rmcs_executor:
       - rmcs_core::referee::Status -> referee_status
       - rmcs_core::referee::Command -> referee_command
 
-      # - rmcs_core::referee::command::Interaction -> referee_interaction
-      # - rmcs_core::referee::command::interaction::Ui -> referee_ui
+      - rmcs_core::referee::command::Interaction -> referee_interaction
+      - rmcs_core::referee::command::interaction::Ui -> referee_ui
+      - rmcs_core::referee::app::ui::DualSentry -> dual_sentry
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
@@ -26,6 +27,9 @@ rmcs_executor:
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
 
+      - rmcs::AutoAimComponent -> auto_aim_component
+      - autopilot::AutoPilotComponent -> auto_pilot_component
+
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
@@ -39,7 +43,12 @@ value_broadcaster:
       - /gimbal/pitch/control_angle_error
       - /chassis/power
       - /chassis/supercap/voltage
-      - /chassis/yaw/velocity_imu
+      - /debug/aim/x
+      - /debug/aim/y
+      - /debug/aim/z
+      - /debug/solver/pitch
+      - /debug/solver/yaw
+      - /debug/aim/delay
 
 dual_sentry_hardware:
   ros__parameters:
@@ -47,11 +56,17 @@ dual_sentry_hardware:
     usb_pid_bottom_board: 0x247f
     bottom_yaw_motor_zero_point: -200
     top_yaw_motor_zero_point: -350
-    pitch_motor_zero_point: 2200
+    pitch_motor_zero_point: 7664
 
     imu_bias_x: 3
     imu_bias_y: 0
     imu_bias_z: 3
+
+chassis_controller:
+  ros__parameters:
+    translational_velocity_max_default: 0.0
+    angular_velocity_max_default: 0.0
+    autopilot_spin_velocity_default: 0.0
 
 gimbal_controller:
   ros__parameters:
@@ -60,6 +75,11 @@ gimbal_controller:
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
+
+    depond_motors:
+      - /gimbal/pitch
+      - /gimbal/top_yaw
+      - /gimbal/bottom_yaw
 
 dual_yaw_controller:
   ros__parameters:
@@ -87,13 +107,14 @@ omni_wheel_controller:
     chassis_radius_y: 0.165
     wheel_radius_: 0.07
     friction_coefficient: 0.6
-    
+
     spinning_bais_coefficient: -0.08
 
 pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
+    executor_timestamp: /gimbal/pitch/last_update_time
     kp: 10.0
     ki: 0.001
     kd: 0.0
@@ -105,6 +126,7 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
+    executor_timestamp: /gimbal/pitch/last_update_time
     kp: 2.0
     ki: 0.02
     kd: 24.0
@@ -163,3 +185,11 @@ bullet_feeder_velocity_pid_controller:
     kp: 5.0
     ki: 0.0
     kd: 50.0
+
+auto_pilot_component:
+  ros__parameters:
+    state_data_update_cycles: 3
+    state_data_sending_host: 127.0.0.1
+    state_data_sending_port: 42330
+    pilot_data_receiving_host: 127.0.0.1
+    pilot_data_receiving_port: 42331

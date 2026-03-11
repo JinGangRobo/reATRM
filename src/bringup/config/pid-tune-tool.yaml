@@ -6,7 +6,6 @@ rmcs_executor:
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
       - rmcs_core::controller::pid::PidController -> velocity_pid_controller
-    
 
 velocity_pid_controller:
   ros__parameters:
@@ -50,4 +49,3 @@ hardware:
     imu_bias_x: 0
     imu_bias_y: 0
     imu_bias_z: 0
-
