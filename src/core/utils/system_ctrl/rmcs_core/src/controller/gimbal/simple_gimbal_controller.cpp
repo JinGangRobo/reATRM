@@ -45,6 +45,7 @@ public:
         register_input("/remote/mouse/velocity", mouse_velocity_);
         register_input("/remote/mouse", mouse_);
 
+        register_input("/gimbal/auto_aim/available", gimbal_takeover_, false);
         register_input("/gimbal/auto_aim/control_direction", auto_aim_control_direction_, false);
         register_input("/gimbal/auto_aim/scan_direction", auto_aim_scan_direction_, false);
 
@@ -83,35 +84,36 @@ public:
 
         bool autopilot_active = (switch_left != Switch::DOWN && switch_right == Switch::UP);
 
-        if (auto_aim_control_direction_.ready() && (mouse.right || autopilot_active)
-            && !auto_aim_control_direction_->isZero()) {
-            return two_axis_gimbal_solver.update(
-                TwoAxisGimbalSolver::SetControlDirection(
-                    OdomImu::DirectionVector(*auto_aim_control_direction_)));
-        } else {
-            if (autopilot_active) {
-                Eigen::Vector3d current_direction =
-                    two_axis_gimbal_solver.current_control_direction();
-                if (current_direction.norm() > 1e-9) {
-                    double scan_direction;
-                    if (auto_aim_scan_direction_.ready())
-                        scan_direction = *auto_aim_scan_direction_ > 0 ? 1 : -1;
-                    else {
-                        scan_direction = 1;
+        if (auto_aim_control_direction_.ready() && gimbal_takeover_.ready()) {
+            if ((mouse.right || autopilot_active) && *gimbal_takeover_) {
+                return two_axis_gimbal_solver.update(
+                    TwoAxisGimbalSolver::SetControlDirection(
+                        OdomImu::DirectionVector(*auto_aim_control_direction_)));
+            } else {
+                if (autopilot_active) {
+                    Eigen::Vector3d current_direction =
+                        two_axis_gimbal_solver.current_control_direction();
+                    if (current_direction.norm() > 1e-9) {
+                        double scan_direction;
+                        if (auto_aim_scan_direction_.ready())
+                            scan_direction = *auto_aim_scan_direction_ > 0 ? 1 : -1;
+                        else {
+                            scan_direction = 1;
+                        }
+
+                        // TODO: use parameter instead of hardcoded speed.
+                        Eigen::Vector3d new_direction =
+                            Eigen::AngleAxis(scan_direction * 0.0013, Eigen::Vector3d::UnitZ())
+                            * current_direction;
+
+                        new_direction.z() =
+                            sin((now & 0xFFF) * 0.001534 * 2) * 0.2 - 0.1; // 0.001534=(1/4096)*2*pi
+                        new_direction.normalize();
+
+                        return two_axis_gimbal_solver.update(
+                            TwoAxisGimbalSolver::SetControlDirection(
+                                OdomImu::DirectionVector(new_direction)));
                     }
-
-                    // TODO: use parameter instead of hardcoded speed.
-                    Eigen::Vector3d new_direction =
-                        Eigen::AngleAxis(scan_direction * 0.0013, Eigen::Vector3d::UnitZ())
-                        * current_direction;
-
-                    new_direction.z() =
-                        sin((now & 0xFFF) * 0.001534 * 2) * 0.2 - 0.1; // 0.001534=(1/4096)*2*pi
-                    new_direction.normalize();
-
-                    return two_axis_gimbal_solver.update(
-                        TwoAxisGimbalSolver::SetControlDirection(
-                            OdomImu::DirectionVector(new_direction)));
                 }
             }
         }
@@ -121,7 +123,7 @@ public:
 
         constexpr double joystick_sensitivity = 0.004;
         constexpr double mouse_sensitivity = 0.5;
-        
+
         double yaw_shift = value_abs_clamp(
             joystick_sensitivity * (joystick_left_->y() - joystick_left_bias_y_)
             + mouse_sensitivity * mouse_velocity_->y());
@@ -143,6 +145,7 @@ private:
     InputInterface<Eigen::Vector2d> mouse_velocity_;
     InputInterface<rmcs_msgs::Mouse> mouse_;
 
+    InputInterface<bool> gimbal_takeover_;
     InputInterface<Eigen::Vector3d> auto_aim_control_direction_;
     InputInterface<int8_t> auto_aim_scan_direction_;
 

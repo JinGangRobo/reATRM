@@ -78,6 +78,12 @@ public:
                 || (last_switch_left_ == Switch::MIDDLE && switch_left == Switch::UP)) {
                 friction_enabled_ = !friction_enabled_;
             }
+            if (switch_right == Switch::UP && switch_left != Switch::DOWN) { // autopilot mode
+                friction_enabled_ = last_autopilot_enabled_ = true;
+
+            } else if (last_autopilot_enabled_) {
+                friction_enabled_ = last_autopilot_enabled_ = false;
+            }
 
             update_friction_velocities();
             update_friction_status();
@@ -199,6 +205,7 @@ private:
     std::unique_ptr<InputInterface<double>[]> friction_velocities_;
 
     bool friction_enabled_ = false;
+    bool last_autopilot_enabled_ = false;
 
     double friction_soft_start_stop_step_;
     double friction_soft_start_stop_percentage_ = nan_;
