@@ -10,6 +10,7 @@
 #include <rmcs_utility/tick_timer.hpp>
 
 #include "communication.hpp"
+#include "fields.hpp"
 #include "rmcs_msgs/game_stage.hpp"
 
 namespace autopilot {
@@ -34,6 +35,7 @@ public:
 
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
+        register_input("/remote/rotary_knob_switch", rotary_knob_switch_);
         register_input(
             "/gimbal/control_bullet_allowance/limited_by_heat", control_bullet_allowance_);
         register_input("/referee/chassis/current_hp", current_hp_);
@@ -92,6 +94,13 @@ public:
             state_data.target_position[1] = auto_aim_target_position_->y();
             state_data.target_position[2] = auto_aim_target_position_->z();
 
+            switch (*rotary_knob_switch_) {
+            case rmcs_msgs::Switch::UP: state_data.desired_nav_mode = NavMode::SLAM; break;
+            case rmcs_msgs::Switch::MIDDLE: state_data.desired_nav_mode = NavMode::UNKNOWN; break;
+            case rmcs_msgs::Switch::DOWN: state_data.desired_nav_mode = NavMode::RELOCATION; break;
+            default: state_data.desired_nav_mode = NavMode::UNKNOWN; break;
+            }
+
             std::string sending_errmsg;
             if (!communication_.sendStateData(
                     state_data, state_data_sending_host_, state_data_sending_port_,
@@ -116,11 +125,13 @@ public:
             RCLCPP_ERROR(get_logger(), "Error receiving pilot data: %s", error_msg.c_str());
             return;
         }
+        if (pilotData.pilot_valid) {
+            *auto_pilot_velocity_ << pilotData.chassis_vel[0], pilotData.chassis_vel[1],
+                pilotData.chassis_vel[2], 1.0;
 
-        *auto_pilot_velocity_ << pilotData.chassis_vel[0], pilotData.chassis_vel[1],
-            pilotData.chassis_vel[2], 1.0;
-
-        last_valid_pilot_time_ = Clock::now();
+            last_valid_pilot_time_ = Clock::now();
+        }
+        RCLCPP_INFO(get_logger(), "%hhu", static_cast<uint8_t>(pilotData.current_nav_mode));
     }
 
 private:
@@ -137,6 +148,7 @@ private:
 
     InputInterface<rmcs_msgs::Switch> switch_right_;
     InputInterface<rmcs_msgs::Switch> switch_left_;
+    InputInterface<rmcs_msgs::Switch> rotary_knob_switch_;
     InputInterface<int64_t> control_bullet_allowance_;
     InputInterface<double> current_hp_;
     InputInterface<rmcs_msgs::GameStage> game_stage_;

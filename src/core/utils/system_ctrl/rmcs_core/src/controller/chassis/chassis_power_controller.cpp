@@ -54,7 +54,7 @@ public:
         auto switch_right = *switch_right_;
         auto switch_left = *switch_left_;
         auto keyboard = *keyboard_;
-        auto rotary_knob = *rotary_knob_;
+        // auto rotary_knob = *rotary_knob_;
 
         if ((switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
             || (switch_left == Switch::DOWN && switch_right == Switch::DOWN)) {
@@ -64,8 +64,7 @@ public:
 
         update_virtual_buffer_energy();
 
-        boost_mode_ = keyboard.shift || rotary_knob < -0.9
-                   || (boost_mode_status_.ready() && *boost_mode_status_ == 1.0);
+        boost_mode_ = keyboard.shift || (boost_mode_status_.ready() && *boost_mode_status_ == 1.0);
         update_control_power_limit();
     }
 
