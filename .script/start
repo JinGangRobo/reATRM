@@ -7,4 +7,5 @@ if [ -z "${RMCS_ROBOT_TYPE}" ]; then
     exit 1
 fi
 
+export ROS_DOMAIN_ID=10
 ros2 launch atrm_bringup rmcs.launch.py robot:=${RMCS_ROBOT_TYPE}
