@@ -142,8 +142,8 @@ friction_wheel_controller:
 
 heat_controller:
   ros__parameters:
-    heat_per_shot: 1
-    reserved_heat: -10000000
+    heat_per_shot: 10000
+    reserved_heat: 20000
 
 bullet_feeder_controller:
   ros__parameters:

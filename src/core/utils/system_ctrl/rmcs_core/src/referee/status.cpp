@@ -207,7 +207,7 @@ private:
     static constexpr int64_t safe_shooter_cooling = 40;
     static constexpr int64_t safe_shooter_heat_limit = 50'000;
     // Chassis: Health priority with level 1
-    static constexpr double safe_chassis_power_limit = 50;
+    static constexpr double safe_chassis_power_limit = 45;
 
     rclcpp::Logger logger_;
 
@@ -236,7 +236,7 @@ private:
     OutputInterface<uint16_t> robot_bullet_allowance_;
     OutputInterface<uint16_t> robot_42mm_bullet_allowance_;
 
-    OutputInterface<float> robot_initial_speed_;
+    OutputInterface<double> robot_initial_speed_;
     OutputInterface<double> robot_shoot_timestamp_;
 };
 

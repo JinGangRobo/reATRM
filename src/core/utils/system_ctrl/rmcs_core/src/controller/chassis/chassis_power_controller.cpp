@@ -35,7 +35,9 @@ public:
         register_input("/referee/chassis/buffer_energy", chassis_buffer_energy_referee_);
         register_input("/chassis/boost_mode", boost_mode_status_, false);
 
+        // TODO: Incompatible with our hardware, remove it after testing.
         register_output("/chassis/supercap/charge_power_limit", supercap_charge_power_limit_, 0.0);
+
         register_output("/chassis/control_power_limit", chassis_control_power_limit_, 0.0);
 
         register_output(
@@ -45,8 +47,6 @@ public:
     }
 
     void update() override {
-        update_charging_power_limit();
-
         update_ui();
 
         using namespace rmcs_msgs;
@@ -69,28 +69,6 @@ public:
     }
 
 private:
-    void update_charging_power_limit() {
-        // Maximum excess power when buffer energy is sufficient.
-        constexpr double excess_power_limit = 35;
-
-        //                     charging_power_limit =
-        constexpr double buffer_energy_control_line = 120; // = referee + excess
-        constexpr double buffer_energy_base_line = 30;     // = referee
-        constexpr double buffer_energy_dead_line = 0;      // = 0
-
-        *supercap_charge_power_limit_ =
-            *chassis_power_limit_referee_
-                * std::clamp(
-                    (*chassis_buffer_energy_referee_ - buffer_energy_dead_line)
-                        / (buffer_energy_base_line - buffer_energy_dead_line),
-                    0.0, 1.0)
-            + excess_power_limit
-                  * std::clamp(
-                      (*chassis_buffer_energy_referee_ - buffer_energy_base_line)
-                          / (buffer_energy_control_line - buffer_energy_base_line),
-                      0.0, 1.0);
-    }
-
     void reset_power_control() {
         virtual_buffer_energy_ = virtual_buffer_energy_limit_;
         boost_mode_ = false;

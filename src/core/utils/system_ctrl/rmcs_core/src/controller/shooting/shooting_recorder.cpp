@@ -89,7 +89,7 @@ public:
 
 private:
     /// @brief Component interface
-    InputInterface<float> initial_speed_;
+    InputInterface<double> initial_speed_;
     InputInterface<double> shoot_timestamp_;
 
     InputInterface<double> fractional_temperature_;
