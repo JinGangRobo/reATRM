@@ -131,7 +131,6 @@ public:
 
             last_valid_pilot_time_ = Clock::now();
         }
-        RCLCPP_INFO(get_logger(), "%hhu", static_cast<uint8_t>(pilotData.current_nav_mode));
     }
 
 private:
