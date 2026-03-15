@@ -43,17 +43,22 @@ value_broadcaster:
       - /gimbal/pitch/velocity_imu
       - /gimbal/yaw/velocity_imu
       - /debug/feeder/temp
-      - /debug/feeder/mos_temp
+      - /gimbal/bullet_feeder/velocity
+      - /gimbal/bullet_feeder/torque
       - /gimbal/bullet_feeder/control_torque
+      - /gimbal/bullet_feeder/control_velocity
+      - /gimbal/bullet_feeder/velocity_filtered
       - /chassis/yaw/velocity_imu
+      - /gimbal/left_friction/velocity
+      - /referee/shooter/initial_speed
 
 mini_infantry_hardware:
   ros__parameters:
-    usb_pid_top_board: 0xa513
-    usb_pid_bottom_board: 0x4ca4
-    yaw_motor_zero_point: 1600
-    pitch_motor_zero_point: 2802
-
+    usb_pid_top_board: 0x13b4
+    usb_pid_bottom_board: 0x0be4
+    yaw_motor_zero_point: 1500
+    pitch_motor_zero_point: 3498
+    
     imu_bias_x: 1
     imu_bias_y: 3
     imu_bias_z: 3
@@ -66,14 +71,23 @@ gimbal_controller:
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
 
+omni_wheel_controller:
+  ros__parameters:
+    chassis_radius_x: 0.165
+    chassis_radius_y: 0.165
+    wheel_radius_: 0.07
+    friction_coefficient: 0.6
+    
+    spinning_bais_coefficient: -0.042
+
 yaw_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/yaw/control_angle_error
     # feedforward: -/chassis/yaw/velocity_imu
     control: /gimbal/yaw/control_velocity
-    kp: 9.0
+    kp: 7.0
     ki: 0.0
-    kd: 0.0
+    kd: 20.0
     integral_min: -10.0
     integral_max: 10.0
 
@@ -82,11 +96,12 @@ yaw_velocity_pid_controller:
     measurement: /gimbal/yaw/velocity_imu
     setpoint: /gimbal/yaw/control_velocity
     control: /gimbal/yaw/control_torque
-    kp: 3.0
-    ki: 0.02
+    kp: 1.0
+    ki: 0.01
     kd: 40.0
     integral_min: -60.0
     integral_max: 60.0
+
 
 pitch_angle_pid_controller:
   ros__parameters:
@@ -109,31 +124,32 @@ pitch_velocity_pid_controller:
     integral_min: -30.0
     integral_max: 30.0
 
+
 friction_wheel_controller:
   ros__parameters:
     friction_wheels:
       - /gimbal/left_friction
       - /gimbal/right_friction
     friction_velocities:
-      - 500.0
-      - 500.0
+      - 700.0
+      - 700.0
     friction_soft_start_stop_time: 1.0
 
 bullet_feeder_controller:
   ros__parameters:
-    bullets_per_feeder_turn: 39.0
-    shot_frequency: 12.0
-    safe_shot_frequency: 10.0
-    eject_frequency: 10.0
+    bullets_per_feeder_turn: 9.0
+    shot_frequency: 16.0
+    safe_shot_frequency: 4.0
+    eject_frequency: 9.0
     eject_time: 0.15
-    deep_eject_frequency: 15.0
+    deep_eject_frequency: 9.0
     deep_eject_time: 0.20
     single_shot_max_stop_delay: 2.0
 
 heat_controller:
   ros__parameters:
     heat_per_shot: 10000
-    reserved_heat: -100
+    reserved_heat: 20000
 
 left_friction_velocity_pid_controller:
   ros__parameters:
