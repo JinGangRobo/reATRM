@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rmcs_executor/component.hpp>
 #include <rmcs_msgs/keyboard.hpp>
@@ -55,7 +56,7 @@ public:
 
         register_input("/gimbal/auto_aim/fire_control", fire_control_, false);
 
-        register_input("/gimbal/bullet_feeder/velocity", bullet_feeder_velocity_);
+        register_input("/gimbal/bullet_feeder/velocity_filtered", bullet_feeder_velocity_);
         register_output(
             "/gimbal/bullet_feeder/control_velocity", bullet_feeder_control_velocity_, nan_);
 
@@ -155,7 +156,7 @@ private:
         auto control_velocity = *bullet_feeder_control_velocity_;
         if (control_velocity > 0.0) {
             auto velocity = *bullet_feeder_velocity_;
-            if (velocity > control_velocity / 2) {
+            if (velocity > control_velocity / 4.0) {
                 if (bullet_feeder_working_status_ < 0) {
                     bullet_feeder_working_status_ = 0;
                 } else if (bullet_feeder_working_status_ < 500) {
