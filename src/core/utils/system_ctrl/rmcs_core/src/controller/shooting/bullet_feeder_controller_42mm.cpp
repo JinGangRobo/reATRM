@@ -92,6 +92,8 @@ public:
                 bullet_fed_count_ = static_cast<int>(
                     (*bullet_feeder_angle_ - bullet_feeder_compressed_zero_point_ - 0.1)
                     / bullet_feeder_angle_per_bullet_);
+                bullet_feeder_velocity_pid_.reset();
+                bullet_feeder_angle_pid_.reset();
 
                 bullet_feeder_velocity_pid_.output_max = 0.0;
             }
@@ -232,7 +234,7 @@ private:
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
     static constexpr double inf_ = std::numeric_limits<double>::infinity();
 
-    static constexpr double bullet_feeder_compressed_zero_point_ = 0.58;
+    static constexpr double bullet_feeder_compressed_zero_point_ = 1.1;
     static constexpr double bullet_feeder_angle_per_bullet_ = 2 * std::numbers::pi / 5;
 
     InputInterface<bool> friction_ready_;

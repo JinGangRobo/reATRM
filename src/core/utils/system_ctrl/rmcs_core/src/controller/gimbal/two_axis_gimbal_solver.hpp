@@ -251,7 +251,7 @@ private:
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
     rmcs_core::utility::LowPassFilter<> pitch_output_filter_{5.0f, 1000.0f};
-    rmcs_core::utility::LowPassFilter<> yaw_output_filter_{8.0f, 1000.0f};
+    rmcs_core::utility::LowPassFilter<> yaw_output_filter_{5.0f, 1000.0f};
 
     bool control_enabled_ = false;
     OdomImu::DirectionVector control_direction_;
