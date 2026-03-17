@@ -22,26 +22,32 @@ public:
         : Node{
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
-        , status_ring_(26.5, 26.5, 600, 40)
-        , chassis_direction_indicator_(Shape::Color::PINK, 8, x_center, y_center, 0, 0, 84, 84)
+        , status_ring_(26.5, 220, 600, 30)
+        // , chassis_direction_indicator_(Shape::Color::PINK, 8, x_center, y_center, 0, 0, 84, 84)
         , time_reminder_(Shape::Color::PINK, 50, 5, x_center + 150, y_center + 65, 0, false) {
 
-        chassis_control_direction_indicator_.set_x(x_center);
-        chassis_control_direction_indicator_.set_y(y_center);
+        for (int i = 0; i < 4; ++i) {
+            chassis_indicator_[i].set_x(x_center);
+            chassis_indicator_[i].set_y(y_center);
+            chassis_indicator_[i].set_r(84);
+            chassis_indicator_[i].set_width(8);
+            chassis_indicator_[i].set_color(Shape::Color::WHITE);
+        }
 
         register_input("/chassis/supercap/voltage", supercap_voltage_);
+        register_input("/chassis/power", chassis_power_);
 
         register_input("/gimbal/left_friction/control_velocity", first_friction_control_velocity_);
         register_input("/gimbal/left_friction/velocity", first_friction_velocity_);
-        
+
         register_input("/referee/shooter/bullet_allowance", robot_bullet_allowance_);
+        register_input("/referee/shooter/initial_speed", robot_initial_speed_);
 
         register_input("/chassis/control_mode", chassis_mode_);
         register_input("/chassis/angle", chassis_angle_);
         register_input("/chassis/control_angle", chassis_control_angle_);
 
         register_input("/chassis/control_power_limit", chassis_control_power_limit_);
-        register_input("/chassis/supercap/charge_power_limit", supercap_charge_power_limit_);
 
         register_input("/gimbal/shooter/mode", shoot_mode_);
 
@@ -60,18 +66,19 @@ private:
     void set_normal_ui_visible(bool value) {
         status_ring_.set_visible(value);
 
-        chassis_direction_indicator_.set_visible(value);
-        chassis_control_direction_indicator_.set_visible(value);
+        for (int i = 0; i < 4; ++i) {
+            chassis_indicator_[i].set_visible(value);
+        }
     }
 
     void update_normal_ui() {
         update_chassis_direction_indicator();
 
-        status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
+        status_ring_.update_bullet_speed(*robot_initial_speed_);
         status_ring_.update_friction_wheel_speed(
             *first_friction_velocity_, *first_friction_control_velocity_ > 0);
         status_ring_.update_supercap(*supercap_voltage_, true);
-        status_ring_.update_battery_power(0.5);
+        status_ring_.update_power(*chassis_power_);
         update_static_status_ring();
     }
 
@@ -94,31 +101,41 @@ private:
             return static_cast<int>(
                 std::round((2 * std::numbers::pi - angle) / std::numbers::pi * 180));
         };
-        chassis_direction_indicator_.set_color(
-            chassis_mode == rmcs_msgs::ChassisMode::SPIN ? Shape::Color::GREEN
-                                                         : Shape::Color::PINK);
-        chassis_direction_indicator_.set_angle(to_referee_angle(*chassis_angle_), 30);
+
+        for (int i = 0; i < 4; ++i) {
+            switch (chassis_mode) {
+            case rmcs_msgs::ChassisMode::SPIN:
+                chassis_indicator_[i].set_color(Shape::Color::GREEN);
+                break;
+            case rmcs_msgs::ChassisMode::STEP_DOWN:
+                chassis_indicator_[i].set_color(Shape::Color::CYAN);
+                break;
+            case rmcs_msgs::ChassisMode::LAUNCH_RAMP:
+                chassis_indicator_[i].set_color(Shape::Color::CYAN);
+                break;
+            default: chassis_indicator_[i].set_color(i == 0 ? Shape::Color::YELLOW : Shape::Color::WHITE); break;
+            }
+            chassis_indicator_[i].set_angle(to_referee_angle(*chassis_angle_) + i * 90, 20);
+        }
 
         bool chassis_control_direction_indicator_visible = false;
-        if (!std::isnan(*chassis_control_angle_)) {
-            if (chassis_mode == rmcs_msgs::ChassisMode::STEP_DOWN) {
-                chassis_control_direction_indicator_visible = true;
-                chassis_control_direction_indicator_.set_color(Shape::Color::CYAN);
-                chassis_control_direction_indicator_.set_width(8);
-                chassis_control_direction_indicator_.set_r(92);
-                chassis_control_direction_indicator_.set_angle(
-                    to_referee_angle(*chassis_control_angle_), 30);
-            } else if (chassis_mode == rmcs_msgs::ChassisMode::LAUNCH_RAMP) {
-                chassis_control_direction_indicator_visible = true;
-                chassis_control_direction_indicator_.set_color(Shape::Color::CYAN);
-                chassis_control_direction_indicator_.set_width(28);
-                chassis_control_direction_indicator_.set_r(102);
-                chassis_control_direction_indicator_.set_angle(
-                    to_referee_angle(*chassis_control_angle_), 4);
-            }
-        }
-        chassis_control_direction_indicator_.set_visible(
-            chassis_control_direction_indicator_visible);
+        // if (!std::isnan(*chassis_control_angle_)) {
+        //     if (chassis_mode == rmcs_msgs::ChassisMode::STEP_DOWN) {
+        //         chassis_control_direction_indicator_visible = true;
+        //         chassis_control_direction_indicator_.set_color(Shape::Color::CYAN);
+        //         chassis_control_direction_indicator_.set_width(8);
+        //         chassis_control_direction_indicator_.set_r(92);
+        //         chassis_control_direction_indicator_.set_angle(
+        //             to_referee_angle(*chassis_control_angle_), 30);
+        //     } else if (chassis_mode == rmcs_msgs::ChassisMode::LAUNCH_RAMP) {
+        //         chassis_control_direction_indicator_visible = true;
+        //         chassis_control_direction_indicator_.set_color(Shape::Color::CYAN);
+        //         chassis_control_direction_indicator_.set_width(28);
+        //         chassis_control_direction_indicator_.set_r(102);
+        //         chassis_control_direction_indicator_.set_angle(
+        //             to_referee_angle(*chassis_control_angle_), 4);
+        //     }
+        // }
     }
 
     static constexpr uint16_t screen_width = 1920, screen_height = 1080;
@@ -130,15 +147,15 @@ private:
     InputInterface<double> chassis_angle_, chassis_control_angle_;
 
     InputInterface<double> supercap_voltage_;
-    InputInterface<bool> supercap_control_enabled_;
+    InputInterface<double> chassis_power_;
 
     InputInterface<double> chassis_control_power_limit_;
-    InputInterface<double> supercap_charge_power_limit_;
 
     InputInterface<uint16_t> robot_bullet_allowance_;
 
     InputInterface<double> first_friction_control_velocity_;
     InputInterface<double> first_friction_velocity_;
+    InputInterface<double> robot_initial_speed_;
 
     InputInterface<rmcs_msgs::Mouse> mouse_;
 
@@ -149,7 +166,7 @@ private:
 
     StatusRing status_ring_;
 
-    Arc chassis_direction_indicator_, chassis_control_direction_indicator_;
+    Arc chassis_indicator_[4];
 
     Integer time_reminder_;
 };

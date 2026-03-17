@@ -67,11 +67,11 @@ private:
     void update_normal_ui() {
         update_chassis_direction_indicator();
 
-        status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
+        // status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
         status_ring_.update_friction_wheel_speed(
             *first_friction_velocity_, *first_friction_control_velocity_ > 0);
         status_ring_.update_supercap(*supercap_voltage_, true);
-        status_ring_.update_battery_power(0.5);
+        // status_ring_.update_battery_power(0.5);
         update_static_status_ring();
     }
 

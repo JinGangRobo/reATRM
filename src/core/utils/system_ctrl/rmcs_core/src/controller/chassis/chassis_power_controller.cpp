@@ -149,9 +149,9 @@ private:
     OutputInterface<double> supercap_voltage_base_line_;
     OutputInterface<double> supercap_voltage_dead_line_;
 
-    ui::Integer chassis_power_ui_{ui::Shape::Color::WHITE, 15, 2, ui::x_center, 100, 0};
+    ui::Integer chassis_power_ui_{ui::Shape::Color::PURPLE, 15, 2, ui::x_center, 100, 0};
     ui::Integer chassis_control_power_limit_ui_{
-        ui::Shape::Color::WHITE, 15, 2, ui::x_center, 150, 0};
+        ui::Shape::Color::PURPLE, 15, 2, ui::x_center, 150, 0};
 };
 
 } // namespace rmcs_core::controller::chassis

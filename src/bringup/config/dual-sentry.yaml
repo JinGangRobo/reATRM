@@ -38,21 +38,19 @@ value_broadcaster:
       - /gimbal/pitch/angle
       - /debug/pitch/raw_angle
       - /debug/top_yaw/raw_angle
-      - /gimbal/pitch/control_velocity
-      - /gimbal/pitch/velocity_filtered
-      - /gimbal/pitch/control_torque
-      - /gimbal/pitch/control_angle_error
       - /chassis/power
       - /chassis/supercap/voltage
       - /gimbal/yaw/angle
-      - /debug/aim/x
-      - /debug/aim/y
-      - /debug/aim/z
       - /debug/solver/pitch
       - /debug/solver/yaw
       - /debug/aim/delay
       - /debug/solver/pitch_err
       - /debug/solver/yaw_err
+      - /gimbal/top_yaw/control_torque
+      - /gimbal/bottom_yaw/control_torque
+      - /gimbal/top_yaw/angle
+      - /gimbal/bottom_yaw/angle
+
 dual_sentry_hardware:
   ros__parameters:
     usb_pid_top_board: 0xf18a
@@ -67,9 +65,9 @@ dual_sentry_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_max_default: 10.0
-    angular_velocity_max_default: 7.0
-    autopilot_spin_velocity_default: 3.0
+    translational_velocity_max_default: 3.0
+    angular_velocity_max_default: 0.0
+    autopilot_spin_velocity_default: 0.0
 
 gimbal_controller:
   ros__parameters:
@@ -99,10 +97,8 @@ dual_yaw_controller:
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
 
-    top_yaw_integral_max: 4.0
-    top_yaw_integral_min: -4.0
-    bottom_yaw_integral_max: 10.0
-    bottom_yaw_integral_min: -10.0
+    top_yaw_velocity_output_max: 35.0
+    top_yaw_velocity_output_min: -35.0
 
 omni_wheel_controller:
   ros__parameters:

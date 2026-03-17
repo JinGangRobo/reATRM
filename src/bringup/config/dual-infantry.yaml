@@ -16,7 +16,7 @@ rmcs_executor:
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
       - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
       
-      - rmcs_core::controller::chassis::OperateLogic -> operate_logic
+      # - rmcs_core::controller::chassis::OperateLogic -> operate_logic
       - rmcs_core::controller::shooting::FrictionWheelController -> friction_wheel_controller
       - rmcs_core::controller::shooting::HeatController -> heat_controller
       - rmcs_core::controller::shooting::BulletFeederController17mm -> bullet_feeder_controller
