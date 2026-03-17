@@ -25,6 +25,8 @@ public:
         err_integral_ = 0;
     }
 
+    double integral() const { return err_integral_; }
+
     double update(double err) {
         if (!std::isfinite(err)) {
             return nan;

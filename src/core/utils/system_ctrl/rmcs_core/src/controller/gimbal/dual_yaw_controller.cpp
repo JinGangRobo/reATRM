@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdlib>
 #include <numbers>
 
 #include <eigen3/Eigen/Dense>
@@ -31,6 +32,8 @@ public:
         set_pid_parameter(top_yaw_velocity_pid_, "top_yaw_velocity");
         set_pid_parameter(bottom_yaw_angle_pid_, "bottom_yaw_angle");
         set_pid_parameter(bottom_yaw_velocity_pid_, "bottom_yaw_velocity");
+
+        get_parameter("top_yaw_angle_limit", top_yaw_angle_limit_);
 
         register_input("/gimbal/top_yaw/angle", top_yaw_angle_);
         register_input("/gimbal/top_yaw/velocity", top_yaw_velocity_);
@@ -85,8 +88,33 @@ public:
                 return;
             }
 
-            *top_yaw_control_torque_ = top_yaw_velocity_pid_.update(
-                top_yaw_angle_pid_.update(*control_angle_error_) - *gimbal_yaw_velocity_imu_);
+            double top_yaw_direction = *top_yaw_angle_ > std::numbers::pi
+                                         ? *top_yaw_angle_ - 2 * std::numbers::pi
+                                         : *top_yaw_angle_;
+
+            if (*control_angle_error_ * top_yaw_angle_pid_.integral() < 0) {
+                // If the error sign changes, reset the PID to prevent overshoot
+                top_yaw_angle_pid_.reset();
+                top_yaw_velocity_pid_.reset();
+            }
+
+            double top_yaw_error =
+                top_yaw_angle_pid_.update(*control_angle_error_) - *gimbal_yaw_velocity_imu_;
+
+            if (abs(top_yaw_direction) > top_yaw_angle_limit_
+                && *control_angle_error_ * top_yaw_direction > 0) {
+                // If the yaw angle exceeds the limit and the error is trying to increase it, reset
+                // the PID
+                RCLCPP_WARN_THROTTLE(
+                    this->get_logger(), *this->get_clock(), 1000,
+                    "Top yaw angle is near limit, resetting PID. Angle: %lf, Error: %lf",
+                    top_yaw_direction, *control_angle_error_);
+                top_yaw_angle_pid_.reset();
+                top_yaw_velocity_pid_.reset();
+                top_yaw_error = 0;
+            }
+
+            *top_yaw_control_torque_ = top_yaw_velocity_pid_.update(top_yaw_error);
 
             *bottom_yaw_control_torque_ = bottom_yaw_velocity_pid_.update(
                 bottom_yaw_angle_pid_.update(bottom_yaw_control_error())
@@ -106,6 +134,7 @@ private:
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
 
     static constexpr int16_t motor_timeout_ms_ = 100;
+    double top_yaw_angle_limit_ = 0.71;
 
     double bottom_yaw_control_error() {
         double err = *top_yaw_angle_ + *control_angle_error_;
