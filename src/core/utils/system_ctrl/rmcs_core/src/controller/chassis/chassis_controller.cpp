@@ -29,6 +29,8 @@ public:
 
         following_velocity_controller_.output_max = angular_velocity_limit_;
         following_velocity_controller_.output_min = -angular_velocity_limit_;
+        translational_velocity_max = translational_velocity_limit_;
+        angular_velocity_max = angular_velocity_limit_;
 
         register_input("/remote/joystick/right", joystick_right_);
         register_input("/remote/joystick/left", joystick_left_);
