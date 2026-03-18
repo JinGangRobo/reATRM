@@ -84,7 +84,7 @@ private:
         auto auto_aim_enable = mouse_->right == 1;
         auto precise_enable = *shoot_mode_ == rmcs_msgs::ShootMode::PRECISE;
 
-        status_ring_.update_static_parts({auto_aim_enable, precise_enable});
+        // status_ring_.update_static_parts({auto_aim_enable, precise_enable});
     }
 
     void update_chassis_direction_indicator() {

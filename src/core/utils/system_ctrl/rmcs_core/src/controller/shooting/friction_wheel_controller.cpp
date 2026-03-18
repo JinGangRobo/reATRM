@@ -33,7 +33,7 @@ public:
         register_input("/remote/switch/left", switch_left_);
         register_input("/remote/keyboard", keyboard_);
 
-        register_input("/chassis/operate_mode", operate_mode_);
+        register_input("/chassis/operate_mode", operate_mode_, false);
 
         auto friction_wheels = get_parameter("friction_wheels").as_string_array();
         auto friction_working_velocities = get_parameter("friction_velocities").as_double_array();

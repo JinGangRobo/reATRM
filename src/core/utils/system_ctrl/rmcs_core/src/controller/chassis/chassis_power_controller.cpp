@@ -44,7 +44,7 @@ public:
     }
 
     void update() override {
-        update_ui();
+        // update_ui();
 
         using namespace rmcs_msgs;
 
@@ -110,11 +110,6 @@ private:
         *chassis_control_power_limit_ = power_limit;
     }
 
-    void update_ui() {
-        chassis_power_ui_.set_value(static_cast<int32_t>(std::round(*chassis_power_)));
-        chassis_control_power_limit_ui_.set_value(
-            static_cast<int32_t>(std::round(*chassis_control_power_limit_)));
-    }
 
     static constexpr double inf_ = std::numeric_limits<double>::infinity();
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
@@ -145,9 +140,6 @@ private:
     OutputInterface<double> supercap_voltage_base_line_;
     OutputInterface<double> supercap_voltage_dead_line_;
 
-    ui::Integer chassis_power_ui_{ui::Shape::Color::PURPLE, 15, 2, ui::x_center, 100, 0};
-    ui::Integer chassis_control_power_limit_ui_{
-        ui::Shape::Color::PURPLE, 15, 2, ui::x_center, 150, 0};
 };
 
 } // namespace rmcs_core::controller::chassis

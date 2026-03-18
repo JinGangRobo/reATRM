@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include <cstdint>
 #include <rclcpp/node.hpp>
 #include <rmcs_executor/component.hpp>
 
@@ -18,6 +19,7 @@ public:
 
         register_input("/referee/shooter/cooling", shooter_cooling_);
         register_input("/referee/shooter/heat_limit", shooter_heat_limit_);
+        register_output("/gimbal/shooter/heat", shooter_heat_interface_, 0);
 
         register_input("/gimbal/bullet_fired", bullet_fired_);
 
@@ -27,6 +29,7 @@ public:
 
     void update() override {
         shooter_heat_ = std::max<int64_t>(0, shooter_heat_ - *shooter_cooling_);
+        *shooter_heat_interface_ = shooter_heat_;
 
         if (*bullet_fired_)
             shooter_heat_ += heat_per_shot + 10;
@@ -38,6 +41,7 @@ public:
 private:
     InputInterface<int64_t> shooter_cooling_;
     InputInterface<int64_t> shooter_heat_limit_;
+    OutputInterface<int64_t> shooter_heat_interface_;
 
     InputInterface<bool> bullet_fired_;
 

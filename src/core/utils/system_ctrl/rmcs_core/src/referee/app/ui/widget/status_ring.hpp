@@ -18,7 +18,11 @@ class StatusRing {
 public:
     StatusRing(
         double supercap_limit, double power_limit, double friction_limit,
-        int16_t bullet_speed_limit) {
+        int16_t bullet_speed_limit)
+        : supercap_limit_(supercap_limit)
+        , power_limit_(power_limit)
+        , friction_limit_(friction_limit)
+        , bullet_speed_limit_(bullet_speed_limit) {
         supercap_status_.set_x(x_center);
         supercap_status_.set_y(y_center);
         supercap_status_.set_r(visible_radius - width_ring);
@@ -83,6 +87,13 @@ public:
         arc_bullet_safe_.set_color(Shape::Color::WHITE);
         arc_bullet_safe_.set_visible(true);
 
+        arc_power_safe_.set_x(x_center);
+        arc_power_safe_.set_y(y_center);
+        arc_power_safe_.set_r(visible_radius - width_ring);
+        arc_power_safe_.set_width(40);
+        arc_power_safe_.set_color(Shape::Color::WHITE);
+        arc_power_safe_.set_visible(true);
+
         arc_left_up_.set_x(x_center);
         arc_left_up_.set_y(y_center);
         arc_left_up_.set_r(visible_radius - width_ring);
@@ -118,8 +129,12 @@ public:
         arc_right_down_.set_width(width_ring + 50);
         arc_right_down_.set_color(Shape::Color::WHITE);
         arc_right_down_.set_visible(true);
+    }
 
-        set_limits(supercap_limit, power_limit, friction_limit, bullet_speed_limit);
+    void set_power_safe(double power_safe) {
+        auto angle = 265 - calculate_angle(power_safe, 0.0, power_limit_) - 1;
+        arc_power_safe_.set_angle_start(static_cast<uint16_t>(angle));
+        arc_power_safe_.set_angle_end(static_cast<uint16_t>(angle) + 1);
     }
 
     void set_visible(bool value) {
@@ -128,6 +143,8 @@ public:
         power_status_.set_visible(value);
         friction_wheel_speed_.set_visible(value);
         bullet_status_.set_visible(value);
+
+        arc_power_safe_.set_visible(value);
 
         // Static
         arc_left_center_.set_visible(value);
@@ -138,9 +155,9 @@ public:
         arc_right_down_.set_visible(value);
     }
 
-    void update_static_parts(std::tuple<bool, bool> enable) {
-        auto& [auto_aim_enable, precise_enable] = enable;
-        auto static_enable = auto_aim_enable || precise_enable;
+    void update_static_parts(std::tuple<bool, bool, bool> enable) {
+        auto& [auto_aim_enable, precise_enable, auto_aim_tracking] = enable;
+        auto static_enable = auto_aim_enable || precise_enable || auto_aim_tracking;
 
         static auto color{Shape::Color::WHITE};
 
@@ -149,6 +166,9 @@ public:
         } else {
             if (precise_enable) {
                 color = Shape::Color::CYAN;
+            }
+            if (auto_aim_tracking) {
+                color = Shape::Color::ORANGE;
             }
         }
         if (!static_enable) {
@@ -175,12 +195,12 @@ public:
         auto angle = 275 + calculate_angle(value, 10.5, supercap_limit_) + 1;
         supercap_status_.set_angle_end(static_cast<uint16_t>(angle));
 
-        if (value > 22.6) {
-            supercap_status_.set_color(enable ? Shape::Color::CYAN : Shape::Color::GREEN);
-        } else if (value > 13.5) {
-            supercap_status_.set_color(enable ? Shape::Color::YELLOW : Shape::Color::ORANGE);
+        if (value > 75) {
+            supercap_status_.set_color(enable ? Shape::Color::GREEN : Shape::Color::WHITE);
+        } else if (value > 35) {
+            supercap_status_.set_color(enable ? Shape::Color::ORANGE : Shape::Color::WHITE);
         } else {
-            supercap_status_.set_color(enable ? Shape::Color::PURPLE : Shape::Color::PINK);
+            supercap_status_.set_color(enable ? Shape::Color::PINK : Shape::Color::WHITE);
         }
     }
 
@@ -232,15 +252,6 @@ private:
         return visible_angle * std::clamp(value - min, 0.0, max - min) / (max - min);
     }
 
-    void set_limits(
-        double supercap_limit, double power_limit, double friction_limit,
-        double bullet_speed_limit) {
-        supercap_limit_ = supercap_limit;
-        power_limit_ = power_limit;
-        friction_limit_ = friction_limit;
-        bullet_speed_limit_ = bullet_speed_limit;
-    }
-
     constexpr static uint16_t x_center = 960;
     constexpr static uint16_t y_center = 540;
     constexpr static uint16_t width_ring = 15;
@@ -257,6 +268,8 @@ private:
     Arc power_status_;
     Arc friction_wheel_speed_;
     Arc bullet_status_;
+
+    Arc arc_power_safe_;
 
     // Static part
     Arc arc_left_center_;

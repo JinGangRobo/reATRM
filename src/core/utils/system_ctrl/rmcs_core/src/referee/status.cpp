@@ -51,6 +51,7 @@ public:
         register_output("/referee/robots/rmul_rfid", rmul_rfid_);
 
         robot_status_watchdog_.reset(5'000);
+        hurt_data_watchdog_.reset(5);
     }
 
     void update() override {
@@ -85,7 +86,6 @@ public:
         }
 
         if (hurt_data_watchdog_.tick()) {
-            RCLCPP_ERROR(logger_, "Hurt data receiving timeout. Set to initial values.");
             *hurt_data_ = HurtData{15, 15};
         }
 
@@ -185,7 +185,7 @@ private:
     void update_robot_position() {}
 
     void update_hurt_data() {
-        hurt_data_watchdog_.reset(1'000);
+        hurt_data_watchdog_.reset(5);
         auto& data = reinterpret_cast<HurtData&>(frame_.body.data);
         *hurt_data_ = data;
     }
