@@ -136,7 +136,10 @@ public:
         integer_bullet_count_one_.set_value(bullet > 99 ? 9 : bullet % 10);
     }
 
-    void update_power_part(uint16_t chassis_power, uint16_t power_limit) {
+    void update_power_part(int16_t chassis_power, int16_t power_limit) {
+        if (chassis_power < 0) {
+            chassis_power = 0;
+        }
         integer_chassis_power_.set_value(chassis_power);
         integer_power_limit_.set_value(power_limit);
     }

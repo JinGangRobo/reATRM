@@ -55,7 +55,7 @@ dual_sentry_hardware:
   ros__parameters:
     usb_pid_top_board: 0xf18a
     usb_pid_bottom_board: 0x247f
-    bottom_yaw_motor_zero_point: -200
+    bottom_yaw_motor_zero_point: 4000
     top_yaw_motor_zero_point: 2434
     pitch_motor_zero_point: 33524
 
@@ -67,9 +67,9 @@ dual_sentry_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_limit: 0.0
-    angular_velocity_limit: 0.0
-    autopilot_spin_velocity_default: 0.0
+    translational_velocity_limit: 15.0
+    angular_velocity_limit: 15.0
+    autopilot_spin_velocity_default: 2.0
 
 gimbal_controller:
   ros__parameters:
