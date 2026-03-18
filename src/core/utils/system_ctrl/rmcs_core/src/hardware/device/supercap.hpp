@@ -12,9 +12,12 @@ using rmcs_executor::Component;
 
 class Supercap {
 public:
-    explicit Supercap(Component& status_component) {
+    explicit Supercap(Component& status_component, double max_capacity_voltage = 23.0)
+        : max_capacity_voltage_(max_capacity_voltage) {
         status_component.register_output("/chassis/power", chassis_power_, 0.0);
         status_component.register_output("/chassis/supercap/voltage", supercap_voltage_, 0.0);
+        status_component.register_output(
+            "/chassis/supercap/energy_percentage", supercap_energy_percentage_, 0.0);
         status_component.register_output("/chassis/supercap/enabled", supercap_enabled_, false);
     }
 
@@ -27,6 +30,9 @@ public:
 
         *chassis_power_ = std::bit_cast<float>(status.chassis_pow);
         *supercap_voltage_ = ((status.voltage_B1 << 8) | status.voltage_B2) / 100.0;
+        *supercap_energy_percentage_ = ((std::pow(*supercap_voltage_, 2) - low_power_const)
+                                        / (std::pow(max_capacity_voltage_, 2) - low_power_const))
+                                     * 100.0;
         *supercap_enabled_ = status.supcap_status;
     }
 
@@ -52,8 +58,12 @@ private:
     std::atomic<SupercapStatus> can_data_{};
     static_assert(decltype(can_data_)::is_always_lock_free);
 
+    double max_capacity_voltage_;
+    static constexpr double low_power_const = 5.0 * 5.0;
+
     Component::OutputInterface<double> chassis_power_;
     Component::OutputInterface<double> supercap_voltage_;
+    Component::OutputInterface<double> supercap_energy_percentage_;
     Component::OutputInterface<bool> supercap_enabled_;
 };
 

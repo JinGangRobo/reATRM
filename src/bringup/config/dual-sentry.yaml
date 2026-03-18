@@ -59,6 +59,8 @@ dual_sentry_hardware:
     top_yaw_motor_zero_point: 2434
     pitch_motor_zero_point: 33524
 
+    supercap_max_voltage: 23.0
+
     imu_bias_x: 3
     imu_bias_y: 0
     imu_bias_z: 3
