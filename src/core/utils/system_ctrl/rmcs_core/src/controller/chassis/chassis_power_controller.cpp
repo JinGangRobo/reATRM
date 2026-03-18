@@ -33,10 +33,7 @@ public:
 
         register_input("/referee/chassis/power_limit", chassis_power_limit_referee_);
         register_input("/referee/chassis/buffer_energy", chassis_buffer_energy_referee_);
-        register_input("/chassis/boost_mode", boost_mode_status_, false);
-
-        // TODO: Incompatible with our hardware, remove it after testing.
-        register_output("/chassis/supercap/charge_power_limit", supercap_charge_power_limit_, 0.0);
+        register_input("/chassis/boost", boost_mode_status_, false);
 
         register_output("/chassis/control_power_limit", chassis_control_power_limit_, 0.0);
 
@@ -64,7 +61,7 @@ public:
 
         update_virtual_buffer_energy();
 
-        boost_mode_ = keyboard.shift || (boost_mode_status_.ready() && *boost_mode_status_ == 1.0);
+        boost_mode_ = keyboard.shift || (boost_mode_status_.ready() && *boost_mode_status_);
         update_control_power_limit();
     }
 
@@ -128,7 +125,7 @@ private:
     InputInterface<rmcs_msgs::Switch> switch_left_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
     InputInterface<double> rotary_knob_;
-    InputInterface<double> boost_mode_status_;
+    InputInterface<bool> boost_mode_status_;
 
     InputInterface<double> chassis_power_;
     static constexpr double virtual_buffer_energy_limit_ = 30.0;
@@ -141,7 +138,6 @@ private:
     InputInterface<double> chassis_buffer_energy_referee_;
 
     bool boost_mode_ = false;
-    OutputInterface<double> supercap_charge_power_limit_;
     double chassis_power_limit_expected_;
     OutputInterface<double> chassis_control_power_limit_;
 
