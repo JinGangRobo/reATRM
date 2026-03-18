@@ -74,7 +74,7 @@ public:
         }
 
         if (switch_right != Switch::DOWN) {
-            if ((!last_keyboard_.v && keyboard.v)
+            if (((!last_keyboard_.v && keyboard.v) && switch_left != Switch::DOWN)
                 || (last_switch_left_ == Switch::MIDDLE && switch_left == Switch::UP)) {
                 friction_enabled_ = !friction_enabled_;
             }
