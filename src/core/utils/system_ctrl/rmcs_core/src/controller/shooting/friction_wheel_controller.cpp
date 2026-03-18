@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include <limits>
+#include <rmcs_msgs/operate_mode.hpp>
 #include <string>
 
 #include <eigen3/Eigen/Dense>
@@ -31,6 +32,8 @@ public:
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
         register_input("/remote/keyboard", keyboard_);
+
+        register_input("/chassis/operate_mode", operate_mode_);
 
         auto friction_wheels = get_parameter("friction_wheels").as_string_array();
         auto friction_working_velocities = get_parameter("friction_velocities").as_double_array();
@@ -80,9 +83,12 @@ public:
             }
             if (switch_right == Switch::UP && switch_left != Switch::DOWN) { // autopilot mode
                 friction_enabled_ = last_autopilot_enabled_ = true;
-
             } else if (last_autopilot_enabled_) {
                 friction_enabled_ = last_autopilot_enabled_ = false;
+            }
+            if (operate_mode_.ready()) {
+                if (*operate_mode_ == OperateMode::ASSIST)
+                    friction_enabled_ = last_autopilot_enabled_ = true;
             }
 
             update_friction_velocities();
@@ -193,6 +199,8 @@ private:
     InputInterface<rmcs_msgs::Switch> switch_right_;
     InputInterface<rmcs_msgs::Switch> switch_left_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
+
+    InputInterface<rmcs_msgs::OperateMode> operate_mode_;
 
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;
