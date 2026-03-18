@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include <rclcpp/logger.hpp>
+#include <rclcpp/logging.hpp>
 
 #include "referee/app/ui/shape/cfs_scheduler.hpp"
 #include "referee/app/ui/shape/remote_shape.hpp"
@@ -88,6 +90,12 @@ public:
     }
 
     bool is_text_shape() const { return is_text_shape_; }
+    void set_is_text_shape(bool value) {
+        if (is_text_shape_ == value)
+            return;
+        is_text_shape_ = value;
+        set_modified();
+    }
 
     enum class Operation : uint8_t {
         NO_OPERATION = 0,
@@ -770,7 +778,7 @@ protected:
         description.part1.details_b = str_length;
         std::memcpy(buffer + sizeof(DescriptionField), value_, str_length);
 
-        return sizeof(DescriptionField) + data_part_size;
+        return sizeof(DescriptionField) + str_length;
     }
 
     uint16_t font_size_;
