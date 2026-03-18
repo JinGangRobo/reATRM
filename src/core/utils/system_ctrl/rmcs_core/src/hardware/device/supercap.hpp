@@ -6,6 +6,7 @@
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 #include <rmcs_executor/component.hpp>
+#include <rmcs_utility/tick_timer.hpp>
 
 namespace rmcs_core::hardware::device {
 using rmcs_executor::Component;
@@ -19,13 +20,21 @@ public:
         status_component.register_output(
             "/chassis/supercap/energy_percentage", supercap_energy_percentage_, 0.0);
         status_component.register_output("/chassis/supercap/enabled", supercap_enabled_, false);
+
+        supercap_watchdog_.reset(1'000);
     }
 
     void store_status(uint64_t can_data) {
         can_data_.store(std::bit_cast<SupercapStatus>(can_data), std::memory_order::relaxed);
+        supercap_watchdog_.reset(1'000);
     }
 
     void update_status() {
+        if (supercap_watchdog_.tick()) {
+            *supercap_enabled_ = false;
+            return;
+        }
+
         auto status = can_data_.load(std::memory_order::relaxed);
 
         *chassis_power_ = std::bit_cast<float>(status.chassis_pow);
@@ -60,6 +69,8 @@ private:
 
     double max_capacity_voltage_;
     static constexpr double low_power_const = 5.0 * 5.0;
+
+    rmcs_utility::TickTimer supercap_watchdog_;
 
     Component::OutputInterface<double> chassis_power_;
     Component::OutputInterface<double> supercap_voltage_;
