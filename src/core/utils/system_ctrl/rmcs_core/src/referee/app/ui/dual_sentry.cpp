@@ -1,8 +1,10 @@
 #include <cmath>
 #include <cstdint>
+#include <numbers>
 
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
+#include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
 #include <rmcs_msgs/chassis_mode.hpp>
 #include <rmcs_msgs/game_stage.hpp>
@@ -45,6 +47,8 @@ public:
         hurt_indicator_.set_visible(false);
 
         hurt_indicator_clean_timer_.reset(300);
+
+        register_input("/tf", rmcs_tf);
 
         register_input("/chassis/supercap/energy_percentage", supercap_energy_percentage_);
         register_input("/chassis/power", chassis_power_);
@@ -162,20 +166,37 @@ private:
         }
         if (hurt_data_.ready()) {
             if (hurt_data_->reason == 0) {
-                hurt_indicator_clean_timer_.reset(1'500);
+                hurt_indicator_clean_timer_.reset(3'500);
                 uint8_t armor = armor_index[hurt_data_->armor_id];
-                chassis_angle_when_hurt_ = unify_angle(to_referee_angle(*chassis_angle_));
-                hurt_armor_ = armor;
+
+                Eigen::Quaterniond gimbal_center_to_odom_imu_transform = fast_tf::lookup_transform<
+                    rmcs_description::GimbalCenterLink, rmcs_description::OdomImu>(*rmcs_tf);
+
+                Eigen::Vector3d hurt_direction_in_gimbal_center =
+                    Eigen::AngleAxisd(-armor * std::numbers::pi / 2.0, Eigen::Vector3d::UnitZ())
+                    * Eigen::Vector3d::UnitX();
+
+                hurt_direction_in_odom_imu_ =
+                    gimbal_center_to_odom_imu_transform * hurt_direction_in_gimbal_center;
 
                 if (hurt_indicator_visible_)
                     hurt_indicator_.set_visible(true);
             }
         }
         if (hurt_indicator_.visible()) {
-            int hurt_angle = unify_angle(
-                (to_referee_angle(*chassis_angle_) - 2 * chassis_angle_when_hurt_)
-                + hurt_armor_ * 90);
-            hurt_indicator_.set_angle(hurt_angle, 20);
+            Eigen::Quaterniond odom_imu_to_yaw_transform =
+                fast_tf::lookup_transform<rmcs_description::OdomImu, rmcs_description::YawLink>(
+                    *rmcs_tf);
+
+            Eigen::Vector3d hurt_direction_in_yaw =
+                odom_imu_to_yaw_transform * hurt_direction_in_odom_imu_;
+
+            double hurt_direction_angle_in_yaw =
+                std::atan2(hurt_direction_in_yaw.y(), hurt_direction_in_yaw.x());
+
+            RCLCPP_INFO(get_logger(), "YA:%lf", hurt_direction_angle_in_yaw);
+
+            hurt_indicator_.set_angle(unify_angle(hurt_direction_angle_in_yaw * 180 / std::numbers::pi), 20);
         }
         if (hurt_indicator_clean_timer_.tick()) {
             hurt_indicator_.set_visible(false);
@@ -188,6 +209,8 @@ private:
     static constexpr uint16_t height_min = 0, height_max = 500;
 
     static constexpr uint8_t armor_index[4] = {0, 1, 2, 3};
+
+    InputInterface<rmcs_description::Tf> rmcs_tf;
 
     InputInterface<rmcs_msgs::ChassisMode> chassis_mode_;
     InputInterface<double> chassis_angle_, chassis_control_angle_;
@@ -223,6 +246,7 @@ private:
     double chassis_angle_when_hurt_ = 0;
     int8_t hurt_armor_ = -1;
     bool hurt_indicator_visible_ = false;
+    Eigen::Vector3d hurt_direction_in_odom_imu_;
     rmcs_utility::TickTimer hurt_indicator_clean_timer_;
 
     Integer time_reminder_;
