@@ -155,7 +155,7 @@ private:
 
     double joystick_left_bias_y_ = 0.0;
     double joystick_left_bias_x_ = 0.0;
-    double shift_control_clamp_ = 0.0045;
+    double shift_control_clamp_ = 0.01;
     std::vector<std::string> depond_motors_ = {};
     std::vector<std::unique_ptr<InputInterface<int64_t>>> depond_motor_timestamp_inputs_ = {};
 };
