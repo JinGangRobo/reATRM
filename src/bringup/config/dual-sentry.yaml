@@ -67,7 +67,7 @@ dual_sentry_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_limit: 15.0
+    translational_velocity_limit: 99.0
     angular_velocity_limit: 15.0
     autopilot_spin_velocity_default: 2.0
 
@@ -95,7 +95,7 @@ dual_yaw_controller:
     bottom_yaw_angle_kp: 5.5
     bottom_yaw_angle_ki: 0.0
     bottom_yaw_angle_kd: 0.0
-    bottom_yaw_velocity_kp: 2.3
+    bottom_yaw_velocity_kp: 3.0
     bottom_yaw_velocity_ki: 0.0
     bottom_yaw_velocity_kd: 0.0
 
@@ -109,7 +109,7 @@ omni_wheel_controller:
     wheel_radius_: 0.07
     friction_coefficient: 0.6
 
-    spinning_bais_coefficient: -0.08
+    spinning_bais_coefficient: -0.081
 
 pitch_angle_err_pid_controller:
   ros__parameters:

@@ -276,7 +276,7 @@ private:
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 
         rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{3.0f, 1000.0f};
-        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{30.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
 
         device::DjiMotor gimbal_top_yaw_motor_;
         device::DmMotor gimbal_pitch_motor_;
@@ -338,7 +338,7 @@ private:
         void update() {
             imu_.update_status();
 
-            *chassis_yaw_velocity_imu_ = imu_.gz();
+            *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
 
             gimbal_bottom_yaw_motor_.update_status();
             tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
@@ -422,6 +422,8 @@ private:
         device::DjiMotor gimbal_bottom_yaw_motor_;
         device::DjiMotor chassis_wheel_motors_[4];
         device::Supercap supercap_;
+
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
 
         librmcs::utility::RingBuffer<std::byte> referee_ring_buffer_receive_{256};
         OutputInterface<rmcs_msgs::SerialInterface> referee_serial_;

@@ -8,6 +8,8 @@
 #include <rmcs_executor/component.hpp>
 
 #include "controller/pid/pid_calculator.hpp"
+#include "utility/kalman_filter.hpp"
+#include "utility/low_pass_filter.hpp"
 
 namespace rmcs_core::controller::gimbal {
 
@@ -18,7 +20,8 @@ public:
     DualYawController()
         : rclcpp::Node(
               get_component_name(),
-              rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)) {
+              rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
+        , ekf_filter_(0.001, 0.01, 1.0, 1.0) {
         auto set_pid_parameter = [this](pid::PidCalculator& pid, const std::string& name) {
             pid.kp = get_parameter(name + "_kp").as_double();
             pid.ki = get_parameter(name + "_ki").as_double();
@@ -38,7 +41,7 @@ public:
         register_input("/gimbal/top_yaw/angle", top_yaw_angle_);
         register_input("/gimbal/top_yaw/velocity", top_yaw_velocity_);
         register_input("/gimbal/bottom_yaw/angle", bottom_yaw_angle_);
-        register_input("/gimbal/bottom_yaw/velocity_filtered", bottom_yaw_velocity_);
+        register_input("/gimbal/bottom_yaw/velocity", bottom_yaw_velocity_);
         register_input("/gimbal/top_yaw/last_update_time", top_yaw_timestamp_);
         register_input("/gimbal/bottom_yaw/last_update_time", bottom_yaw_timestamp_);
 
@@ -50,6 +53,9 @@ public:
 
         register_output("/gimbal/top_yaw/control_torque", top_yaw_control_torque_, 0.0);
         register_output("/gimbal/bottom_yaw/control_torque", bottom_yaw_control_torque_, 0.0);
+
+        register_output("/debug/kalman_vel", kalman_filter_yaw_vel_, 1.0);
+        register_output("/debug/lpf_vel", lowpass_filter_tq_, 1.0);
 
         status_component_ =
             create_partner_component<DualYawStatus>(get_component_name() + "_status");
@@ -64,6 +70,8 @@ public:
     }
 
     void update() override {
+        bottom_yaw_velocity_kalman_ = ekf_filter_.update(*bottom_yaw_angle_);
+
         if (std::isnan(*control_angle_error_)) {
             *top_yaw_control_torque_ = nan_;
             *bottom_yaw_control_torque_ = nan_;
@@ -88,37 +96,31 @@ public:
                 return;
             }
 
-            double top_yaw_direction = *top_yaw_angle_ > std::numbers::pi
-                                         ? *top_yaw_angle_ - 2 * std::numbers::pi
-                                         : *top_yaw_angle_;
-
             if (*control_angle_error_ * top_yaw_angle_pid_.integral() < 0) {
                 // If the error sign changes, reset the PID to prevent overshoot
-                top_yaw_angle_pid_.reset();
-                top_yaw_velocity_pid_.reset();
+                top_yaw_angle_pid_.clear_integral();
+                top_yaw_velocity_pid_.clear_integral();
             }
 
-            double top_yaw_error =
+            double top_yaw_vel_error =
                 top_yaw_angle_pid_.update(*control_angle_error_) - *gimbal_yaw_velocity_imu_;
+            double bottom_yaw_angle_error = bottom_yaw_control_error();
 
-            if (abs(top_yaw_direction) > top_yaw_angle_limit_
-                && *control_angle_error_ * top_yaw_direction > 0) {
-                // If the yaw angle exceeds the limit and the error is trying to increase it, reset
-                // the PID
+            if ((abs(bottom_yaw_angle_error) > top_yaw_angle_limit_)) {
                 RCLCPP_WARN_THROTTLE(
                     this->get_logger(), *this->get_clock(), 1000,
-                    "Top yaw angle is near limit, resetting PID. Angle: %lf, Error: %lf",
-                    top_yaw_direction, *control_angle_error_);
-                top_yaw_angle_pid_.reset();
-                top_yaw_velocity_pid_.reset();
-                top_yaw_error = 0;
+                    "Top yaw angle is near limit, resetting PID.");
+                top_yaw_angle_pid_.clear_integral();
+                top_yaw_velocity_pid_.clear_integral();
             }
 
-            *top_yaw_control_torque_ = top_yaw_velocity_pid_.update(top_yaw_error);
+            *top_yaw_control_torque_ = top_yaw_velocity_pid_.update(top_yaw_vel_error);
 
-            *bottom_yaw_control_torque_ = bottom_yaw_velocity_pid_.update(
+            double control_torque = bottom_yaw_velocity_pid_.update(
                 bottom_yaw_angle_pid_.update(bottom_yaw_control_error())
                 - bottom_yaw_velocity_imu());
+
+            *bottom_yaw_control_torque_ = torque_lpf_.update(control_torque);
         }
 
         if (std::isnan(*control_angle_shift_)) {
@@ -143,11 +145,20 @@ private:
         return err;
     }
 
-    double bottom_yaw_velocity_imu() { return *chassis_yaw_velocity_imu_ + *bottom_yaw_velocity_; }
+    double bottom_yaw_velocity_imu() {
+        return bottom_yaw_velocity_kalman_
+             + (abs(*chassis_yaw_velocity_imu_) > 0.5 ? *chassis_yaw_velocity_imu_
+                                                      : 0.0); // deadzone for chassis vibration
+    }
+
+    utility::EncoderVelocityEstimator ekf_filter_;
+    utility::LowPassFilter<> torque_lpf_{100, 1000};
 
     InputInterface<double> top_yaw_angle_, top_yaw_velocity_;
     InputInterface<double> bottom_yaw_angle_, bottom_yaw_velocity_;
     InputInterface<int64_t> top_yaw_timestamp_, bottom_yaw_timestamp_;
+
+    double bottom_yaw_velocity_kalman_;
 
     InputInterface<double> gimbal_yaw_velocity_imu_, chassis_yaw_velocity_imu_;
 
@@ -161,6 +172,8 @@ private:
 
     OutputInterface<double> top_yaw_control_angle_;
     OutputInterface<double> bottom_yaw_control_angle_shift_;
+
+    OutputInterface<double> kalman_filter_yaw_vel_, lowpass_filter_tq_;
 
     class DualYawStatus : public rmcs_executor::Component {
     public:
