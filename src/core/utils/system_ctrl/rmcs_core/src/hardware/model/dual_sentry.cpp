@@ -38,7 +38,7 @@ public:
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.15, -0.09, 0.02});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.06, 0, 0});
 
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
             "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
@@ -338,7 +338,7 @@ private:
         void update() {
             imu_.update_status();
 
-            *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
+            *chassis_yaw_velocity_imu_ = imu_.gz();
 
             gimbal_bottom_yaw_motor_.update_status();
             tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
