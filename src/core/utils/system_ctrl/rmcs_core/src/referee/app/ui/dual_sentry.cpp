@@ -50,6 +50,7 @@ public:
 
         register_input("/tf", rmcs_tf);
 
+        register_input("/chassis/supercap/enabled", supercap_enabled_);
         register_input("/chassis/supercap/energy_percentage", supercap_energy_percentage_);
         register_input("/chassis/power", chassis_power_);
 
@@ -102,8 +103,9 @@ private:
         status_ring_.update_friction_wheel_speed(
             *first_friction_velocity_,
             *first_friction_control_velocity_ > 0 && *robot_bullet_allowance_ > 0);
-        status_ring_.update_supercap(*supercap_energy_percentage_, true);
-        status_ring_.update_power(*chassis_power_);
+        status_ring_.update_supercap(
+            *supercap_energy_percentage_, supercap_enabled_.ready() && *supercap_enabled_);
+        status_ring_.update_power(*chassis_power_, supercap_enabled_.ready() && *supercap_enabled_);
         update_static_status_ring();
 
         status_bar_.set_cool_limit(*shooter_heat_limit_);
@@ -194,9 +196,8 @@ private:
             double hurt_direction_angle_in_yaw =
                 std::atan2(hurt_direction_in_yaw.y(), hurt_direction_in_yaw.x());
 
-            RCLCPP_INFO(get_logger(), "YA:%lf", hurt_direction_angle_in_yaw);
-
-            hurt_indicator_.set_angle(unify_angle(hurt_direction_angle_in_yaw * 180 / std::numbers::pi), 20);
+            hurt_indicator_.set_angle(
+                unify_angle(hurt_direction_angle_in_yaw * 180 / std::numbers::pi), 20);
         }
         if (hurt_indicator_clean_timer_.tick()) {
             hurt_indicator_.set_visible(false);
@@ -215,6 +216,7 @@ private:
     InputInterface<rmcs_msgs::ChassisMode> chassis_mode_;
     InputInterface<double> chassis_angle_, chassis_control_angle_;
 
+    InputInterface<bool> supercap_enabled_;
     InputInterface<double> supercap_energy_percentage_;
     InputInterface<double> chassis_power_;
 

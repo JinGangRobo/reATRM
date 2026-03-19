@@ -27,22 +27,26 @@ public:
     void store_status(uint64_t can_data) {
         can_data_.store(std::bit_cast<SupercapStatus>(can_data), std::memory_order::relaxed);
         supercap_watchdog_.reset(1'000);
+        is_data_valid_ = true;
     }
 
     void update_status() {
         if (supercap_watchdog_.tick()) {
             *supercap_enabled_ = false;
+            is_data_valid_ = false;
             return;
         }
+        if (is_data_valid_) {
+            auto status = can_data_.load(std::memory_order::relaxed);
 
-        auto status = can_data_.load(std::memory_order::relaxed);
-
-        *chassis_power_ = std::bit_cast<float>(status.chassis_pow);
-        *supercap_voltage_ = ((status.voltage_B1 << 8) | status.voltage_B2) / 100.0;
-        *supercap_energy_percentage_ = ((std::pow(*supercap_voltage_, 2) - low_power_const)
-                                        / (std::pow(max_capacity_voltage_, 2) - low_power_const))
-                                     * 100.0;
-        *supercap_enabled_ = status.supcap_status;
+            *chassis_power_ = std::bit_cast<float>(status.chassis_pow);
+            *supercap_voltage_ = ((status.voltage_B1 << 8) | status.voltage_B2) / 100.0;
+            *supercap_energy_percentage_ =
+                ((std::pow(*supercap_voltage_, 2) - low_power_const)
+                 / (std::pow(max_capacity_voltage_, 2) - low_power_const))
+                * 100.0;
+            *supercap_enabled_ = status.supcap_status;
+        }
     }
 
     double chassis_power() { return *chassis_power_; }
@@ -70,6 +74,7 @@ private:
     double max_capacity_voltage_;
     static constexpr double low_power_const = 5.0 * 5.0;
 
+    bool is_data_valid_ = false;
     rmcs_utility::TickTimer supercap_watchdog_;
 
     Component::OutputInterface<double> chassis_power_;

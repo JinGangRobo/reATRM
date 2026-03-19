@@ -132,6 +132,7 @@ public:
     }
 
     void set_power_safe(double power_safe) {
+        power_safe_ = power_safe;
         auto angle = 265 - calculate_angle(power_safe, 0.0, power_limit_) - 1;
         arc_power_safe_.set_angle_start(static_cast<uint16_t>(angle));
         arc_power_safe_.set_angle_end(static_cast<uint16_t>(angle) + 1);
@@ -192,32 +193,38 @@ public:
     }
 
     void update_supercap(double value, bool enable) {
+        if (!enable) {
+            supercap_status_.set_angle_end(static_cast<uint16_t>(275 + visible_angle));
+            supercap_status_.set_color(Shape::Color::WHITE);
+            return;
+        }
+
         auto angle = 275 + calculate_angle(value, 10.5, supercap_limit_) + 1;
         supercap_status_.set_angle_end(static_cast<uint16_t>(angle));
 
         if (value > 75) {
-            supercap_status_.set_color(enable ? Shape::Color::GREEN : Shape::Color::WHITE);
+            supercap_status_.set_color(Shape::Color::GREEN);
         } else if (value > 35) {
-            supercap_status_.set_color(enable ? Shape::Color::ORANGE : Shape::Color::WHITE);
+            supercap_status_.set_color(Shape::Color::ORANGE);
         } else {
-            supercap_status_.set_color(enable ? Shape::Color::PINK : Shape::Color::WHITE);
+            supercap_status_.set_color(Shape::Color::PINK);
         }
     }
 
-    void update_power(double value) {
+    void update_power(double value, bool enable) {
+        if (!enable) {
+            power_status_.set_angle_start(static_cast<uint16_t>(265 - visible_angle));
+            power_status_.set_color(Shape::Color::WHITE);
+            return;
+        }
         auto angle = 265 - calculate_angle(value, 0.0, power_limit_) - 1;
         power_status_.set_angle_start(static_cast<uint16_t>(angle));
 
-        // TODO: set color by value
-        // if (value > 23.18) {
-        power_status_.set_color(Shape::Color::GREEN);
-        // } else if (value > 22.05) {
-        //     power_status_.set_color(Shape::Color::YELLOW);
-        // } else if (value > 21.40) {
-        //     power_status_.set_color(Shape::Color::ORANGE);
-        // } else {
-        //     power_status_.set_color(Shape::Color::PINK);
-        // }
+        if (value > power_safe_) {
+            power_status_.set_color(Shape::Color::PINK);
+        } else {
+            power_status_.set_color(Shape::Color::GREEN);
+        }
     }
 
     void update_friction_wheel_speed(double value, bool enable) {
@@ -262,6 +269,7 @@ private:
     double power_limit_;
     double friction_limit_;
     double bullet_speed_limit_;
+    double power_safe_;
 
     // Dynamic part
     Arc supercap_status_;
