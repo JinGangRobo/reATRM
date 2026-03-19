@@ -71,13 +71,23 @@ chassis_controller:
     angular_velocity_limit: 15.0
     autopilot_spin_velocity_default: 2.0
 
+
+operate_logic:
+  ros__parameters:
+    comfort_translational_velocity: 20.0
+    comfort_angular_velocity: 10.0
+
 gimbal_controller:
+
+    shift_control_clamp: 0.005
   ros__parameters:
     upper_limit: -0.35
     lower_limit: 0.5
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
+
+    shift_control_clamp: 0.005
 
     depond_motors:
       - /gimbal/pitch
