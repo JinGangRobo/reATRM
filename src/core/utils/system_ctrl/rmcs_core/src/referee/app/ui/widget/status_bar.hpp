@@ -136,12 +136,14 @@ public:
         integer_bullet_count_one_.set_value(bullet > 99 ? 9 : bullet % 10);
     }
 
-    void update_power_part(int16_t chassis_power, int16_t power_limit) {
+    void update_power_part(int16_t chassis_power, int16_t power_limit, bool assist) {
         if (chassis_power < 0) {
             chassis_power = 0;
         }
         integer_chassis_power_.set_value(chassis_power);
         integer_power_limit_.set_value(power_limit);
+        integer_chassis_power_.set_color(assist ? Shape::Color::ORANGE : Shape::Color::WHITE);
+        integer_power_limit_.set_color(assist ? Shape::Color::ORANGE : Shape::Color::WHITE);
     }
 
     void update_cool_visible(bool visible_required) {

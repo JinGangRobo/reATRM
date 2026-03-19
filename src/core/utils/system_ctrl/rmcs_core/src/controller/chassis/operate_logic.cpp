@@ -27,8 +27,6 @@ public:
         get_parameter("comfort_translational_velocity", comfort_translational_velocity);
         get_parameter("comfort_angular_velocity", comfort_angular_velocity);
 
-        register_input("/autopilot/chassis/velocity", auto_pilot_velocity_);
-
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
         register_input("/remote/keyboard", keyboard_);
@@ -54,7 +52,7 @@ public:
 
         bool is_switch_invalid = (switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
                               || (switch_left == Switch::DOWN && switch_right == Switch::DOWN);
-        bool is_auto_pilot_active = auto_pilot_velocity_.ready();
+        bool is_auto_pilot_active = (switch_left != Switch::DOWN && switch_right == Switch::UP);
         bool is_game_not_started =
             !game_stage_.ready()
             || (game_stage_.ready()
@@ -85,6 +83,9 @@ public:
         translational_velocity_max = comfort_translational_velocity;
         angular_velocity_max = comfort_angular_velocity;
         *boost_ = false;
+
+        *translational_velocity_max_ = translational_velocity_max;
+        *angular_velocity_max_ = angular_velocity_max;
     }
 
 private:
@@ -113,8 +114,6 @@ private:
         last_mouse_ = mouse;
         return;
     }
-
-    InputInterface<Eigen::Vector4d> auto_pilot_velocity_;
 
     InputInterface<rmcs_msgs::Switch> switch_right_;
     InputInterface<rmcs_msgs::Switch> switch_left_;

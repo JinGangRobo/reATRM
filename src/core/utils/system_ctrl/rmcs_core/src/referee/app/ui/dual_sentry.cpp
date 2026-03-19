@@ -9,6 +9,7 @@
 #include <rmcs_msgs/chassis_mode.hpp>
 #include <rmcs_msgs/game_stage.hpp>
 #include <rmcs_msgs/mouse.hpp>
+#include <rmcs_msgs/operate_mode.hpp>
 #include <rmcs_msgs/shoot_mode.hpp>
 #include <rmcs_utility/tick_timer.hpp>
 
@@ -66,6 +67,7 @@ public:
         register_input("/chassis/control_mode", chassis_mode_);
         register_input("/chassis/angle", chassis_angle_);
         register_input("/chassis/control_angle", chassis_control_angle_);
+        register_input("/chassis/operate_mode", operate_mode_);
 
         register_input("/chassis/control_power_limit", chassis_control_power_limit_);
 
@@ -109,7 +111,9 @@ private:
         update_static_status_ring();
 
         status_bar_.set_cool_limit(*shooter_heat_limit_);
-        status_bar_.update_power_part(*chassis_power_, *chassis_control_power_limit_);
+        status_bar_.update_power_part(
+            *chassis_power_, *chassis_control_power_limit_,
+            operate_mode_.ready() ? *operate_mode_ == rmcs_msgs::OperateMode::ASSIST : false);
         status_bar_.update_dynamic_part(
             *shooter_heat_limit_ - *shooter_heat_, *robot_bullet_allowance_);
     }
@@ -215,6 +219,7 @@ private:
 
     InputInterface<rmcs_msgs::ChassisMode> chassis_mode_;
     InputInterface<double> chassis_angle_, chassis_control_angle_;
+    InputInterface<rmcs_msgs::OperateMode> operate_mode_;
 
     InputInterface<bool> supercap_enabled_;
     InputInterface<double> supercap_energy_percentage_;

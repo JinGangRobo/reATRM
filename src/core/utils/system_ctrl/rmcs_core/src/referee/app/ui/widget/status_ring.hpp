@@ -163,13 +163,13 @@ public:
         static auto color{Shape::Color::WHITE};
 
         if (auto_aim_enable) {
-            color = Shape::Color::GREEN;
+            color = Shape::Color::ORANGE;
         } else {
             if (precise_enable) {
                 color = Shape::Color::CYAN;
             }
             if (auto_aim_tracking) {
-                color = Shape::Color::ORANGE;
+                color = Shape::Color::PINK;
             }
         }
         if (!static_enable) {
