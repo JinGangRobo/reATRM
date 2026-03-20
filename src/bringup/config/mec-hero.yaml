@@ -14,9 +14,7 @@ rmcs_executor:
       - rmcs_core::referee::command::interaction::Ui -> referee_ui
       # - rmcs_core::referee::app::ui::TestHeroUI -> referee_ui_hero
 
-
-      - rmcs_core::controller::chassis::OperateLogic -> operate_logic
-
+      # - rmcs_core::controller::chassis::OperateLogic -> operate_logic
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::pid::ErrorPidController -> yaw_angle_pid_controller
@@ -63,7 +61,7 @@ hero_hardware:
   ros__parameters:
     usb_pid_top_board: 0xaaa3
     usb_pid_bottom_board: 0x9f00
-    yaw_motor_zero_point: 35994
+    yaw_motor_zero_point: 53099
     pitch_motor_zero_point: 32163
 
     imu_bias_x: 1

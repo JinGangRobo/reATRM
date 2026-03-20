@@ -66,10 +66,6 @@ public:
             return;
         }
 
-        overdrive_mode_ = keyboard.f;
-        if (keyboard.ctrl && !last_keyboard_.r && keyboard.r)
-            low_latency_mode_ = !low_latency_mode_;
-
         if (bullet_feeder_cool_down_ > 0) {
             bullet_feeder_cool_down_--;
 
@@ -117,14 +113,6 @@ public:
                 if (shoot_stage_ == ShootStage::PRELOADING) {
                     if (err_abs < 0.1)
                         set_preloaded();
-                }
-                if (shoot_stage_ == ShootStage::PRELOADED) {
-                    if (low_latency_mode_)
-                        set_compressing();
-                }
-                if (shoot_stage_ == ShootStage::COMPRESSING) {
-                    if (err_abs < 0.1)
-                        set_compressed();
                 }
                 if (shoot_stage_ == ShootStage::SHOOTING) {
                     if (err_abs < 0.1)
@@ -184,19 +172,6 @@ private:
     void set_preloaded() {
         RCLCPP_INFO(get_logger(), "PRELOADED");
         shoot_stage_ = ShootStage::PRELOADED;
-    }
-
-    void set_compressing() {
-        RCLCPP_INFO(get_logger(), "COMPRESSING");
-        shoot_stage_ = ShootStage::COMPRESSING;
-        bullet_feeder_control_angle_ = bullet_feeder_compressed_zero_point_
-                                     + (bullet_fed_count_ + 1) * bullet_feeder_angle_per_bullet_;
-        bullet_feeder_angle_pid_.output_max = 0.8;
-    }
-
-    void set_compressed() {
-        RCLCPP_INFO(get_logger(), "COMPRESSED");
-        shoot_stage_ = ShootStage::COMPRESSED;
     }
 
     void set_shooting() {
