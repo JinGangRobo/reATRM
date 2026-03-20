@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#include "rmcs_utility/tick_timer.hpp"
 #include <librmcs/device/lk_motor.hpp>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
@@ -20,7 +21,7 @@ public:
         status_component.register_output(name_prefix + "/torque", torque_, 0.0);
         status_component.register_output(name_prefix + "/temperature", temperature_, 0.0);
         status_component.register_output(name_prefix + "/max_torque", max_torque_, 0.0);
-        status_component.register_output(name_prefix + "/last_update_time", last_update_time_, 0);
+        status_component.register_output(name_prefix + "/alive", alive_, false);
 
         command_component.register_input( //
             name_prefix + "/control_torque", control_torque_, false);
@@ -47,6 +48,10 @@ public:
 
     void update_status() {
         librmcs::device::LkMotor::update_status();
+        if (alive_watchdog_.tick()) {
+            *alive_ = false;
+        }
+
         *angle_ = angle();
         *velocity_ = velocity();
         *torque_ = torque();
@@ -55,9 +60,9 @@ public:
 
     void store_status(uint64_t can_data) {
         librmcs::device::LkMotor::store_status(can_data);
-        *last_update_time_ = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                 std::chrono::steady_clock::now().time_since_epoch())
-                                 .count();
+
+        *alive_ = true;
+        alive_watchdog_.reset(50);
     }
 
     double control_torque() const {
@@ -138,12 +143,14 @@ private:
     rmcs_executor::Component::OutputInterface<double> torque_;
     rmcs_executor::Component::OutputInterface<double> temperature_;
     rmcs_executor::Component::OutputInterface<double> max_torque_;
-    rmcs_executor::Component::OutputInterface<uint64_t> last_update_time_;
+    rmcs_executor::Component::OutputInterface<bool> alive_;
 
     rmcs_executor::Component::InputInterface<double> control_torque_;
     rmcs_executor::Component::InputInterface<double> control_velocity_;
     rmcs_executor::Component::InputInterface<double> control_angle_;
     rmcs_executor::Component::InputInterface<double> control_angle_shift_;
+
+    rmcs_utility::TickTimer alive_watchdog_;
 
     bool first_generate_auto_command_ = true;
 };

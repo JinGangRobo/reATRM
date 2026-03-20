@@ -27,6 +27,7 @@ public:
 
         register_input("/gimbal/bullet_feeder/angle", bullet_feeder_angle_);
         register_input("/gimbal/bullet_feeder/velocity_filtered", bullet_feeder_velocity_);
+        register_input("/gimbal/bullet_feeder/alive", bullet_feeder_alive_);
 
         register_input(
             "/gimbal/control_bullet_allowance/limited_by_heat",
@@ -61,7 +62,8 @@ public:
 
         using namespace rmcs_msgs;
         if ((switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
-            || (switch_left == Switch::DOWN && switch_right == Switch::DOWN)) {
+            || (switch_left == Switch::DOWN && switch_right == Switch::DOWN)
+            || !*bullet_feeder_alive_) {
             reset_all_controls();
             return;
         }
@@ -253,6 +255,7 @@ private:
 
     InputInterface<double> bullet_feeder_angle_;
     InputInterface<double> bullet_feeder_velocity_;
+    InputInterface<bool> bullet_feeder_alive_;
 
     InputInterface<int64_t> control_bullet_allowance_limited_by_heat_;
 

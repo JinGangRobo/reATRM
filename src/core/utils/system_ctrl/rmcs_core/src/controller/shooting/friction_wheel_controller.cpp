@@ -48,10 +48,12 @@ public:
         friction_count_ = friction_wheels.size();
         friction_working_velocities_ = std::make_unique<double[]>(friction_count_);
         friction_velocities_ = std::make_unique<InputInterface<double>[]>(friction_count_);
+        friction_alive_ = std::make_unique<InputInterface<bool>[]>(friction_count_);
         friction_control_velocities_ = std::make_unique<OutputInterface<double>[]>(friction_count_);
         for (size_t i = 0; i < friction_count_; i++) {
             friction_working_velocities_[i] = friction_working_velocities[i];
             register_input(friction_wheels[i] + "/velocity", friction_velocities_[i]);
+            register_input(friction_wheels[i] + "/alive", friction_alive_[i]);
             register_output(
                 friction_wheels[i] + "/control_velocity", friction_control_velocities_[i], nan_);
         }
@@ -144,6 +146,10 @@ private:
             return;
         if (friction_soft_start_stop_percentage_ < 1.0)
             return;
+        for (size_t i = 0; i < friction_count_; i++) {
+            if (!friction_alive_[i].ready() || !*friction_alive_[i])
+                return;
+        }
 
         if (detect_friction_faulty()) {
             if (friction_faulty_count_ == 200) {
@@ -211,6 +217,7 @@ private:
     std::unique_ptr<double[]> friction_working_velocities_;
 
     std::unique_ptr<InputInterface<double>[]> friction_velocities_;
+    std::unique_ptr<InputInterface<bool>[]> friction_alive_;
 
     bool friction_enabled_ = false;
     bool last_autopilot_enabled_ = false;

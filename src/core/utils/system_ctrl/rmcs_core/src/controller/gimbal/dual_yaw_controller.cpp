@@ -41,8 +41,8 @@ public:
         register_input("/gimbal/top_yaw/velocity", top_yaw_velocity_);
         register_input("/gimbal/bottom_yaw/angle", bottom_yaw_angle_);
         register_input("/gimbal/bottom_yaw/velocity", bottom_yaw_velocity_);
-        register_input("/gimbal/top_yaw/last_update_time", top_yaw_timestamp_);
-        register_input("/gimbal/bottom_yaw/last_update_time", bottom_yaw_timestamp_);
+        register_input("/gimbal/top_yaw/alive", top_yaw_alive_);
+        register_input("/gimbal/bottom_yaw/alive", bottom_yaw_alive_);
 
         register_input("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
         register_input("/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_);
@@ -76,14 +76,9 @@ public:
             *top_yaw_control_torque_ = nan_;
             *bottom_yaw_control_torque_ = nan_;
         } else {
-            auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           std::chrono::steady_clock::now().time_since_epoch())
-                           .count();
-            if (now - *top_yaw_timestamp_ > motor_timeout_ms_
-                || now - *bottom_yaw_timestamp_ > motor_timeout_ms_) {
+            if (!*top_yaw_alive_ || !*bottom_yaw_alive_) {
                 RCLCPP_WARN_THROTTLE(
-                    this->get_logger(), *this->get_clock(), 5000,
-                    "Dual Yaw Executor timestamp is too old");
+                    this->get_logger(), *this->get_clock(), 5000, "Dual Yaw Executor not alive");
 
                 top_yaw_velocity_pid_.reset();
                 bottom_yaw_velocity_pid_.reset();
@@ -144,7 +139,7 @@ private:
 
     InputInterface<double> top_yaw_angle_, top_yaw_velocity_;
     InputInterface<double> bottom_yaw_angle_, bottom_yaw_velocity_;
-    InputInterface<int64_t> top_yaw_timestamp_, bottom_yaw_timestamp_;
+    InputInterface<bool> top_yaw_alive_, bottom_yaw_alive_;
 
     InputInterface<double> gimbal_yaw_velocity_imu_, chassis_yaw_velocity_imu_;
 

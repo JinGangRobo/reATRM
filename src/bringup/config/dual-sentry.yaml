@@ -78,16 +78,14 @@ operate_logic:
     comfort_angular_velocity: 10.0
 
 gimbal_controller:
-
-    shift_control_clamp: 0.005
   ros__parameters:
+    shift_control_clamp: 0.005
+
     upper_limit: -0.35
     lower_limit: 0.5
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
-
-    shift_control_clamp: 0.005
 
     depond_motors:
       - /gimbal/pitch
@@ -129,7 +127,7 @@ pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    executor_timestamp: /gimbal/pitch/last_update_time
+    enable: /gimbal/pitch/alive
     kp: 8.0
     ki: 0.001
     kd: 1.0
@@ -141,7 +139,7 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
-    executor_timestamp: /gimbal/pitch/last_update_time
+    enable: /gimbal/pitch/alive
     kp: 2.5
     ki: 0.05
     kd: 45.0
