@@ -67,7 +67,7 @@ public:
         register_input("/chassis/control_mode", chassis_mode_);
         register_input("/chassis/angle", chassis_angle_);
         register_input("/chassis/control_angle", chassis_control_angle_);
-        register_input("/chassis/operate_mode", operate_mode_);
+        register_input("/chassis/operate_mode", operate_mode_, false);
 
         register_input("/chassis/control_power_limit", chassis_control_power_limit_);
 
