@@ -12,11 +12,9 @@ rmcs_executor:
 
       - rmcs_core::referee::command::Interaction -> referee_interaction
       - rmcs_core::referee::command::interaction::Ui -> referee_ui
-      # - rmcs_core::referee::app::ui::TestHeroUI -> referee_ui_hero
+      - rmcs_core::referee::app::ui::Hero -> referee_ui_hero
 
-
-      - rmcs_core::controller::chassis::OperateLogic -> operate_logic
-
+      # - rmcs_core::controller::chassis::OperateLogic -> operate_logic
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::pid::ErrorPidController -> yaw_angle_pid_controller
@@ -74,8 +72,8 @@ hero_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_max_default: 10.0
-    angular_velocity_max_default: 10.0
+    translational_velocity_limit: 10.0
+    angular_velocity_limit: 10.0
 
 omni_wheel_controller:
   ros__parameters:
@@ -159,8 +157,8 @@ friction_wheel_controller:
 
 heat_controller:
   ros__parameters:
-    heat_per_shot: 100
-    reserved_heat: -100000
+    heat_per_shot: 100000
+    reserved_heat: 0
 
 first_friction_velocity_pid_controller:
   ros__parameters:

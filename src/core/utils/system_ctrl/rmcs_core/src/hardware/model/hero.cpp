@@ -1,4 +1,3 @@
-#include <atomic>
 #include <fast_tf/rcl.hpp>
 #include <memory>
 #include <rclcpp/logger.hpp>
