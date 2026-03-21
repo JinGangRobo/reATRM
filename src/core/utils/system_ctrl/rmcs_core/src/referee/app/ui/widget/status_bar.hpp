@@ -69,6 +69,14 @@ public:
         text_desc_power_.set_is_text_shape(true);
         text_desc_power_.set_value("C_PWR          /");
 
+        text_desc_center_status_.set_x(x_center - 155);
+        text_desc_center_status_.set_y(y_center - 420);
+        text_desc_center_status_.set_color(Shape::Color::WHITE);
+        text_desc_center_status_.set_font_size(16);
+        text_desc_center_status_.set_width(2);
+        text_desc_center_status_.set_is_text_shape(true);
+        text_desc_center_status_.set_value("CENTER_AREA_STATUS");
+
         text_desc_cool_.set_x(x_center - 50);
         text_desc_cool_.set_y(y_center + 335);
         text_desc_cool_.set_color(Shape::Color::WHITE);
@@ -102,6 +110,7 @@ public:
         integer_bullet_count_one_.set_visible(visible);
         integer_chassis_power_.set_visible(visible);
         integer_power_limit_.set_visible(visible);
+        text_desc_center_status_.set_visible(visible);
 
         // Static
         for (int i = 0; i < 2; ++i) {
@@ -110,7 +119,7 @@ public:
         text_desc_power_.set_visible(visible);
     }
 
-    void update_dynamic_part(double cool, int16_t bullet) {
+    void update_dynamic_part(double cool, int16_t bullet, uint8_t center_status) {
         if (bullet < 0) {
             bullet = 0;
         }
@@ -134,6 +143,12 @@ public:
 
         integer_bullet_count_ten_.set_value(bullet > 99 ? 9 : ((bullet - (bullet % 10)) / 10));
         integer_bullet_count_one_.set_value(bullet > 99 ? 9 : bullet % 10);
+        switch (center_status) {
+        case 0: text_desc_center_status_.set_color(Shape::Color::WHITE); break;
+        case 1: text_desc_center_status_.set_color(Shape::Color::GREEN); break;
+        case 2: text_desc_center_status_.set_color(Shape::Color::PURPLE); break;
+        default: break;
+        }
     }
 
     void update_power_part(int16_t chassis_power, int16_t power_limit, bool assist) {
@@ -175,6 +190,7 @@ private:
     Integer integer_bullet_count_one_;
     Integer integer_chassis_power_;
     Integer integer_power_limit_;
+    Text text_desc_center_status_;
 
     // Static
     Line line_bar_bullet_background_[2];

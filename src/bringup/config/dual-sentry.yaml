@@ -104,8 +104,8 @@ dual_yaw_controller:
     bottom_yaw_angle_kp: 1.2
     bottom_yaw_angle_ki: 0.0
     bottom_yaw_angle_kd: 0.0
-    bottom_yaw_velocity_kp: 13.0
-    bottom_yaw_velocity_ki: 0.08
+    bottom_yaw_velocity_kp: 11.5
+    bottom_yaw_velocity_ki: 0.07
     bottom_yaw_velocity_kd: 0.0
 
     bottom_yaw_velocity_integral_min: -20.0

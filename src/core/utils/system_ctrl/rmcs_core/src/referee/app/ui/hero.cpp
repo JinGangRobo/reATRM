@@ -78,6 +78,7 @@ public:
 
         register_input("/referee/game/stage", game_stage_);
         register_input("/referee/robot/hurt", hurt_data_);
+        register_input("/referee/game/center_area", center_area_status_);
     }
 
     void update() override {
@@ -115,7 +116,7 @@ private:
             *chassis_power_, *chassis_control_power_limit_,
             operate_mode_.ready() ? *operate_mode_ == rmcs_msgs::OperateMode::ASSIST : false);
         status_bar_.update_dynamic_part(
-            *shooter_heat_limit_ - *shooter_heat_, *robot_bullet_allowance_);
+            *shooter_heat_limit_ - *shooter_heat_, *robot_bullet_allowance_, *center_area_status_);
     }
 
     void update_time_reminder() {
@@ -241,6 +242,7 @@ private:
 
     InputInterface<rmcs_msgs::GameStage> game_stage_;
     InputInterface<status::HurtData> hurt_data_;
+    InputInterface<uint8_t> center_area_status_;
 
     InputInterface<rmcs_msgs::ShootMode> shoot_mode_;
 
