@@ -21,16 +21,16 @@
 namespace rmcs_core::referee::app::ui {
 using namespace std::chrono_literals;
 
-class DualSentry
+class Hero
     : public rmcs_executor::Component
     , public rclcpp::Node {
 public:
-    DualSentry()
+    Hero()
         : Node{
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
         , status_ring_(100, 220, 600, 30)
-        , status_bar_(100, 99)
+        , status_bar_(100, 40)
         , time_reminder_(Shape::Color::PINK, 50, 5, x_center + 150, y_center + 65, 0, false) {
 
         for (int i = 0; i < 4; ++i) {
@@ -55,11 +55,11 @@ public:
         register_input("/chassis/supercap/energy_percentage", supercap_energy_percentage_);
         register_input("/chassis/power", chassis_power_);
 
-        register_input("/gimbal/left_friction/control_velocity", first_friction_control_velocity_);
-        register_input("/gimbal/left_friction/velocity", first_friction_velocity_);
-        register_input("/gimbal/auto_aim/available", auto_aim_ready_);
+        register_input("/gimbal/first_friction/control_velocity", first_friction_control_velocity_);
+        register_input("/gimbal/first_friction/velocity", first_friction_velocity_);
+        register_input("/gimbal/auto_aim/available", auto_aim_ready_, false);
 
-        register_input("/referee/shooter/bullet_allowance", robot_bullet_allowance_);
+        register_input("/referee/shooter/42mm_bullet_allowance", robot_bullet_allowance_);
         register_input("/referee/shooter/initial_speed", robot_initial_speed_);
         register_input("/referee/shooter/heat_limit", shooter_heat_limit_);
         register_input("/referee/chassis/power_limit", referee_chassis_power_limit_);
@@ -263,4 +263,4 @@ private:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(rmcs_core::referee::app::ui::DualSentry, rmcs_executor::Component)
+PLUGINLIB_EXPORT_CLASS(rmcs_core::referee::app::ui::Hero, rmcs_executor::Component)

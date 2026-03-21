@@ -67,11 +67,11 @@ private:
     void update_normal_ui() {
         update_chassis_direction_indicator();
 
-        status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
+        // status_ring_.update_bullet_allowance(*robot_bullet_allowance_);
         status_ring_.update_friction_wheel_speed(
             *first_friction_velocity_, *first_friction_control_velocity_ > 0);
         status_ring_.update_supercap(*supercap_voltage_, true);
-        status_ring_.update_battery_power(0.5);
+        // status_ring_.update_battery_power(0.5);
         update_static_status_ring();
     }
 
@@ -84,7 +84,7 @@ private:
         auto auto_aim_enable = mouse_->right == 1;
         auto precise_enable = *shoot_mode_ == rmcs_msgs::ShootMode::PRECISE;
 
-        status_ring_.update_static_parts({auto_aim_enable, precise_enable});
+        // status_ring_.update_static_parts({auto_aim_enable, precise_enable});
     }
 
     void update_chassis_direction_indicator() {

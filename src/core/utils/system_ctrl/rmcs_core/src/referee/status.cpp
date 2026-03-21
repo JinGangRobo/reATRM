@@ -37,6 +37,7 @@ public:
         register_output("/referee/chassis/power_limit", robot_chassis_power_limit_, 0.0);
         register_output("/referee/chassis/buffer_energy", robot_buffer_energy_, 60.0);
         register_output("/referee/chassis/output_status", chassis_output_status_, false);
+        register_output("/referee/robot/hurt", hurt_data_);
 
         register_output("/referee/chassis/current_hp", robot_current_hp_, 0.0);
 
@@ -50,6 +51,7 @@ public:
         register_output("/referee/robots/rmul_rfid", rmul_rfid_);
 
         robot_status_watchdog_.reset(5'000);
+        hurt_data_watchdog_.reset(5);
     }
 
     void update() override {
@@ -81,6 +83,10 @@ public:
             } else if (result == rmcs_utility::ReceiveResult::VERIFY_INVALID) {
                 RCLCPP_WARN(logger_, "Header crc8 invalid");
             }
+        }
+
+        if (hurt_data_watchdog_.tick()) {
+            *hurt_data_ = HurtData{15, 15};
         }
 
         if (game_status_watchdog_.tick()) {
@@ -178,7 +184,11 @@ private:
 
     void update_robot_position() {}
 
-    void update_hurt_data() {}
+    void update_hurt_data() {
+        hurt_data_watchdog_.reset(5);
+        auto& data = reinterpret_cast<HurtData&>(frame_.body.data);
+        *hurt_data_ = data;
+    }
 
     void update_shoot_data() {
         auto& data = reinterpret_cast<ShootData&>(frame_.body.data);
@@ -221,11 +231,13 @@ private:
     OutputInterface<uint8_t> center_area_status_;
 
     rmcs_utility::TickTimer robot_status_watchdog_;
+    rmcs_utility::TickTimer hurt_data_watchdog_;
     OutputInterface<rmcs_msgs::RobotId> robot_id_;
     OutputInterface<double> robot_current_hp_;
     OutputInterface<int64_t> robot_shooter_cooling_, robot_shooter_heat_limit_;
     OutputInterface<double> robot_chassis_power_limit_;
     OutputInterface<bool> chassis_output_status_;
+    OutputInterface<HurtData> hurt_data_;
 
     rmcs_utility::TickTimer power_heat_data_watchdog_;
     OutputInterface<double> robot_buffer_energy_;

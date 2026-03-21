@@ -1,4 +1,3 @@
-#include <atomic>
 #include <fast_tf/rcl.hpp>
 #include <memory>
 #include <rclcpp/logger.hpp>
@@ -270,7 +269,7 @@ private:
                   {hero, hero_command, "/chassis/right_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
 
-            , supercap_(hero)
+            , supercap_(hero, 29.0)
             , gimbal_yaw_motor_(
                   hero, hero_command, "/gimbal/yaw",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
@@ -363,8 +362,6 @@ private:
                 chassis_wheel_motors_[2].store_status(can_data);
             } else if (can_id == 0x204) {
                 chassis_wheel_motors_[3].store_status(can_data);
-            } else if (can_id == 0x20c) {
-                supercap_.store_status(can_data);
             }
         }
 
@@ -374,13 +371,12 @@ private:
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
 
-            // if (can_id == 0x300) {
-            //     supercap_.store_status(can_data);
-            // }
             if (can_id == 0x214) {
                 gimbal_bullet_feeder_.store_status(can_data);
             } else if (can_id == 0x212) {
                 gimbal_yaw_motor_.store_status(can_data);
+            } else if (can_id == 0x20c) {
+                supercap_.store_status(can_data);
             }
         }
 

@@ -38,7 +38,7 @@ public:
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.15, -0.09, 0.02});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.06, 0, 0});
 
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
             "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
@@ -276,7 +276,7 @@ private:
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 
         rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{3.0f, 1000.0f};
-        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{30.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
 
         device::DjiMotor gimbal_top_yaw_motor_;
         device::DmMotor gimbal_pitch_motor_;
@@ -308,7 +308,7 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {dual_sentry, dual_sentry_command, "/chassis/left_back_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
-            , supercap_(dual_sentry)
+            , supercap_(dual_sentry, dual_sentry.get_parameter("supercap_max_voltage").as_double())
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
@@ -394,6 +394,9 @@ private:
         void can2_receive_callback(
             uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
             bool is_remote_transmission, uint8_t can_data_length) override {
+            (void)can_id;
+            (void)can_data;
+            
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
         }
@@ -419,6 +422,8 @@ private:
         device::DjiMotor gimbal_bottom_yaw_motor_;
         device::DjiMotor chassis_wheel_motors_[4];
         device::Supercap supercap_;
+
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
 
         librmcs::utility::RingBuffer<std::byte> referee_ring_buffer_receive_{256};
         OutputInterface<rmcs_msgs::SerialInterface> referee_serial_;

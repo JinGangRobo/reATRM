@@ -38,28 +38,28 @@ value_broadcaster:
       - /gimbal/pitch/angle
       - /debug/pitch/raw_angle
       - /debug/top_yaw/raw_angle
-      - /gimbal/pitch/control_velocity
-      - /gimbal/pitch/velocity_filtered
-      - /gimbal/pitch/control_torque
-      - /gimbal/pitch/control_angle_error
       - /chassis/power
       - /chassis/supercap/voltage
       - /gimbal/yaw/angle
-      - /debug/aim/x
-      - /debug/aim/y
-      - /debug/aim/z
       - /debug/solver/pitch
       - /debug/solver/yaw
       - /debug/aim/delay
       - /debug/solver/pitch_err
       - /debug/solver/yaw_err
+      - /gimbal/top_yaw/control_torque
+      - /gimbal/bottom_yaw/control_torque
+      - /gimbal/top_yaw/angle
+      - /gimbal/bottom_yaw/angle
+
 dual_sentry_hardware:
   ros__parameters:
     usb_pid_top_board: 0xf18a
     usb_pid_bottom_board: 0x247f
-    bottom_yaw_motor_zero_point: -200
+    bottom_yaw_motor_zero_point: 4000
     top_yaw_motor_zero_point: 2434
     pitch_motor_zero_point: 33524
+
+    supercap_max_voltage: 23.0
 
     imu_bias_x: 3
     imu_bias_y: 0
@@ -67,12 +67,20 @@ dual_sentry_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_max_default: 10.0
-    angular_velocity_max_default: 7.0
-    autopilot_spin_velocity_default: 3.0
+    translational_velocity_limit: 99.0
+    angular_velocity_limit: 15.0
+    autopilot_spin_velocity_default: 2.0
+
+
+operate_logic:
+  ros__parameters:
+    comfort_translational_velocity: 20.0
+    comfort_angular_velocity: 10.0
 
 gimbal_controller:
   ros__parameters:
+    shift_control_clamp: 0.005
+
     upper_limit: -0.35
     lower_limit: 0.5
 
@@ -87,22 +95,24 @@ gimbal_controller:
 dual_yaw_controller:
   ros__parameters:
     top_yaw_angle_kp: 15.0
-    top_yaw_angle_ki: 0.01
+    top_yaw_angle_ki: 0.0
     top_yaw_angle_kd: 0.0
-    top_yaw_velocity_kp: 2.0
-    top_yaw_velocity_ki: 0.05
-    top_yaw_velocity_kd: 5.0
-    bottom_yaw_angle_kp: 5.5
+    top_yaw_velocity_kp: 2.8
+    top_yaw_velocity_ki: 0.01
+    top_yaw_velocity_kd: 0.0
+
+    bottom_yaw_angle_kp: 1.2
     bottom_yaw_angle_ki: 0.0
     bottom_yaw_angle_kd: 0.0
-    bottom_yaw_velocity_kp: 2.3
-    bottom_yaw_velocity_ki: 0.0
+    bottom_yaw_velocity_kp: 11.5
+    bottom_yaw_velocity_ki: 0.07
     bottom_yaw_velocity_kd: 0.0
 
-    top_yaw_integral_max: 4.0
-    top_yaw_integral_min: -4.0
-    bottom_yaw_integral_max: 10.0
-    bottom_yaw_integral_min: -10.0
+    bottom_yaw_velocity_integral_min: -20.0
+    bottom_yaw_velocity_integral_max: 20.0
+
+    top_yaw_velocity_output_max: 35.0
+    top_yaw_velocity_output_min: -35.0
 
 omni_wheel_controller:
   ros__parameters:
@@ -111,13 +121,13 @@ omni_wheel_controller:
     wheel_radius_: 0.07
     friction_coefficient: 0.6
 
-    spinning_bais_coefficient: -0.08
+    spinning_bais_coefficient: -0.081
 
 pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    executor_timestamp: /gimbal/pitch/last_update_time
+    enable: /gimbal/pitch/alive
     kp: 8.0
     ki: 0.001
     kd: 1.0
@@ -129,7 +139,7 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
-    executor_timestamp: /gimbal/pitch/last_update_time
+    enable: /gimbal/pitch/alive
     kp: 2.5
     ki: 0.05
     kd: 45.0

@@ -34,9 +34,9 @@ public:
         get_parameter("depond_motors", depond_motors_);
 
         for (const auto& motor_ : depond_motors_) {
-            auto timestamp_input = std::make_unique<InputInterface<int64_t>>();
-            register_input(motor_ + "/last_update_time", *timestamp_input);
-            depond_motor_timestamp_inputs_.push_back(std::move(timestamp_input));
+            auto motor_alive_input = std::make_unique<InputInterface<bool>>();
+            register_input(motor_ + "/alive", *motor_alive_input);
+            depond_motor_alive_inputs_.push_back(std::move(motor_alive_input));
         }
 
         register_input("/remote/joystick/left", joystick_left_);
@@ -73,11 +73,11 @@ public:
             || (switch_left == Switch::DOWN && switch_right == Switch::DOWN))
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
 
-        auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                       std::chrono::steady_clock::now().time_since_epoch())
-                       .count();
-        for (const auto& timestamp_input : depond_motor_timestamp_inputs_) {
-            if (now - **timestamp_input > timeout_ms_) {
+        for (const auto& alive_input : depond_motor_alive_inputs_) {
+            if (!**alive_input) {
+                RCLCPP_WARN_THROTTLE(
+                    get_logger(), *get_clock(), 2000,
+                    "One of depond motors is not alive, disabling gimbal control.");
                 return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
             }
         }
@@ -105,6 +105,10 @@ public:
                         Eigen::Vector3d new_direction =
                             Eigen::AngleAxis(scan_direction * 0.0013, Eigen::Vector3d::UnitZ())
                             * current_direction;
+
+                        auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                       std::chrono::steady_clock::now().time_since_epoch())
+                                       .count();
 
                         new_direction.z() =
                             sin((now & 0xFFF) * 0.001534 * 2) * 0.2 - 0.1; // 0.001534=(1/4096)*2*pi
@@ -155,9 +159,9 @@ private:
 
     double joystick_left_bias_y_ = 0.0;
     double joystick_left_bias_x_ = 0.0;
-    double shift_control_clamp_ = 0.0045;
+    double shift_control_clamp_ = 0.01;
     std::vector<std::string> depond_motors_ = {};
-    std::vector<std::unique_ptr<InputInterface<int64_t>>> depond_motor_timestamp_inputs_ = {};
+    std::vector<std::unique_ptr<InputInterface<bool>>> depond_motor_alive_inputs_ = {};
 };
 
 } // namespace rmcs_core::controller::gimbal

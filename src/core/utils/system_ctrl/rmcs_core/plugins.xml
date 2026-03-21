@@ -95,7 +95,7 @@
   <class type="rmcs_core::hardware::cboard::GyroCalibrator" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
-    <class type="rmcs_core::referee::Status" base_class_type="rmcs_executor::Component">
+  <class type="rmcs_core::referee::Status" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
   <class type="rmcs_core::referee::Command" base_class_type="rmcs_executor::Component">
@@ -116,7 +116,10 @@
   <class type="rmcs_core::referee::app::ui::DualSentry" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
-    <class type="rmcs_core::referee::app::ui::DualInfantry" base_class_type="rmcs_executor::Component">
+  <class type="rmcs_core::referee::app::ui::DualInfantry" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+  <class type="rmcs_core::referee::app::ui::Hero" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
 </library>

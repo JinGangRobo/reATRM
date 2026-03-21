@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/src/Core/Matrix.h>
 #include <eigen3/Eigen/src/Geometry/Rotation2D.h>
@@ -22,12 +23,14 @@ public:
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , following_velocity_controller_(6.0, 0.0, 0.0) {
-        get_parameter("translational_velocity_max_default", translational_velocity_max);
-        get_parameter("angular_velocity_max_default", angular_velocity_max);
+        get_parameter("translational_velocity_limit", translational_velocity_limit_);
+        get_parameter("angular_velocity_limit", angular_velocity_limit_);
         get_parameter("autopilot_spin_velocity_default", autopilot_spin_velocity_default);
 
-        following_velocity_controller_.output_max = angular_velocity_max;
-        following_velocity_controller_.output_min = -angular_velocity_max;
+        following_velocity_controller_.output_max = angular_velocity_limit_;
+        following_velocity_controller_.output_min = -angular_velocity_limit_;
+        translational_velocity_max = translational_velocity_limit_;
+        angular_velocity_max = angular_velocity_limit_;
 
         register_input("/remote/joystick/right", joystick_right_);
         register_input("/remote/joystick/left", joystick_left_);
@@ -75,11 +78,13 @@ public:
         // Update maximum velocities
         if (translational_velocity_max_.ready()) {
             if (*translational_velocity_max_ != nan)
-                translational_velocity_max = *translational_velocity_max_;
+                translational_velocity_max =
+                    std::clamp(*translational_velocity_max_, 0.0, translational_velocity_limit_);
         }
         if (angular_velocity_max_.ready()) {
             if (*angular_velocity_max_ != nan) {
-                angular_velocity_max = *angular_velocity_max_;
+                angular_velocity_max =
+                    std::clamp(*angular_velocity_max_, 0.0, angular_velocity_limit_);
                 following_velocity_controller_.output_max = angular_velocity_max;
                 following_velocity_controller_.output_min = -angular_velocity_max;
             }
@@ -145,7 +150,7 @@ public:
             && (*auto_pilot_velocity_)[3] != 0) {
             Eigen::Vector2d autopilot_velocity_xy = auto_pilot_velocity_->head<2>();
 
-            // do velocity limiting here.
+            // do velocity limiting for autopilot here.
             if (autopilot_velocity_xy.norm() > translational_velocity_max) {
                 autopilot_velocity_xy.normalize();
                 autopilot_velocity_xy *= translational_velocity_max;
@@ -248,6 +253,9 @@ public:
 private:
     static constexpr double inf = std::numeric_limits<double>::infinity();
     static constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+
+    double translational_velocity_limit_ = 15.0;
+    double angular_velocity_limit_ = 15.0;
 
     // Maximum control velocities
     double translational_velocity_max = 10.0;

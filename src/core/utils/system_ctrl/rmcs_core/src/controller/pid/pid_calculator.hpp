@@ -25,6 +25,8 @@ public:
         err_integral_ = 0;
     }
 
+    void clear_integral() { err_integral_ = 0; }
+
     double integral() const { return err_integral_; }
 
     double update(double err) {
