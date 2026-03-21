@@ -269,7 +269,7 @@ private:
                   {hero, hero_command, "/chassis/right_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
 
-            , supercap_(hero)
+            , supercap_(hero, 29.0)
             , gimbal_yaw_motor_(
                   hero, hero_command, "/gimbal/yaw",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(

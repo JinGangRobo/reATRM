@@ -75,6 +75,9 @@ public:
 
         for (const auto& alive_input : depond_motor_alive_inputs_) {
             if (!**alive_input) {
+                RCLCPP_WARN_THROTTLE(
+                    get_logger(), *get_clock(), 2000,
+                    "One of depond motors is not alive, disabling gimbal control.");
                 return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
             }
         }
