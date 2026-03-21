@@ -38,9 +38,6 @@ public:
         component.register_output("/debug/solver/yaw_err", debug_yaw_err_);
         component.register_output("/debug/solver/pitch", debug_control_pitch_);
         component.register_output("/debug/solver/yaw", debug_control_yaw_);
-        component.register_output("/debug/solver/var1", debug_var1);
-        component.register_output("/debug/solver/var2", debug_var2);
-        component.register_output("/debug/solver/var3", debug_var3);
     }
 
     class SetDisabled : public Operation {
@@ -99,7 +96,7 @@ public:
                 }
                 rotation_axis.normalize();
                 exception_dir.vector = Eigen::AngleAxisd{0.2, rotation_axis} * normalized_dir;
-                
+
                 return exception_dir;
             }
         }
@@ -206,7 +203,8 @@ private:
             return;
         }
 
-        // TODO a better board check
+        // TODO: if you want to measure the upper and lower limit angles, you should disable limit
+        // and let pitch spin to where it should be by itself, and read the debug pitch solver val.
         *debug_control_pitch_ = std::atan2(z, norm);
         *debug_control_yaw_ = std::atan2(y, x);
 
@@ -245,9 +243,6 @@ private:
     rmcs_executor::Component::OutputInterface<double> debug_yaw_err_;
     rmcs_executor::Component::OutputInterface<double> debug_control_pitch_;
     rmcs_executor::Component::OutputInterface<double> debug_control_yaw_;
-    rmcs_executor::Component::OutputInterface<double> debug_var1;
-    rmcs_executor::Component::OutputInterface<double> debug_var2;
-    rmcs_executor::Component::OutputInterface<double> debug_var3;
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
     rmcs_core::utility::LowPassFilter<> pitch_output_filter_{5.0f, 1000.0f};

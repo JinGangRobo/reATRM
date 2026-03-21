@@ -38,8 +38,8 @@ rmcs_executor:
 value_broadcaster:
   ros__parameters:
     forward_list:
-      - /debug/pitch/raw_angle
-      - /debug/yaw/raw_angle
+      - /gimbal/pitch/raw_angle
+      - /debug/solver/pitch
       - /gimbal/pitch/angle
       - /gimbal/yaw/angle
       - /gimbal/pitch/control_torque
@@ -62,7 +62,7 @@ hero_hardware:
     usb_pid_top_board: 0xaaa3
     usb_pid_bottom_board: 0x9f00
     yaw_motor_zero_point: 53099
-    pitch_motor_zero_point: 32163
+    pitch_motor_zero_point: 34342
 
     imu_bias_x: 1
     imu_bias_y: 3
@@ -86,8 +86,8 @@ omni_wheel_controller:
 
 gimbal_controller:
   ros__parameters:
-    upper_limit: -0.5
-    lower_limit: 0.0
+    upper_limit: -0.8
+    lower_limit: 0.1
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
@@ -102,7 +102,7 @@ yaw_angle_pid_controller:
     # feedforward: -/chassis/yaw/velocity_imu
     control: /gimbal/yaw/control_velocity
     enable: /gimbal/yaw/alive
-    kp: 10.0
+    kp: 15.0
     ki: 0.01
     kd: 0.0
     integral_min: -10.0
@@ -117,15 +117,13 @@ yaw_velocity_pid_controller:
     kp: 2.0
     ki: 0.0
     kd: 100.0
-    # output_min: -8.0
-    # output_max: 8.0
 
 pitch_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
     enable: /gimbal/pitch/alive
-    kp: 4.0
+    kp: 10.0
     ki: 0.01
     kd: 0.0
     integral_min: -1.0
@@ -137,11 +135,12 @@ pitch_velocity_pid_controller:
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
     enable: /gimbal/pitch/alive
-    kp: 2.0
-    ki: 0.0
-    kd: 100.0
-    integral_min: -3.0
-    integral_max: 3.0
+    kp: 14.0
+    ki: 0.04
+    kd: 240.0
+
+    # output_min: 0.0
+    # output_max: 0.0
 
 friction_wheel_controller:
   ros__parameters:
