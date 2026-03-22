@@ -33,6 +33,8 @@ rmcs_executor:
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
 
+      - rmcs::AutoAimComponent -> auto_aim_component
+
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
@@ -61,7 +63,7 @@ hero_hardware:
   ros__parameters:
     usb_pid_top_board: 0xaaa3
     usb_pid_bottom_board: 0x9f00
-    yaw_motor_zero_point: 53099
+    yaw_motor_zero_point: 38707
     pitch_motor_zero_point: 34342
 
     imu_bias_x: 1
@@ -72,8 +74,8 @@ hero_hardware:
 
 chassis_controller:
   ros__parameters:
-    translational_velocity_limit: 10.0
-    angular_velocity_limit: 10.0
+    translational_velocity_limit: 20.0
+    angular_velocity_limit: 20.0
 
 omni_wheel_controller:
   ros__parameters:

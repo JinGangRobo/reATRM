@@ -34,7 +34,9 @@ public:
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.16, 0.0, 0.15});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.17, 0.0, 0.05});
+        tf_->set_transform<PitchLink, CameraLink>(
+            Eigen::AngleAxisd{0.10472, Eigen::Vector3d::UnitY()});
 
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
             "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
