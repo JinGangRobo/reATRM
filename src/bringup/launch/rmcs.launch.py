@@ -33,7 +33,7 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
             )
         )
 
-        enable_vision_entities = ["dual-sentry", "dual-infantry", "mec-hero"]
+        enable_vision_entities = ["dual-sentry", "dual-infantry", "mec-hero", "mini-infantry"]
 
         entities.append(
             Node(

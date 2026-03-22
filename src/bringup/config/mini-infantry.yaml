@@ -9,7 +9,7 @@ rmcs_executor:
 
       - rmcs_core::referee::command::Interaction -> referee_interaction
       - rmcs_core::referee::command::interaction::Ui -> referee_ui
-      # - rmcs_core::referee::app::ui::TestMiniInfantryUI -> referee_ui_mini_infantry
+      - rmcs_core::referee::app::ui::MiniInfantry -> referee_ui_mini_infantry
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::pid::ErrorPidController -> yaw_angle_pid_controller
@@ -27,6 +27,8 @@ rmcs_executor:
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
+
+      - rmcs::AutoAimComponent -> auto_aim_component
 
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
@@ -55,21 +57,26 @@ value_broadcaster:
 mini_infantry_hardware:
   ros__parameters:
     usb_pid_top_board: 0x13b4
-    usb_pid_bottom_board: 0x0be4
-    yaw_motor_zero_point: 1500
-    pitch_motor_zero_point: 3498
-    
+    usb_pid_bottom_board: 0xf112
+    yaw_motor_zero_point: 3646
+    pitch_motor_zero_point: 5894
+
     imu_bias_x: 1
     imu_bias_y: 3
     imu_bias_z: 3
 
 gimbal_controller:
   ros__parameters:
-    upper_limit: -0.28
-    lower_limit: 0.35
+    upper_limit: -0.10
+    lower_limit: 0.44
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
+
+chassis_controller:
+  ros__parameters:
+    translational_velocity_limit: 20.0
+    angular_velocity_limit: 15.0
 
 omni_wheel_controller:
   ros__parameters:
@@ -77,17 +84,17 @@ omni_wheel_controller:
     chassis_radius_y: 0.165
     wheel_radius_: 0.07
     friction_coefficient: 0.6
-    
-    spinning_bais_coefficient: -0.042
+
+    spinning_bais_coefficient: -0.02
 
 yaw_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/yaw/control_angle_error
     # feedforward: -/chassis/yaw/velocity_imu
     control: /gimbal/yaw/control_velocity
-    kp: 7.0
-    ki: 0.0
-    kd: 20.0
+    kp: 10.0
+    ki: 0.01
+    kd: 0.0
     integral_min: -10.0
     integral_max: 10.0
 
@@ -96,9 +103,9 @@ yaw_velocity_pid_controller:
     measurement: /gimbal/yaw/velocity_imu
     setpoint: /gimbal/yaw/control_velocity
     control: /gimbal/yaw/control_torque
-    kp: 1.0
-    ki: 0.01
-    kd: 40.0
+    kp: 4.0
+    ki: 0.02
+    kd: 50.0
     integral_min: -60.0
     integral_max: 60.0
 
@@ -107,8 +114,8 @@ pitch_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
-    kp: 9.0
-    ki: 0.0
+    kp: 10.0
+    ki: 0.01
     kd: 0.0
     integral_min: -1.0
     integral_max: 1.0
@@ -118,9 +125,9 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
-    kp: 3.0
-    ki: 0.02
-    kd: 50.0
+    kp: 1.2
+    ki: 0.01
+    kd: 0.0
     integral_min: -30.0
     integral_max: 30.0
 

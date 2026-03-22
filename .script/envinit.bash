@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # export ROS_LOCALHOST_ONLY=1
-export RMCS_ROBOT_TYPE=mec-hero
+export RMCS_ROBOT_TYPE=
 
 export ROS_DOMAIN_ID=10
 

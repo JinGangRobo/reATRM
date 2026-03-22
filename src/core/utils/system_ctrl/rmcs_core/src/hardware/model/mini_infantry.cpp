@@ -32,7 +32,7 @@ public:
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.16, 0.0, 0.15});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.022, -0.078, 0.046});
 
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
             "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
@@ -125,12 +125,6 @@ private:
 
             mini_infantry.register_output("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
             mini_infantry.register_output("/gimbal/pitch/velocity_imu", gimbal_pitch_velocity_imu_);
-
-            mini_infantry.register_output("/debug/pitch/raw_angle", debug_pitch_raw_angle_);
-            mini_infantry.register_output("/debug/pitch/temp", debug_pitch_temp);
-            mini_infantry.register_output("/debug/imu/gx_bais", debug_imu_gx_bais_);
-            mini_infantry.register_output("/debug/imu/gy_bais", debug_imu_gy_bais_);
-            mini_infantry.register_output("/debug/imu/gz_bais", debug_imu_gz_bais_);
         }
 
         ~TopBoard() final {
@@ -150,7 +144,7 @@ private:
                 gimbal_imu_pose.conjugate());
             tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
                 gimbal_imu_pose);
-            fast_tf::rcl::broadcast_all(*tf_);
+            // fast_tf::rcl::broadcast_all(*tf_);
 
             dr16_.update_status();
 
@@ -163,7 +157,7 @@ private:
             tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
                 gimbal_pitch_motor_.angle());
 
-            fast_tf::rcl::broadcast_all(*tf_);
+            // fast_tf::rcl::broadcast_all(*tf_);
 
             gimbal_left_friction_.update_status();
             gimbal_right_friction_.update_status();
@@ -182,7 +176,7 @@ private:
             batch_commands[1] = 0;
             batch_commands[2] = 0;
             batch_commands[3] = 0;
-            transmit_buffer_.add_can2_transmission(0x1FF, std::bit_cast<uint64_t>(batch_commands));
+            transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(batch_commands));
 
             transmit_buffer_.trigger_transmission();
         }
@@ -198,18 +192,18 @@ private:
                 gimbal_left_friction_.store_status(can_data);
             } else if (can_id == 0x202) {
                 gimbal_right_friction_.store_status(can_data);
+            } else if (can_id == 0x205) {
+                gimbal_pitch_motor_.store_status(can_data);
             }
         }
 
         void can2_receive_callback(
             uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
             bool is_remote_transmission, uint8_t can_data_length) override {
+            (void)can_id;
+            (void)can_data;
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
-
-            if (can_id == 0x205) {
-                gimbal_pitch_motor_.store_status(can_data);
-            }
         }
 
         void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
@@ -272,6 +266,10 @@ private:
                       .enable_multi_turn_angle()
                       .set_reversed())
             , chassis_wheel_motors_(
+                  {mini_infantry, mini_infantry_command, "/chassis/right_front_wheel",
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reduction_ratio(268.0 / 17.0)
+                       .set_reversed()},
                   {mini_infantry, mini_infantry_command, "/chassis/left_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
                        .set_reduction_ratio(268.0 / 17.0)
@@ -281,10 +279,6 @@ private:
                        .set_reduction_ratio(268.0 / 17.0)
                        .set_reversed()},
                   {mini_infantry, mini_infantry_command, "/chassis/right_back_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
-                       .set_reduction_ratio(268.0 / 17.0)
-                       .set_reversed()},
-                  {mini_infantry, mini_infantry_command, "/chassis/right_front_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
                        .set_reduction_ratio(268.0 / 17.0)
                        .set_reversed()})
@@ -304,7 +298,6 @@ private:
 
             mini_infantry.register_output(
                 "/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_, 0);
-            mini_infantry.register_output("/debug/yaw/raw_angle", debug_yaw_raw_angle_, 0);
         }
 
         ~BottomBoard() final {
@@ -322,7 +315,7 @@ private:
             tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
                 gimbal_yaw_motor_.angle());
 
-            fast_tf::rcl::broadcast_all(*tf_);
+            // fast_tf::rcl::broadcast_all(*tf_);
 
             gimbal_bullet_feeder_.update_status();
 
