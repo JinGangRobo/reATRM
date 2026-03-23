@@ -36,7 +36,7 @@ public:
         for (const auto& motor_ : depond_motors_) {
             auto motor_alive_input = std::make_unique<InputInterface<bool>>();
             register_input(motor_ + "/alive", *motor_alive_input);
-            depond_motor_alive_inputs_.push_back(std::move(motor_alive_input));
+            depond_motor_alive_inputs_[motor_.c_str()] = std::move(motor_alive_input);
         }
 
         register_input("/remote/joystick/left", joystick_left_);
@@ -74,10 +74,10 @@ public:
             return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
 
         for (const auto& alive_input : depond_motor_alive_inputs_) {
-            if (!**alive_input) {
+            if (!**alive_input.second) {
                 RCLCPP_WARN_THROTTLE(
-                    get_logger(), *get_clock(), 2000,
-                    "One of depond motors is not alive, disabling gimbal control.");
+                    get_logger(), *get_clock(), 2000, "%s is not alive, disabling gimbal control.",
+                    alive_input.first.c_str());
                 return two_axis_gimbal_solver.update(TwoAxisGimbalSolver::SetDisabled());
             }
         }
@@ -161,7 +161,7 @@ private:
     double joystick_left_bias_x_ = 0.0;
     double shift_control_clamp_ = 0.01;
     std::vector<std::string> depond_motors_ = {};
-    std::vector<std::unique_ptr<InputInterface<bool>>> depond_motor_alive_inputs_ = {};
+    std::map<std::string, std::unique_ptr<InputInterface<bool>>> depond_motor_alive_inputs_ = {};
 };
 
 } // namespace rmcs_core::controller::gimbal
