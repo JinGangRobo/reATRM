@@ -16,6 +16,7 @@
 
 #include "hardware/device/bmi088.hpp"
 #include "hardware/device/dji_motor.hpp"
+#include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
 #include "hardware/device/gy614.hpp"
 #include "hardware/device/supercap.hpp"
@@ -116,7 +117,7 @@ private:
                         dual_infantry.get_parameter("top_yaw_motor_zero_point").as_int())));
 
             gimbal_pitch_motor_.configure(
-                device::DjiMotor::Config{device::DjiMotor::Type::GM6020}
+                device::DmMotor::Config{device::DmMotor::Type::J4310}
                     .set_encoder_zero_point(
                         static_cast<int>(
                             dual_infantry.get_parameter("pitch_motor_zero_point").as_int()))
@@ -193,7 +194,7 @@ private:
 
             can_commands[0] = 0;
             can_commands[1] = gimbal_top_yaw_motor_.generate_command();
-            can_commands[2] = gimbal_pitch_motor_.generate_command();
+            can_commands[2] = 0;
             can_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(can_commands));
 
@@ -202,6 +203,9 @@ private:
             can_commands[2] = gimbal_bullet_feeder_.generate_command();
             can_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
+
+            transmit_buffer_.add_can2_transmission(
+                0x3, gimbal_pitch_motor_.generate_torque_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -215,8 +219,6 @@ private:
 
             if (can_id == 0x206) {
                 gimbal_top_yaw_motor_.store_status(can_data);
-            } else if (can_id == 0x207) {
-                gimbal_pitch_motor_.store_status(can_data);
             } else if (can_id == 0x202) {
                 gimbal_left_friction_.store_status(can_data);
             } else if (can_id == 0x201) {
@@ -229,10 +231,12 @@ private:
         void can2_receive_callback(
             uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
             bool is_remote_transmission, uint8_t can_data_length) override {
-            (void)can_id;
-            (void)can_data;
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
+
+            if (can_id == 0x213) {
+                gimbal_pitch_motor_.store_status(can_data);
+            }
         }
 
         void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
@@ -271,7 +275,7 @@ private:
         rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{30.0f, 1000.0f};
 
         device::DjiMotor gimbal_top_yaw_motor_;
-        device::DjiMotor gimbal_pitch_motor_;
+        device::DmMotor gimbal_pitch_motor_;
 
         device::DjiMotor gimbal_left_friction_;
         device::DjiMotor gimbal_right_friction_;
