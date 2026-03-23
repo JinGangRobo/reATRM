@@ -162,14 +162,17 @@ public:
 
         static auto color{Shape::Color::WHITE};
 
-        if (auto_aim_enable) {
-            color = Shape::Color::ORANGE;
-        } else {
-            if (precise_enable) {
-                color = Shape::Color::CYAN;
-            }
-            if (auto_aim_tracking) {
+        if (auto_aim_tracking) {
+            if (auto_aim_enable) {
                 color = Shape::Color::PINK;
+            } else {
+                color = Shape::Color::ORANGE;
+            }
+        } else {
+            if (auto_aim_enable) {
+                color = Shape::Color::GREEN;
+            } else {
+                color = Shape::Color::WHITE;
             }
         }
         if (!static_enable) {

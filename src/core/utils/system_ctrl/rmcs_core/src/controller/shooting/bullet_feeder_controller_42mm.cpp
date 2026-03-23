@@ -211,7 +211,7 @@ private:
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
     static constexpr double inf_ = std::numeric_limits<double>::infinity();
 
-    static constexpr double bullet_feeder_compressed_zero_point_ = 1.1;
+    static constexpr double bullet_feeder_compressed_zero_point_ = 1.05;
     static constexpr double bullet_feeder_angle_per_bullet_ = 2 * std::numbers::pi / 5;
 
     InputInterface<bool> friction_ready_;
