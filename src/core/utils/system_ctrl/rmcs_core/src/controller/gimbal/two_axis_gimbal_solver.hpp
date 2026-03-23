@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 
 #include <limits>
@@ -121,7 +122,14 @@ public:
                 dir = fast_tf::cast<PitchLink>(super.control_direction_, *super.tf_);
             }
 
-            auto yaw_transform = Eigen::AngleAxisd{yaw_shift_, Eigen::Vector3d::UnitZ()};
+            auto yaw_transform = Eigen::AngleAxisd{
+                std::isnan(super.last_yaw_error_)
+                        || ((super.last_yaw_error_ * yaw_shift_) > 0.0
+                            && std::abs(super.last_yaw_error_) > 0.4)
+                    ? 0.0
+                    : yaw_shift_,
+                Eigen::Vector3d::UnitZ()};
+
             auto pitch_transform = Eigen::AngleAxisd{pitch_shift_, Eigen::Vector3d::UnitY()};
 
             return PitchLink::DirectionVector{pitch_transform * (yaw_transform * (*dir))};
@@ -138,14 +146,18 @@ public:
         update_yaw_axis();
 
         PitchLink::DirectionVector control_direction = operation.update(*this);
-        if (!control_enabled_)
+        if (!control_enabled_) {
+            last_yaw_error_ = nan_;
             return {nan_, nan_};
+        }
 
         auto [control_direction_yaw_link, pitch] = pitch_link_to_yaw_link(control_direction);
 
         clamp_control_direction(control_direction_yaw_link);
-        if (!control_enabled_)
+        if (!control_enabled_) {
+            last_yaw_error_ = nan_;
             return {nan_, nan_};
+        }
 
         control_direction_ =
             fast_tf::cast<OdomImu>(yaw_link_to_pitch_link(control_direction_yaw_link, pitch), *tf_);
@@ -220,10 +232,14 @@ private:
         const auto& [c, s] = pitch;
 
         AngleError result;
-        result.yaw_angle_error = yaw_output_filter_.update(std::atan2(y, x));
+        result.yaw_angle_error = std::clamp(
+            yaw_output_filter_.update(std::atan2(y, x)), -std::numbers::pi / 3,
+            std::numbers::pi / 3);
         double x_projected = std::sqrt(x * x + y * y);
         result.pitch_angle_error = pitch_output_filter_.update(
             -std::atan2(z * c - x_projected * s, z * s + x_projected * c));
+
+        last_yaw_error_ = result.yaw_angle_error;
 
         *debug_pitch_err_ = result.pitch_angle_error;
         *debug_yaw_err_ = result.yaw_angle_error;
@@ -243,6 +259,8 @@ private:
     rmcs_executor::Component::OutputInterface<double> debug_yaw_err_;
     rmcs_executor::Component::OutputInterface<double> debug_control_pitch_;
     rmcs_executor::Component::OutputInterface<double> debug_control_yaw_;
+
+    double last_yaw_error_ = 0.0;
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
     rmcs_core::utility::LowPassFilter<> pitch_output_filter_{5.0f, 1000.0f};

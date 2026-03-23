@@ -56,7 +56,7 @@ public:
     void update() override {
         if (std::isnan(*top_yaw_target_error_) || std::isnan(*bottom_yaw_target_error_)
             || std::isnan(*top_yaw_target_velocity_) || std::isnan(*bottom_yaw_target_velocity_)
-            || std::isnan(*top_yaw_velocity_) || std::isnan(*estimated_bottom_yaw_velocity_)) {
+            || std::isnan(*estimated_bottom_yaw_velocity_)) {
             *top_yaw_control_torque_ = nan_;
             *bottom_yaw_control_torque_ = nan_;
             return;
@@ -107,7 +107,6 @@ private:
 
     InputInterface<double> top_yaw_target_error_, bottom_yaw_target_error_;
     InputInterface<double> top_yaw_target_velocity_, bottom_yaw_target_velocity_;
-    InputInterface<double> top_yaw_velocity_;
     InputInterface<double> estimated_bottom_yaw_velocity_;
     InputInterface<double> gimbal_yaw_velocity_imu_;
 
