@@ -6,16 +6,17 @@ rmcs_executor:
 
       - rmcs_core::referee::Status -> referee_status
       - rmcs_core::referee::Command -> referee_command
-      
+
       - rmcs_core::referee::command::Interaction -> referee_interaction
       - rmcs_core::referee::command::interaction::Ui -> referee_ui
       - rmcs_core::referee::app::ui::DualSentry -> dual_infantry_ui
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
+      - rmcs_core::controller::gimbal::DualYawSolver -> dual_yaw_slover
       - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
       - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
-      
+
       # - rmcs_core::controller::chassis::OperateLogic -> operate_logic
       - rmcs_core::controller::shooting::FrictionWheelController -> friction_wheel_controller
       - rmcs_core::controller::shooting::HeatController -> heat_controller
@@ -25,7 +26,7 @@ rmcs_executor:
       - rmcs_core::controller::pid::PidController -> bullet_feeder_velocity_pid_controller
 
       - rmcs::AutoAimComponent -> auto_aim_component
-      
+
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
       - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
@@ -37,8 +38,8 @@ value_broadcaster:
     forward_list:
       - /gimbal/pitch/control_velocity
       - /gimbal/pitch/velocity_filtered
-      - /debug/pitch/raw_angle
-      - /gimbal/pitch/angle
+      - /gimbal/pitch/raw_angle
+      - /gimbal/bottom_yaw/raw_angle
       - /gimbal/pitch/control_torque
       - /gimbal/pitch/control_angle_error
       - /debug/solver/pitch
@@ -52,14 +53,15 @@ value_broadcaster:
       - /chassis/supercap/voltage
       - /chassis/angular_vmax
       - /chassis/translational_vmax
+      - /debug/sliding_value
 
 dual_infantry_hardware:
   ros__parameters:
-    usb_pid_top_board: 0xf112
-    usb_pid_bottom_board: 0x9d15
-    bottom_yaw_motor_zero_point: -2800
-    top_yaw_motor_zero_point: 7800
-    pitch_motor_zero_point: 1600
+    usb_pid_top_board: 0x9d15
+    usb_pid_bottom_board: 0x34a4
+    bottom_yaw_motor_zero_point: 6705
+    top_yaw_motor_zero_point: 7850
+    pitch_motor_zero_point: 35030
 
     imu_bias_x: 3
     imu_bias_y: 8
@@ -72,27 +74,33 @@ gimbal_controller:
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
-    
+
     depond_motors:
       - /gimbal/pitch
       - /gimbal/top_yaw
       - /gimbal/bottom_yaw
-    
 
 dual_yaw_controller:
   ros__parameters:
     top_yaw_angle_kp: 15.0
-    top_yaw_angle_ki: 0.01
+    top_yaw_angle_ki: 0.0
     top_yaw_angle_kd: 0.0
-    top_yaw_velocity_kp: 2.8
+    top_yaw_velocity_kp: 2.0
     top_yaw_velocity_ki: 0.01
     top_yaw_velocity_kd: 0.0
-    bottom_yaw_angle_kp: 5.0
-    bottom_yaw_angle_ki: 0.0
-    bottom_yaw_angle_kd: 0.0
-    bottom_yaw_velocity_kp: 2.3
-    bottom_yaw_velocity_ki: 0.0
-    bottom_yaw_velocity_kd: 0.0
+
+    bottom_yaw_smc_c: 20.0
+    bottom_yaw_smc_k: 3.0
+    bottom_yaw_smc_epsilon: 1.0
+    bottom_yaw_smc_phi: 2.0
+    bottom_yaw_inertia: 0.2251
+    bottom_yaw_max_torque: 400.0
+
+chassis_controller:
+  ros__parameters:
+    translational_velocity_limit: 99.0
+    angular_velocity_limit: 15.0
+    autopilot_spin_velocity_default: 2.0
 
 omni_wheel_controller:
   ros__parameters:
@@ -100,21 +108,17 @@ omni_wheel_controller:
     chassis_radius_y: 0.165
     wheel_radius_: 0.07
     friction_coefficient: 0.6
-    
+
     spinning_bais_coefficient: -0.055
-
-
-
- 
 
 pitch_angle_err_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
     enable: /gimbal/pitch/alive
-    kp: 10.0
-    ki: 0.03
-    kd: 0.0
+    kp: 8.0
+    ki: 0.001
+    kd: 1.0
     integral_min: -5.0
     integral_max: 5.0
 
@@ -124,11 +128,13 @@ pitch_velocity_pid_controller:
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
     enable: /gimbal/pitch/alive
-    kp: 1.8
-    ki: 0.02
-    kd: 60.0
-    integral_min: -20.0
-    integral_max: 20.0
+    kp: 2.5
+    ki: 0.05
+    kd: 45.0
+    integral_min: -25.0
+    integral_max: 25.0
+    output_min: -5.0
+    output_max: 5.0
 
 friction_wheel_controller:
   ros__parameters:
