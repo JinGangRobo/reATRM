@@ -336,7 +336,7 @@ private:
         void update() {
             imu_.update_status();
 
-            *chassis_yaw_velocity_imu_ = imu_.gz();
+            *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
 
             gimbal_bottom_yaw_motor_.update_status();
             tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
@@ -420,6 +420,8 @@ private:
 
         librmcs::utility::RingBuffer<std::byte> referee_ring_buffer_receive_{256};
         OutputInterface<rmcs_msgs::SerialInterface> referee_serial_;
+
+        utility::LowPassFilter<> imu_gz_velocity_filter_{4.0f, 1000.0f};
 
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;
