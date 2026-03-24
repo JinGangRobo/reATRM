@@ -62,6 +62,21 @@ public:
             return;
         }
 
+        if (std::abs(*bottom_yaw_target_error_) > top_yaw_angle_limit_
+            || std::abs(*top_yaw_target_error_) > top_yaw_angle_limit_) {
+            RCLCPP_WARN_THROTTLE(
+                this->get_logger(), *this->get_clock(), 1000,
+                "Top yaw angle is near limit, resetting PID.");
+            top_yaw_angle_pid_.clear_integral();
+            top_yaw_velocity_pid_.clear_integral();
+        }
+
+        if (*top_yaw_target_error_ * top_yaw_angle_pid_.integral() < 0) {
+            // If the error sign changes, reset the PID to prevent overshoot
+            top_yaw_angle_pid_.clear_integral();
+            top_yaw_velocity_pid_.clear_integral();
+        }
+
         double desired_top_vel =
             top_yaw_angle_pid_.update(utility::angle_wraper::wrap_to_pi(*top_yaw_target_error_))
             + *top_yaw_target_velocity_;
@@ -104,6 +119,8 @@ private:
     double accel_ff_alpha_ = 0.3;
     double accel_ff_filtered_ = 0.0;
     double prev_bottom_target_vel_ = 0.0;
+
+    double top_yaw_angle_limit_ = 0.9;
 
     InputInterface<double> top_yaw_target_error_, bottom_yaw_target_error_;
     InputInterface<double> top_yaw_target_velocity_, bottom_yaw_target_velocity_;
