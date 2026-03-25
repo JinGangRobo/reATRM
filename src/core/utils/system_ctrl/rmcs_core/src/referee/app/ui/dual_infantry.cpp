@@ -12,6 +12,7 @@
 #include <rmcs_msgs/operate_mode.hpp>
 #include <rmcs_msgs/shoot_mode.hpp>
 #include <rmcs_utility/tick_timer.hpp>
+#include <utility/angle_warper.hpp>
 
 #include "referee/app/ui/shape/shape.hpp"
 #include "referee/app/ui/widget/status_bar.hpp"
@@ -143,12 +144,9 @@ private:
             return static_cast<int>(
                 std::round((2 * std::numbers::pi - angle) / std::numbers::pi * 180));
         };
-        auto unify_angle = [](int angle) {
-            while (angle >= 360)
-                angle -= 360;
-            while (angle < 0)
-                angle += 360;
-            return angle;
+        auto unify_angle = [](int angle) constexpr noexcept {
+            angle %= 360;
+            return (angle < 0) ? (angle + 360) : angle;
         };
 
         for (int i = 0; i < 4; ++i) {
