@@ -35,16 +35,15 @@ rmcs_executor:
 value_broadcaster:
   ros__parameters:
     forward_list:
-      - /debug/pitch/raw_angle
-      - /debug/yaw/raw_angle
+      - /gimbal/pitch/raw_angle
       - /gimbal/pitch/angle
-      - /gimbal/yaw/angle
+      - /gimbal/yaw/raw_angle
       - /gimbal/pitch/control_torque
       - /gimbal/yaw/control_angle_error
       - /gimbal/pitch/control_angle_error
       - /gimbal/pitch/velocity_imu
       - /gimbal/yaw/velocity_imu
-      - /debug/feeder/temp
+      - /debug/solver/pitch
       - /gimbal/bullet_feeder/velocity
       - /gimbal/bullet_feeder/torque
       - /gimbal/bullet_feeder/control_torque
@@ -53,13 +52,14 @@ value_broadcaster:
       - /chassis/yaw/velocity_imu
       - /gimbal/left_friction/velocity
       - /referee/shooter/initial_speed
+      - /referee/chassis/current_hp
 
 mini_infantry_hardware:
   ros__parameters:
     usb_pid_top_board: 0x13b4
     usb_pid_bottom_board: 0xf112
-    yaw_motor_zero_point: 3646
-    pitch_motor_zero_point: 5894
+    yaw_motor_zero_point: 1482
+    pitch_motor_zero_point: 4678
 
     imu_bias_x: 1
     imu_bias_y: 3
