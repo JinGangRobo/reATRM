@@ -6,6 +6,9 @@ ARG USER_GID=$USER_UID
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash
 ENV ROS_DISTRO=jazzy
+ENV TZ=Asia/Shanghai
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN if id -u $USER_UID ; then userdel `id -un $USER_UID` ; fi
 
