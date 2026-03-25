@@ -9,6 +9,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:bind
       - /run/user/1000/wayland-0:/run/user/1000/wayland-0
       - .:/home/ws:bind
+      - ./.log:/home/cvdoc/.ros/log:bind
     environment:
       - DISPLAY=:0
     network_mode: host
