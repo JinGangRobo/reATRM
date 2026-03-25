@@ -89,11 +89,12 @@ dual_yaw_controller:
     top_yaw_velocity_ki: 0.01
     top_yaw_velocity_kd: 0.0
 
-    bottom_yaw_smc_c: 20.0
-    bottom_yaw_smc_k: 2.5
+    bottom_yaw_smc_c: 4.0
+    bottom_yaw_smc_k: 1.5
     bottom_yaw_smc_epsilon: 1.0
     bottom_yaw_smc_phi: 2.0
-    bottom_yaw_inertia: 0.3
+    bottom_yaw_inertia: 2.0
+
     bottom_yaw_max_torque: 16384.0
 
 chassis_controller:
