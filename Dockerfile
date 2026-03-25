@@ -99,6 +99,7 @@ RUN sudo curl -o /etc/ros/rosdep/sources.list.d/20-default.list -L https://mirro
 RUN export ROSDISTRO_INDEX_URL=https://mirrors.tuna.tsinghua.edu.cn/rosdistro/index-v4.yaml && rosdep update || true
 
 RUN --mount=type=bind,target=/home/ws,source=.,readonly=false cd /home/ws \
+    && mkdir .log || true \
     && sudo cp /home/ws/.script/atrm-service /etc/init.d/atrm || true \ 
     && sudo cp /home/ws/.script/entrypoint /entrypoint.sh \
     && sudo chown $USERNAME:$USERNAME /entrypoint.sh && sudo chmod +x /entrypoint.sh \

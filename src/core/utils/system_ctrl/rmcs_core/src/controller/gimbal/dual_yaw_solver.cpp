@@ -195,7 +195,7 @@ private:
                 process_model, measurement_model, process_jacobian, measurement_jacobian, Q, R);
         }
 
-        double normalize_angle(double angle) const {
+        double normalize_angle(double angle) const { // TODO: May cause problem, replace it.
             while (angle > M_PI)
                 angle -= 2 * M_PI;
             while (angle < -M_PI)
