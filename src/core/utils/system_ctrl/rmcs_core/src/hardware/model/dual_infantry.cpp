@@ -38,7 +38,7 @@ public:
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.15, -0.09, 0.02});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.084, 0.0, 0.048});
 
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
             "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
@@ -124,11 +124,11 @@ private:
                     .set_reversed());
 
             gimbal_left_friction_.configure(
-                device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
-            gimbal_right_friction_.configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::M3508}
                     .set_reduction_ratio(1.)
                     .set_reversed());
+            gimbal_right_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
 
             gimbal_bullet_feeder_.configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::M3508}

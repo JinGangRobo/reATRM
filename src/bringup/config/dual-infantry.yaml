@@ -90,7 +90,7 @@ dual_yaw_controller:
     top_yaw_velocity_kd: 0.0
 
     bottom_yaw_smc_c: 20.0
-    bottom_yaw_smc_k: 3.0
+    bottom_yaw_smc_k: 2.5
     bottom_yaw_smc_epsilon: 1.0
     bottom_yaw_smc_phi: 2.0
     bottom_yaw_inertia: 0.2251
