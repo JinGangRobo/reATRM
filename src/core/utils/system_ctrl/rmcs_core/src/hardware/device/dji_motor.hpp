@@ -5,6 +5,8 @@
 
 #include <cstdint>
 #include <librmcs/device/dji_motor.hpp>
+#include <rclcpp/logger.hpp>
+#include <rclcpp/logging.hpp>
 #include <rmcs_executor/component.hpp>
 
 namespace rmcs_core::hardware::device {
@@ -25,6 +27,10 @@ public:
         status_component.register_output(name_prefix + "/alive", alive_, false);
 
         command_component.register_input(name_prefix + "/control_torque", control_torque_, false);
+
+        motor_name_ = name_prefix;
+        alive_watchdog_.reset(50);
+        throttle_clock_.reset(3000);
     }
 
     DjiMotor(
@@ -42,9 +48,16 @@ public:
 
     void update_status() {
         librmcs::device::DjiMotor::update_status();
-        if (alive_watchdog_.tick()) {
+
+        if (alive_watchdog_.tick())
             *alive_ = false;
-        }
+
+        if (!*alive_) [[unlikely]]
+            if (throttle_clock_.tick()) {
+                throttle_clock_.reset(3000);
+                RCLCPP_WARN(
+                    rclcpp::get_logger("HW_Diag"), "Dji Motor %s offline!", motor_name_.c_str());
+            }
 
         *angle_ = angle();
         *raw_angle_ = last_raw_angle();
@@ -82,7 +95,9 @@ private:
 
     rmcs_executor::Component::InputInterface<double> control_torque_;
 
+    std::string motor_name_;
     rmcs_utility::TickTimer alive_watchdog_;
+    rmcs_utility::TickTimer throttle_clock_;
     rmcs_core::utility::LowPassFilter<> velocity_lpf_{4, 1000};
 };
 

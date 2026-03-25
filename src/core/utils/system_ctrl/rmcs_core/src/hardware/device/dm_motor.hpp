@@ -5,7 +5,10 @@
 #include "rmcs_utility/tick_timer.hpp"
 #include "utility/low_pass_filter.hpp"
 #include <librmcs/device/dm_motor.hpp>
+#include <rclcpp/logger.hpp>
+#include <rclcpp/logging.hpp>
 #include <rmcs_executor/component.hpp>
+#include <string>
 
 namespace rmcs_core::hardware::device {
 
@@ -27,6 +30,10 @@ public:
             name_prefix + "/control_velocity", control_velocity_, false);
         status_component.register_output(
             name_prefix + "/velocity_filtered", velocity_filtered_, 0.0);
+
+        motor_name_ = name_prefix;
+        alive_watchdog_.reset(50);
+        throttle_clock_.reset(3000);
     }
 
     DmMotor(
@@ -44,9 +51,16 @@ public:
 
     void update_status() {
         librmcs::device::DmMotor::update_status();
+
         if (alive_watchdog_.tick()) {
             *alive_ = false;
         }
+        if (!*alive_) [[unlikely]]
+            if (throttle_clock_.tick()) {
+                throttle_clock_.reset(3000);
+                RCLCPP_WARN(
+                    rclcpp::get_logger("HW_Diag"), "Dm Motor %s offline!", motor_name_.c_str());
+            }
 
         *angle_ = angle();
         *raw_angle_ = last_raw_angle();
@@ -94,7 +108,9 @@ private:
     rmcs_executor::Component::InputInterface<double> control_velocity_;
     rmcs_executor::Component::InputInterface<double> control_torque_;
 
+    std::string motor_name_;
     rmcs_utility::TickTimer alive_watchdog_;
+    rmcs_utility::TickTimer throttle_clock_;
     rmcs_core::utility::LowPassFilter<> velocity_lpf_{4, 1000};
 };
 

@@ -22,6 +22,7 @@ public:
         status_component.register_output("/chassis/supercap/enabled", supercap_enabled_, false);
 
         supercap_watchdog_.reset(1'000);
+        throttle_clock_.reset(3'000);
     }
 
     void store_status(uint64_t can_data) {
@@ -34,7 +35,6 @@ public:
         if (supercap_watchdog_.tick()) {
             *supercap_enabled_ = false;
             is_data_valid_ = false;
-            return;
         }
         if (is_data_valid_) {
             auto status = can_data_.load(std::memory_order::relaxed);
@@ -46,6 +46,9 @@ public:
                  / (std::pow(max_capacity_voltage_, 2) - low_power_const))
                 * 100.0;
             *supercap_enabled_ = status.supcap_status;
+        } else if (throttle_clock_.tick()) {
+            throttle_clock_.reset(3000);
+            RCLCPP_WARN(rclcpp::get_logger("HW_Diag"), "Supercap offline!");
         }
     }
 
@@ -76,6 +79,7 @@ private:
 
     bool is_data_valid_ = false;
     rmcs_utility::TickTimer supercap_watchdog_;
+    rmcs_utility::TickTimer throttle_clock_;
 
     Component::OutputInterface<double> chassis_power_;
     Component::OutputInterface<double> supercap_voltage_;
