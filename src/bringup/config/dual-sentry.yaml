@@ -12,6 +12,7 @@ rmcs_executor:
       - rmcs_core::referee::app::ui::DualSentry -> dual_sentry
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
+      - rmcs_core::controller::gimbal::DualYawSolver -> dual_yaw_slover
       - rmcs_core::controller::gimbal::DualYawController -> dual_yaw_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
       - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
@@ -68,9 +69,8 @@ dual_sentry_hardware:
 chassis_controller:
   ros__parameters:
     translational_velocity_limit: 99.0
-    angular_velocity_limit: 15.0
+    angular_velocity_limit: 14.0
     autopilot_spin_velocity_default: 2.0
-
 
 operate_logic:
   ros__parameters:
@@ -79,7 +79,7 @@ operate_logic:
 
 gimbal_controller:
   ros__parameters:
-    shift_control_clamp: 0.005
+    shift_control_clamp: 0.0045
 
     upper_limit: -0.35
     lower_limit: 0.5
@@ -97,22 +97,16 @@ dual_yaw_controller:
     top_yaw_angle_kp: 15.0
     top_yaw_angle_ki: 0.0
     top_yaw_angle_kd: 0.0
-    top_yaw_velocity_kp: 2.8
+    top_yaw_velocity_kp: 2.0
     top_yaw_velocity_ki: 0.01
     top_yaw_velocity_kd: 0.0
 
-    bottom_yaw_angle_kp: 1.2
-    bottom_yaw_angle_ki: 0.0
-    bottom_yaw_angle_kd: 0.0
-    bottom_yaw_velocity_kp: 11.5
-    bottom_yaw_velocity_ki: 0.07
-    bottom_yaw_velocity_kd: 0.0
-
-    bottom_yaw_velocity_integral_min: -20.0
-    bottom_yaw_velocity_integral_max: 20.0
-
-    top_yaw_velocity_output_max: 35.0
-    top_yaw_velocity_output_min: -35.0
+    bottom_yaw_smc_c: 20.0
+    bottom_yaw_smc_k: 2.5
+    bottom_yaw_smc_epsilon: 1.0
+    bottom_yaw_smc_phi: 2.0
+    bottom_yaw_inertia: 0.3
+    bottom_yaw_max_torque: 16384.0
 
 omni_wheel_controller:
   ros__parameters:
@@ -145,8 +139,6 @@ pitch_velocity_pid_controller:
     kd: 45.0
     integral_min: -25.0
     integral_max: 25.0
-    output_min: -2.0
-    output_max: 2.0
 
 friction_wheel_controller:
   ros__parameters:
