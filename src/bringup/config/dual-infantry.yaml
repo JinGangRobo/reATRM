@@ -9,7 +9,7 @@ rmcs_executor:
 
       - rmcs_core::referee::command::Interaction -> referee_interaction
       - rmcs_core::referee::command::interaction::Ui -> referee_ui
-      - rmcs_core::referee::app::ui::DualSentry -> dual_infantry_ui
+      - rmcs_core::referee::app::ui::DualInfantry -> dual_infantry_ui
 
       - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
       - rmcs_core::controller::gimbal::DualYawSolver -> dual_yaw_slover
@@ -93,13 +93,13 @@ dual_yaw_controller:
     bottom_yaw_smc_k: 2.5
     bottom_yaw_smc_epsilon: 1.0
     bottom_yaw_smc_phi: 2.0
-    bottom_yaw_inertia: 0.2251
-    bottom_yaw_max_torque: 400.0
+    bottom_yaw_inertia: 0.3
+    bottom_yaw_max_torque: 16384.0
 
 chassis_controller:
   ros__parameters:
     translational_velocity_limit: 99.0
-    angular_velocity_limit: 15.0
+    angular_velocity_limit: 14.0
     autopilot_spin_velocity_default: 2.0
 
 omni_wheel_controller:
@@ -133,8 +133,6 @@ pitch_velocity_pid_controller:
     kd: 45.0
     integral_min: -25.0
     integral_max: 25.0
-    output_min: -5.0
-    output_max: 5.0
 
 friction_wheel_controller:
   ros__parameters:
