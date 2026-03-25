@@ -73,6 +73,8 @@ public:
 
         register_input("/gimbal/shooter/mode", shoot_mode_);
         register_input("/gimbal/shooter/heat", shooter_heat_);
+        register_input(
+            "/gimbal/control_bullet_allowance/limited_by_heat", bullet_allowance_limit_by_heat_);
 
         register_input("/remote/mouse", mouse_);
 
@@ -116,7 +118,8 @@ private:
             *chassis_power_, *chassis_control_power_limit_,
             operate_mode_.ready() ? *operate_mode_ == rmcs_msgs::OperateMode::ASSIST : false);
         status_bar_.update_dynamic_part(
-            *shooter_heat_limit_ - *shooter_heat_, *robot_bullet_allowance_, *center_area_status_);
+            *shooter_heat_limit_ - *shooter_heat_, *robot_bullet_allowance_, *center_area_status_,
+            *bullet_allowance_limit_by_heat_);
     }
 
     void update_time_reminder() {
@@ -229,6 +232,7 @@ private:
     InputInterface<uint16_t> robot_bullet_allowance_;
     InputInterface<int64_t> shooter_heat_;
     InputInterface<int64_t> shooter_heat_limit_;
+    InputInterface<int64_t> bullet_allowance_limit_by_heat_;
 
     InputInterface<double> first_friction_control_velocity_;
     InputInterface<double> first_friction_velocity_;

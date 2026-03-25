@@ -32,13 +32,13 @@ public:
         line_bar_bullet_.set_width(10);
         line_bar_bullet_.set_color(Shape::Color::CYAN);
 
-        integer_bullet_count_ten_.set_x(x_center - 40);
+        integer_bullet_count_ten_.set_x(x_center + 20);
         integer_bullet_count_ten_.set_y(y_center - 285);
         integer_bullet_count_ten_.set_color(Shape::Color::CYAN);
         integer_bullet_count_ten_.set_font_size(50);
         integer_bullet_count_ten_.set_width(4);
 
-        integer_bullet_count_one_.set_x(x_center + 10);
+        integer_bullet_count_one_.set_x(x_center + 60);
         integer_bullet_count_one_.set_y(y_center - 285);
         integer_bullet_count_one_.set_color(Shape::Color::CYAN);
         integer_bullet_count_one_.set_font_size(50);
@@ -98,6 +98,21 @@ public:
         integer_power_limit_.set_font_size(16);
         integer_power_limit_.set_width(2);
         integer_power_limit_.set_value(999);
+
+        text_slash_of_bullet.set_x(x_center - 20);
+        text_slash_of_bullet.set_y(y_center - 285);
+        text_slash_of_bullet.set_color(Shape::Color::WHITE);
+        text_slash_of_bullet.set_font_size(38);
+        text_slash_of_bullet.set_width(4);
+        text_slash_of_bullet.set_is_text_shape(true);
+        text_slash_of_bullet.set_value("/");
+
+        integer_bullet_limit_by_heat_.set_x(x_center - 100);
+        integer_bullet_limit_by_heat_.set_y(y_center - 285);
+        integer_bullet_limit_by_heat_.set_color(Shape::Color::CYAN);
+        integer_bullet_limit_by_heat_.set_font_size(38);
+        integer_bullet_limit_by_heat_.set_width(4);
+        integer_bullet_limit_by_heat_.set_value(999);
     }
 
     void set_cool_limit(double cool_limit) { cool_limit_ = cool_limit; }
@@ -110,7 +125,9 @@ public:
         integer_bullet_count_one_.set_visible(visible);
         integer_chassis_power_.set_visible(visible);
         integer_power_limit_.set_visible(visible);
+        integer_bullet_limit_by_heat_.set_visible(visible);
         text_desc_center_status_.set_visible(visible);
+        text_slash_of_bullet.set_visible(visible);
 
         // Static
         for (int i = 0; i < 2; ++i) {
@@ -119,7 +136,8 @@ public:
         text_desc_power_.set_visible(visible);
     }
 
-    void update_dynamic_part(double cool, int16_t bullet, uint8_t center_status) {
+    void update_dynamic_part(
+        double cool, int16_t bullet, uint8_t center_status, int16_t bullet_limit_by_heat) {
         if (bullet < 0) {
             bullet = 0;
         }
@@ -143,6 +161,7 @@ public:
 
         integer_bullet_count_ten_.set_value(bullet > 99 ? 9 : ((bullet - (bullet % 10)) / 10));
         integer_bullet_count_one_.set_value(bullet > 99 ? 9 : bullet % 10);
+        integer_bullet_limit_by_heat_.set_value(bullet_limit_by_heat);
         switch (center_status) {
         case 0: text_desc_center_status_.set_color(Shape::Color::WHITE); break;
         case 1: text_desc_center_status_.set_color(Shape::Color::GREEN); break;
@@ -190,6 +209,7 @@ private:
     Integer integer_bullet_count_one_;
     Integer integer_chassis_power_;
     Integer integer_power_limit_;
+    Integer integer_bullet_limit_by_heat_;
     Text text_desc_center_status_;
 
     // Static
@@ -197,6 +217,7 @@ private:
     Line line_bar_cool_background_[2];
     Text text_desc_power_;
     Text text_desc_cool_;
+    Text text_slash_of_bullet;
 
     constexpr static uint16_t x_center = 960;
     constexpr static uint16_t y_center = 540;
