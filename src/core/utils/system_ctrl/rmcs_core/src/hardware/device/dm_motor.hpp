@@ -33,7 +33,6 @@ public:
 
         motor_name_ = name_prefix;
         alive_watchdog_.reset(50);
-        throttle_clock_.reset(3000);
     }
 
     DmMotor(
@@ -54,13 +53,8 @@ public:
 
         if (alive_watchdog_.tick()) {
             *alive_ = false;
+            RCLCPP_WARN(rclcpp::get_logger("HW_Diag"), "Dm Motor %s offline!", motor_name_.c_str());
         }
-        if (!*alive_) [[unlikely]]
-            if (throttle_clock_.tick()) {
-                throttle_clock_.reset(3000);
-                RCLCPP_WARN(
-                    rclcpp::get_logger("HW_Diag"), "Dm Motor %s offline!", motor_name_.c_str());
-            }
 
         *angle_ = angle();
         *raw_angle_ = last_raw_angle();
@@ -110,7 +104,6 @@ private:
 
     std::string motor_name_;
     rmcs_utility::TickTimer alive_watchdog_;
-    rmcs_utility::TickTimer throttle_clock_;
     rmcs_core::utility::LowPassFilter<> velocity_lpf_{4, 1000};
 };
 

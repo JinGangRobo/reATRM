@@ -30,7 +30,6 @@ public:
 
         motor_name_ = name_prefix;
         alive_watchdog_.reset(50);
-        throttle_clock_.reset(3000);
     }
 
     DjiMotor(
@@ -49,16 +48,11 @@ public:
     void update_status() {
         librmcs::device::DjiMotor::update_status();
 
-        if (alive_watchdog_.tick())
+        if (alive_watchdog_.tick()) {
             *alive_ = false;
-
-        if (!*alive_) [[unlikely]]
-            if (throttle_clock_.tick()) {
-                throttle_clock_.reset(3000);
-                RCLCPP_WARN(
-                    rclcpp::get_logger("HW_Diag"), "Dji Motor %s offline!", motor_name_.c_str());
-            }
-
+            RCLCPP_WARN(
+                rclcpp::get_logger("HW_Diag"), "Dji Motor %s offline!", motor_name_.c_str());
+        }
         *angle_ = angle();
         *raw_angle_ = last_raw_angle();
         *velocity_ = velocity();
@@ -97,7 +91,6 @@ private:
 
     std::string motor_name_;
     rmcs_utility::TickTimer alive_watchdog_;
-    rmcs_utility::TickTimer throttle_clock_;
     rmcs_core::utility::LowPassFilter<> velocity_lpf_{4, 1000};
 };
 
