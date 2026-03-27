@@ -1,4 +1,3 @@
-#include <chrono>
 #include <cstdint>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/src/Core/Matrix.h>
@@ -32,6 +31,7 @@ public:
         pilot_data_receiving_port_ = get_parameter("pilot_data_receiving_port").as_int();
 
         state_data_limiter_.reset(state_data_update_cycles_);
+        pilot_data_watchdog_.reset(100);
 
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
@@ -48,6 +48,7 @@ public:
         register_input("/gimbal/auto_aim/target_position", auto_aim_target_position_);
 
         register_output("/autopilot/chassis/velocity", auto_pilot_velocity_);
+        register_output("/autopilot/diagnosis", pilot_diagnostics_);
 
         std::string send_init_errmsg;
         if (!communication_.startSending(&send_init_errmsg)) {
@@ -107,16 +108,15 @@ public:
                     &sending_errmsg)) {
                 RCLCPP_ERROR(
                     get_logger(), "Failed to send state data. reason: %s", sending_errmsg.c_str());
+                *pilot_diagnostics_ = PilotDiag::OFFLINE;
             }
             state_data_limiter_.reset(state_data_update_cycles_);
         }
 
-        if (Clock::now() - last_valid_pilot_time_ > std::chrono::milliseconds(100)
-            && (*auto_pilot_velocity_)[3] != 0.0) {
-            RCLCPP_WARN(
-                get_logger(),
-                "No valid pilot data received for 100ms, resetting velocity to zero.");
+        if (pilot_data_watchdog_.tick()) {
+            RCLCPP_WARN(get_logger(), "No valid pilot data received, resetting velocity to zero.");
             *auto_pilot_velocity_ << 0.0, 0.0, 0.0, 0.0;
+            *pilot_diagnostics_ = PilotDiag::OFFLINE;
         }
     }
 
@@ -128,15 +128,17 @@ public:
         if (pilotData.pilot_valid) {
             *auto_pilot_velocity_ << pilotData.chassis_vel[0], pilotData.chassis_vel[1],
                 pilotData.chassis_vel[2], 1.0;
+            *pilot_diagnostics_ = pilotData.pilot_state;
 
-            last_valid_pilot_time_ = Clock::now();
+            RCLCPP_ERROR(get_logger(), "got pilot data");
+            pilot_data_watchdog_.reset(100);
         }
     }
 
 private:
     Communication communication_;
-    Clock::time_point last_valid_pilot_time_;
 
+    rmcs_utility::TickTimer pilot_data_watchdog_;
     rmcs_utility::TickTimer state_data_limiter_;
 
     uint16_t state_data_update_cycles_;
@@ -158,6 +160,7 @@ private:
     InputInterface<Eigen::Vector3d> auto_aim_target_position_;
 
     OutputInterface<Eigen::Vector4d> auto_pilot_velocity_;
+    OutputInterface<PilotDiag> pilot_diagnostics_;
 };
 } // namespace autopilot
 

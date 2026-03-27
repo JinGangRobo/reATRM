@@ -1,10 +1,12 @@
 #pragma once
 
+#include "rmcs_msgs/autopilot.hpp"
 #include <cstdint>
 
 namespace autopilot {
-enum class PilotDiag : uint8_t { BAD_RELOCATION, WARNING, FATAL, READY, STARTING };
-enum class NavMode : uint8_t { SLAM, RELOCATION, UNKNOWN };
+using NavMode = rmcs_msgs::NavMode;
+using PilotDiag = rmcs_msgs::PilotDiag;
+
 struct StateData {
     double gimbal_faceing[3];
     bool autopilot_enabled;

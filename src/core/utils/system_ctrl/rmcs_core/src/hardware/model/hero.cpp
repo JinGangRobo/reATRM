@@ -14,6 +14,7 @@
 #include <std_msgs/msg/int32.hpp>
 
 #include "hardware/device/bmi088.hpp"
+#include "hardware/device/buzzer.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
@@ -93,6 +94,7 @@ private:
             , tf_(hero.tf_)
             , imu_(10.0f, 0.001f, 1000000.0f)
             , dr16_(hero)
+            , buzzer_(hero_command)
             , imu_bias_x(hero.get_parameter("imu_bias_x").as_int())
             , imu_bias_y(hero.get_parameter("imu_bias_y").as_int())
             , imu_bias_z(hero.get_parameter("imu_bias_z").as_int())
@@ -102,8 +104,6 @@ private:
                       .set_encoder_zero_point(
                           static_cast<int>(hero.get_parameter("pitch_motor_zero_point").as_int()))
                       .set_reversed())
-
-            // TODO: Bad CAN ID sequence, needs to be adjusted.
             , gimbal_friction_wheels_(
                   {hero, hero_command, "/gimbal/first_friction",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
@@ -161,6 +161,7 @@ private:
             fast_tf::rcl::broadcast_all(*tf_);
 
             dr16_.update_status();
+            buzzer_.update_status();
 
             *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
             *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
@@ -186,6 +187,8 @@ private:
 
             transmit_buffer_.add_can2_transmission(
                 0x9, gimbal_pitch_motor_.generate_torque_command());
+
+            transmit_buffer_.add_buzzer_transmission(buzzer_.generate_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -233,6 +236,7 @@ private:
 
         device::Bmi088 imu_;
         device::Dr16 dr16_;
+        device::Buzzer buzzer_;
 
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 

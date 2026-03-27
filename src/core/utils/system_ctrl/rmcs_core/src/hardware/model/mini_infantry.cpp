@@ -12,6 +12,7 @@
 #include <std_msgs/msg/int32.hpp>
 
 #include "hardware/device/bmi088.hpp"
+#include "hardware/device/buzzer.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dr16.hpp"
 #include "hardware/device/supercap.hpp"
@@ -91,6 +92,7 @@ private:
             , tf_(mini_infantry.tf_)
             , imu_(10.0f, 0.001f, 1000000.0f)
             , dr16_(mini_infantry)
+            , buzzer_(mini_infantry_command)
             , imu_bias_x(mini_infantry.get_parameter("imu_bias_x").as_int())
             , imu_bias_y(mini_infantry.get_parameter("imu_bias_y").as_int())
             , imu_bias_z(mini_infantry.get_parameter("imu_bias_z").as_int())
@@ -148,6 +150,7 @@ private:
             // fast_tf::rcl::broadcast_all(*tf_);
 
             dr16_.update_status();
+            buzzer_.update_status();
 
             *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
             *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
@@ -178,6 +181,8 @@ private:
             batch_commands[2] = 0;
             batch_commands[3] = 0;
             transmit_buffer_.add_can1_transmission(0x1FF, std::bit_cast<uint64_t>(batch_commands));
+
+            transmit_buffer_.add_buzzer_transmission(buzzer_.generate_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -223,6 +228,7 @@ private:
 
         device::Bmi088 imu_;
         device::Dr16 dr16_;
+        device::Buzzer buzzer_;
 
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 

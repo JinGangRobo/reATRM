@@ -31,6 +31,7 @@ rmcs_executor:
       - rmcs::AutoAimComponent -> auto_aim_component
       - autopilot::AutoPilotComponent -> auto_pilot_component
 
+      - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
@@ -201,3 +202,22 @@ auto_pilot_component:
     state_data_sending_port: 42330
     pilot_data_receiving_host: 127.0.0.1
     pilot_data_receiving_port: 42331
+
+diagnosis:
+  ros__parameters:
+    motors:
+      - /gimbal/pitch
+      - /gimbal/top_yaw
+      - /gimbal/bottom_yaw
+      - /gimbal/left_friction
+      - /gimbal/right_friction
+      - /gimbal/bullet_feeder
+      - /chassis/left_front_wheel
+      - /chassis/right_front_wheel
+      - /chassis/left_back_wheel
+      - /chassis/right_back_wheel
+
+    enable_motor_check: true
+    enable_supercap_check: false
+    enable_aim_check: true
+    enable_nav_check: true

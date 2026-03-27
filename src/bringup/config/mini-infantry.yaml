@@ -30,6 +30,7 @@ rmcs_executor:
 
       - rmcs::AutoAimComponent -> auto_aim_component
 
+      - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
@@ -184,3 +185,21 @@ bullet_feeder_velocity_pid_controller:
     kp: 4.0
     ki: 0.0
     kd: 20.0
+
+diagnosis:
+  ros__parameters:
+    motors:
+      - /gimbal/pitch
+      - /gimbal/yaw
+      - /gimbal/left_friction
+      - /gimbal/right_friction
+      - /gimbal/bullet_feeder
+      - /chassis/left_front_wheel
+      - /chassis/right_front_wheel
+      - /chassis/left_back_wheel
+      - /chassis/right_back_wheel
+
+    enable_motor_check: true
+    enable_supercap_check: true
+    enable_aim_check: true
+    enable_nav_check: false

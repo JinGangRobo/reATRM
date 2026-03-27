@@ -35,6 +35,7 @@ rmcs_executor:
 
       - rmcs::AutoAimComponent -> auto_aim_component
 
+      - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
@@ -187,3 +188,22 @@ third_friction_velocity_pid_controller:
     kp: 0.003436926
     ki: 0.00
     kd: 0.009373434
+
+diagnosis:
+  ros__parameters:
+    motors:
+      - /gimbal/pitch
+      - /gimbal/yaw
+      - /gimbal/first_friction
+      - /gimbal/second_friction
+      - /gimbal/third_friction
+      - /gimbal/bullet_feeder
+      - /chassis/left_front_wheel
+      - /chassis/right_front_wheel
+      - /chassis/left_back_wheel
+      - /chassis/right_back_wheel
+
+    enable_motor_check: true
+    enable_supercap_check: true
+    enable_aim_check: true
+    enable_nav_check: false

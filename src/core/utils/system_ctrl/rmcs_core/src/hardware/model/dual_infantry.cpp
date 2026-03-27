@@ -15,6 +15,7 @@
 #include <std_msgs/msg/int32.hpp>
 
 #include "hardware/device/bmi088.hpp"
+#include "hardware/device/buzzer.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
@@ -101,6 +102,7 @@ private:
             , imu_(10.0f, 0.001f, 1000000.0f)
             , gy614_(dual_infantry, "/friction_wheels/temperature")
             , dr16_{dual_infantry}
+            , buzzer_(dual_infantry_command)
             , imu_bias_x(dual_infantry.get_parameter("imu_bias_x").as_int())
             , imu_bias_y(dual_infantry.get_parameter("imu_bias_y").as_int())
             , imu_bias_z(dual_infantry.get_parameter("imu_bias_z").as_int())
@@ -179,6 +181,7 @@ private:
 
             gy614_.update_status();
             dr16_.update_status();
+            buzzer_.update_status();
 
             *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
             *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
@@ -207,6 +210,8 @@ private:
 
             transmit_buffer_.add_can2_transmission(
                 0x3, gimbal_pitch_motor_.generate_torque_command());
+
+            transmit_buffer_.add_buzzer_transmission(buzzer_.generate_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -261,6 +266,7 @@ private:
         device::Bmi088 imu_;
         device::Gy614 gy614_;
         device::Dr16 dr16_;
+        device::Buzzer buzzer_;
 
         OutputInterface<double> gimbal_yaw_velocity_imu_;
         OutputInterface<double> gimbal_pitch_velocity_imu_;
