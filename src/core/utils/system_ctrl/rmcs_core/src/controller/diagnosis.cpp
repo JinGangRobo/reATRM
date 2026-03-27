@@ -101,18 +101,22 @@ public:
                 rmcs_msgs::PilotDiag diag = *pilot_diag_input_;
 
                 switch (diag) {
-                case rmcs_msgs::PilotDiag::WARNING: errors_.push_back(DiagnosisMsg::NAV_WARNING);
-
+                case rmcs_msgs::PilotDiag::WARNING:
+                    errors_.push_back(DiagnosisMsg::NAV_WARNING);
+                    return;
                 case rmcs_msgs::PilotDiag::BAD_RELOCATION:
                     *buzzer_score_output_ =
                         getScoreFromDiagMsg(DiagnosisMsg::NAV_RELOCATION_FAILED);
-
-                case rmcs_msgs::PilotDiag::FATAL: errors_.push_back(DiagnosisMsg::NAV_FAILURE);
-
-                case rmcs_msgs::PilotDiag::OFFLINE: errors_.push_back(DiagnosisMsg::NAV_OFFLINE);
-
-                case rmcs_msgs::PilotDiag::STARTING: errors_.push_back(DiagnosisMsg::NAV_OFFLINE);
-
+                    return;
+                case rmcs_msgs::PilotDiag::FATAL:
+                    errors_.push_back(DiagnosisMsg::NAV_FAILURE);
+                    return;
+                case rmcs_msgs::PilotDiag::OFFLINE:
+                    errors_.push_back(DiagnosisMsg::NAV_OFFLINE);
+                    return;
+                case rmcs_msgs::PilotDiag::STARTING:
+                    errors_.push_back(DiagnosisMsg::NAV_OFFLINE);
+                    return;
                 default: break;
                 }
             }
