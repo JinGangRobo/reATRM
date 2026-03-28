@@ -26,7 +26,7 @@ public:
         register_input("/gimbal/yaw/control_angle_velocity", control_angle_velocity_, false);
 
         register_input("/gimbal/bottom_yaw/angle", bottom_yaw_angle_);
-        register_input("/chassis/yaw/velocity_imu", chassis_yaw_velocity_imu_);
+        register_input("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
 
         register_output(
             "/gimbal/bottom_yaw/estimated_velocity", estimated_bottom_yaw_velocity_, 0.0);
@@ -60,7 +60,7 @@ public:
     void update() override {
         constexpr double TOP_YAW_LIMIT = std::numbers::pi / 3.0;
         *estimated_bottom_yaw_velocity_ =
-            bottom_yaw_velocity_estimator_.update(*bottom_yaw_angle_, *chassis_yaw_velocity_imu_);
+            bottom_yaw_velocity_estimator_.update(-*top_yaw_angle_, *gimbal_yaw_velocity_imu_);
 
         if (std::isnan(*control_angle_error_)) {
             *top_yaw_target_error_ = nan_;
@@ -98,7 +98,7 @@ private:
     InputInterface<double> top_yaw_angle_;
     InputInterface<double> control_angle_velocity_;
     InputInterface<double> bottom_yaw_angle_;
-    InputInterface<double> chassis_yaw_velocity_imu_;
+    InputInterface<double> gimbal_yaw_velocity_imu_;
 
     OutputInterface<double> estimated_bottom_yaw_velocity_;
     OutputInterface<double> top_yaw_target_error_, bottom_yaw_target_error_;
