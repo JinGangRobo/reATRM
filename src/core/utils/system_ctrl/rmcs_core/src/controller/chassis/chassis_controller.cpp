@@ -54,6 +54,7 @@ public:
 
         register_output("/chassis/control_mode", mode_);
         register_output("/chassis/control_velocity", chassis_control_velocity_);
+        register_output("/chassis/is_spinning_forward", is_spinning_forward_);
     }
 
     void before_updating() override {
@@ -129,6 +130,7 @@ public:
                         mode = rmcs_msgs::ChassisMode::AUTO;
                 }
                 *mode_ = mode;
+                *is_spinning_forward_ = spinning_forward_;
             }
 
             update_velocity_control();
@@ -283,6 +285,7 @@ private:
     OutputInterface<double> chassis_angle_, chassis_control_angle_;
 
     OutputInterface<rmcs_msgs::ChassisMode> mode_;
+    OutputInterface<bool> is_spinning_forward_;
     bool spinning_forward_ = true;
     pid::PidCalculator following_velocity_controller_;
 

@@ -6,7 +6,9 @@
 
 #include <eigen3/Eigen/Dense>
 #include <rclcpp/node.hpp>
+#include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
+#include <rmcs_msgs/chassis_mode.hpp>
 
 namespace rmcs_core::controller::gimbal {
 
@@ -27,6 +29,9 @@ public:
 
         register_input("/gimbal/bottom_yaw/angle", bottom_yaw_angle_);
         register_input("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
+
+        register_input("/chassis/control_mode", control_mode_);
+        register_input("/chassis/is_spinning_forward", is_spinning_forward_);
 
         register_output(
             "/gimbal/bottom_yaw/estimated_velocity", estimated_bottom_yaw_velocity_, 0.0);
@@ -71,12 +76,16 @@ public:
         } else {
             double e_total = utility::angle_wraper::wrap_to_pi(*control_angle_error_);
             double e_bot = utility::angle_wraper::wrap_to_pi(e_total + *top_yaw_angle_);
+            double e_bot_baised = utility::angle_wraper::wrap_to_pi(
+                e_total + *top_yaw_angle_
+                + (*control_mode_ == rmcs_msgs::ChassisMode::SPIN ? 0.6 : 0.0)
+                      * (*is_spinning_forward_ ? -1.0 : 1.0));
 
             double top_target = std::clamp(e_bot, -TOP_YAW_LIMIT, TOP_YAW_LIMIT);
 
             *top_yaw_target_error_ =
                 utility::angle_wraper::wrap_to_pi(top_target - *top_yaw_angle_);
-            *bottom_yaw_target_error_ = e_bot;
+            *bottom_yaw_target_error_ = e_bot_baised;
 
             *bottom_yaw_target_velocity_ = *control_angle_velocity_;
             *top_yaw_target_velocity_ = *control_angle_velocity_ - *estimated_bottom_yaw_velocity_;
@@ -99,6 +108,8 @@ private:
     InputInterface<double> control_angle_velocity_;
     InputInterface<double> bottom_yaw_angle_;
     InputInterface<double> gimbal_yaw_velocity_imu_;
+    InputInterface<rmcs_msgs::ChassisMode> control_mode_;
+    InputInterface<bool> is_spinning_forward_;
 
     OutputInterface<double> estimated_bottom_yaw_velocity_;
     OutputInterface<double> top_yaw_target_error_, bottom_yaw_target_error_;
