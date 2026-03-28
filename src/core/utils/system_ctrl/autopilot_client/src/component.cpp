@@ -48,7 +48,7 @@ public:
         register_input("/gimbal/auto_aim/target_position", auto_aim_target_position_);
 
         register_output("/autopilot/chassis/velocity", auto_pilot_velocity_);
-        register_output("/autopilot/diagnosis", pilot_diagnostics_);
+        register_output("/autopilot/diagnosis", pilot_diagnostics_, PilotDiag::OFFLINE);
 
         std::string send_init_errmsg;
         if (!communication_.startSending(&send_init_errmsg)) {

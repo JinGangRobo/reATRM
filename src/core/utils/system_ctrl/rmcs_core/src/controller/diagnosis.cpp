@@ -103,20 +103,19 @@ public:
                 switch (diag) {
                 case rmcs_msgs::PilotDiag::WARNING:
                     errors_.push_back(DiagnosisMsg::NAV_WARNING);
-                    return;
+                    break;
                 case rmcs_msgs::PilotDiag::BAD_RELOCATION:
-                    *buzzer_score_output_ =
-                        getScoreFromDiagMsg(DiagnosisMsg::NAV_RELOCATION_FAILED);
-                    return;
+                    errors_.push_back(DiagnosisMsg::NAV_RELOCATION_FAILED);
+                    break;
                 case rmcs_msgs::PilotDiag::FATAL:
                     errors_.push_back(DiagnosisMsg::NAV_FAILURE);
-                    return;
+                    break;
                 case rmcs_msgs::PilotDiag::OFFLINE:
                     errors_.push_back(DiagnosisMsg::NAV_OFFLINE);
-                    return;
+                    break;
                 case rmcs_msgs::PilotDiag::STARTING:
                     errors_.push_back(DiagnosisMsg::NAV_OFFLINE);
-                    return;
+                    break;
                 default: break;
                 }
             }
