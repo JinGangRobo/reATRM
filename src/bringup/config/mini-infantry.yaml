@@ -45,13 +45,8 @@ value_broadcaster:
       - /gimbal/pitch/velocity_imu
       - /gimbal/yaw/velocity_imu
       - /debug/solver/pitch
-      - /gimbal/bullet_feeder/velocity
-      - /gimbal/bullet_feeder/torque
-      - /gimbal/bullet_feeder/control_torque
-      - /gimbal/bullet_feeder/control_velocity
-      - /gimbal/bullet_feeder/velocity_filtered
       - /chassis/yaw/velocity_imu
-      - /gimbal/left_friction/velocity
+      - /gimbal/yaw/control_torque
       - /referee/shooter/initial_speed
       - /referee/chassis/current_hp
 
@@ -60,7 +55,7 @@ mini_infantry_hardware:
     usb_pid_top_board: 0x13b4
     usb_pid_bottom_board: 0xf112
     yaw_motor_zero_point: 1482
-    pitch_motor_zero_point: 4678
+    pitch_motor_zero_point: 4644
 
     imu_bias_x: 1
     imu_bias_y: 3
@@ -69,15 +64,19 @@ mini_infantry_hardware:
 gimbal_controller:
   ros__parameters:
     upper_limit: -0.10
-    lower_limit: 0.44
+    lower_limit: 0.35
 
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
 
+    depond_motors:
+      - /gimbal/pitch
+      - /gimbal/yaw
+
 chassis_controller:
   ros__parameters:
     translational_velocity_limit: 20.0
-    angular_velocity_limit: 15.0
+    angular_velocity_limit: 13.0
 
 omni_wheel_controller:
   ros__parameters:
@@ -91,9 +90,9 @@ omni_wheel_controller:
 yaw_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/yaw/control_angle_error
-    # feedforward: -/chassis/yaw/velocity_imu
     control: /gimbal/yaw/control_velocity
-    kp: 10.0
+    enable: /gimbal/yaw/alive
+    kp: 16.0
     ki: 0.01
     kd: 0.0
     integral_min: -10.0
@@ -104,17 +103,18 @@ yaw_velocity_pid_controller:
     measurement: /gimbal/yaw/velocity_imu
     setpoint: /gimbal/yaw/control_velocity
     control: /gimbal/yaw/control_torque
+    enable: /gimbal/yaw/alive
     kp: 4.0
-    ki: 0.02
+    ki: 0.04
     kd: 50.0
     integral_min: -60.0
     integral_max: 60.0
-
 
 pitch_angle_pid_controller:
   ros__parameters:
     measurement: /gimbal/pitch/control_angle_error
     control: /gimbal/pitch/control_velocity
+    enable: /gimbal/pitch/alive
     kp: 10.0
     ki: 0.01
     kd: 0.0
@@ -126,12 +126,10 @@ pitch_velocity_pid_controller:
     measurement: /gimbal/pitch/velocity_imu
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
-    kp: 1.2
-    ki: 0.01
-    kd: 0.0
-    integral_min: -30.0
-    integral_max: 30.0
-
+    enable: /gimbal/pitch/alive
+    kp: 4.0
+    ki: 0.02
+    kd: 80.0
 
 friction_wheel_controller:
   ros__parameters:

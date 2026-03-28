@@ -67,7 +67,7 @@ public:
         }
         register_input("/chassis/supercap/enabled", supercap_alive_input_);
         register_input("/gimbal/auto_aim/available", aim_ready_input_);
-        register_input("/autopilot/diagnosis", pilot_diag_input_);
+        register_input("/autopilot/diagnosis", pilot_diag_input_, false);
 
         register_output("/buzzer/score", buzzer_score_output_);
     }
