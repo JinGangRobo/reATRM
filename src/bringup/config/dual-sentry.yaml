@@ -218,6 +218,6 @@ diagnosis:
       - /chassis/right_back_wheel
 
     enable_motor_check: true
-    enable_supercap_check: false
+    enable_supercap_check: true
     enable_aim_check: true
     enable_nav_check: true

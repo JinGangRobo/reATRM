@@ -128,11 +128,13 @@ public:
         if (pilotData.pilot_valid) {
             *auto_pilot_velocity_ << pilotData.chassis_vel[0], pilotData.chassis_vel[1],
                 pilotData.chassis_vel[2], 1.0;
-            *pilot_diagnostics_ = pilotData.pilot_state;
-
-            RCLCPP_ERROR(get_logger(), "got pilot data");
-            pilot_data_watchdog_.reset(100);
         }
+
+        *pilot_diagnostics_ = pilotData.pilot_state;
+        if (pilotData.current_nav_mode == NavMode::SLAM)
+            *pilot_diagnostics_ = PilotDiag::SLAMING;
+
+        pilot_data_watchdog_.reset(100);
     }
 
 private:

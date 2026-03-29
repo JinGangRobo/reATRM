@@ -19,15 +19,17 @@ enum class DiagnosisMsg : uint8_t { // larger value means higher priority
     ALL_READY,
     CTR_MOTOR_OFFLINE,
     AIM_READY,
+    NAV_SLAMING,
     CTR_SUPERCAP_OFFLINE,
     NAV_WARNING,
     NAV_RELOCATION_FAILED,
     NAV_FAILURE,
     NAV_OFFLINE
 };
-constexpr std::array<std::pair<DiagnosisMsg, Buzzer::BuzzerScore>, 7> DiagnosisScores = {
+constexpr std::array<std::pair<DiagnosisMsg, Buzzer::BuzzerScore>, 8> DiagnosisScores = {
     {{DiagnosisMsg::CTR_MOTOR_OFFLINE, {Tone::LOW, Tone::OFF, Tone::OFF, 0}},
      {DiagnosisMsg::AIM_READY, {Tone::MEDIUM, Tone::MEDIUM, Tone::MEDIUM, 0}},
+     {DiagnosisMsg::NAV_SLAMING, {Tone::HIGH, Tone::HIGH, Tone::LOW, 0}},
      {DiagnosisMsg::CTR_SUPERCAP_OFFLINE, {Tone::LOW, Tone::LOW, Tone::OFF, 0}},
      {DiagnosisMsg::NAV_WARNING, {Tone::HIGH, Tone::LOW, Tone::OFF, 0}},
      {DiagnosisMsg::NAV_RELOCATION_FAILED, {Tone::HIGH, Tone::LOW, Tone::LOW, 0}},
@@ -115,6 +117,9 @@ public:
                     break;
                 case rmcs_msgs::PilotDiag::STARTING:
                     errors_.push_back(DiagnosisMsg::NAV_OFFLINE);
+                    break;
+                case rmcs_msgs::PilotDiag::SLAMING:
+                    errors_.push_back(DiagnosisMsg::NAV_SLAMING);
                     break;
                 default: break;
                 }
