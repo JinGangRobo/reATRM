@@ -49,6 +49,11 @@ public:
 
         register_input("/autopilot/chassis/velocity", auto_pilot_velocity_, false);
 
+        register_input("/chassis/left_front_wheel/alive", left_front_alive_);
+        register_input("/chassis/left_back_wheel/alive", left_back_alive_);
+        register_input("/chassis/right_front_wheel/alive", right_front_alive_);
+        register_input("/chassis/right_back_wheel/alive", right_back_alive_);
+
         register_output("/chassis/angle", chassis_angle_, nan);
         register_output("/chassis/control_angle", chassis_control_angle_, nan);
 
@@ -128,6 +133,11 @@ public:
                 } else {
                     if (mode == rmcs_msgs::ChassisMode::AUTO_PILOT)
                         mode = rmcs_msgs::ChassisMode::AUTO;
+                }
+
+                if (!(*left_back_alive_ && *right_back_alive_ && *left_front_alive_
+                      && *right_front_alive_)) {
+                    mode = rmcs_msgs::ChassisMode::AUTO;
                 }
                 *mode_ = mode;
                 *is_spinning_forward_ = spinning_forward_;
@@ -274,6 +284,8 @@ private:
     InputInterface<double> rotary_knob_;
     InputInterface<double> translational_velocity_max_;
     InputInterface<double> angular_velocity_max_;
+
+    InputInterface<bool> left_front_alive_, left_back_alive_, right_front_alive_, right_back_alive_;
 
     InputInterface<Eigen::Vector4d> auto_pilot_velocity_; // [x, y, w, isActive(1/0)]
 
