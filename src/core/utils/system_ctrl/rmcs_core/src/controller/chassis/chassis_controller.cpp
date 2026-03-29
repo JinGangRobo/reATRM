@@ -64,7 +64,7 @@ public:
         register_output("/chassis/is_spinning_forward", is_spinning_forward_);
 
         register_input("/chassis/operate_mode", operate_mode_, false);
-        register_input("/chassis/operate_mode_override", mode_override_);
+        register_input("/chassis/operate_mode_override", mode_override_, false);
     }
 
     void before_updating() override {
@@ -177,10 +177,8 @@ public:
                 autopilot_velocity_xy.normalize();
                 autopilot_velocity_xy *= translational_velocity_max;
             }
-            double angular_velocity_clamped =
-                std::clamp((*auto_pilot_velocity_)[2], -angular_velocity_max, angular_velocity_max);
-
-            chassis_control_velocity_->vector << autopilot_velocity_xy, angular_velocity_clamped;
+            // we are not doing velocity limiting for angular velocity.
+            chassis_control_velocity_->vector << autopilot_velocity_xy, (*auto_pilot_velocity_)[2];
             return;
         }
 
