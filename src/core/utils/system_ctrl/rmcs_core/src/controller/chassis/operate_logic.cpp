@@ -27,6 +27,26 @@ public:
         get_parameter("comfort_translational_velocity", comfort_translational_velocity);
         get_parameter("comfort_angular_velocity", comfort_angular_velocity);
 
+        get_parameter("shoot_translational_velocity", shoot_translational_velocity);
+        get_parameter("shoot_angular_velocity", shoot_angular_velocity);
+        get_parameter("shoot_boost_mode", shoot_boost_mode);
+        get_parameter("shoot_spin_mode", shoot_spin_mode);
+
+        get_parameter("hurt_translational_velocity", hurt_translational_velocity);
+        get_parameter("hurt_angular_velocity", hurt_angular_velocity);
+        get_parameter("hurt_boost_mode", hurt_boost_mode);
+        get_parameter("hurt_spin_mode", hurt_spin_mode);
+
+        get_parameter("home_translational_velocity", home_translational_velocity);
+        get_parameter("home_angular_velocity", home_angular_velocity);
+        get_parameter("home_boost_mode", home_boost_mode);
+        get_parameter("home_spin_mode", home_spin_mode);
+
+        get_parameter("normal_translational_velocity", normal_translational_velocity);
+        get_parameter("normal_angular_velocity", normal_angular_velocity);
+        get_parameter("normal_boost_mode", normal_boost_mode);
+        get_parameter("normal_spin_mode", normal_spin_mode);
+
         register_input("/remote/switch/right", switch_right_);
         register_input("/remote/switch/left", switch_left_);
         register_input("/remote/keyboard", keyboard_);
@@ -40,6 +60,7 @@ public:
         register_output("/chassis/translational_vmax", translational_velocity_max_);
         register_output("/chassis/angular_vmax", angular_velocity_max_);
         register_output("/chassis/operate_mode", mode_);
+        register_output("/chassis/operate_mode_override", mode_override_);
         register_output("/chassis/boost", boost_);
     }
 
@@ -91,27 +112,46 @@ public:
 private:
     void update_status() {
         auto mouse = *mouse_;
-        if (mouse.left) {                                                            // 发射弹丸
-            translational_velocity_max = comfort_translational_velocity * 0.8;
-            angular_velocity_max = comfort_angular_velocity * 2.0;
-            *boost_ = true;
+        auto keyboard = *keyboard_;
+        if (mouse.left) {                                                            // shoot
+            translational_velocity_max =
+                comfort_translational_velocity * shoot_translational_velocity;
+            angular_velocity_max = comfort_angular_velocity * shoot_angular_velocity;
+            *boost_ = shoot_boost_mode;
+            spin = shoot_spin_mode;
 
-        } else if (mouse.right || (hurt_data_.ready() && hurt_data_->reason == 0)) { // 按下右键||
-                                                                                     // 受击
-            translational_velocity_max = comfort_translational_velocity * 1.5;
+        } else if (mouse.right || (hurt_data_.ready() && hurt_data_->reason == 0)) { // hurt
+            translational_velocity_max =
+                comfort_translational_velocity * hurt_translational_velocity;
+            angular_velocity_max = comfort_angular_velocity * hurt_angular_velocity;
+            *boost_ = hurt_boost_mode;
+            spin = hurt_spin_mode;
+
+        } else if (keyboard.shift) {
+            translational_velocity_max = 50.0;
             angular_velocity_max = comfort_angular_velocity;
             *boost_ = true;
-
-        } else if (*robots_rfid_ == 1) {                                             // 回家
-            translational_velocity_max = comfort_translational_velocity;
-            angular_velocity_max = comfort_angular_velocity * 0.1;
-            *boost_ = false;
-        } else {                                                                     // 一般模式
-            translational_velocity_max = comfort_translational_velocity;
-            angular_velocity_max = comfort_angular_velocity * 4.0;
-            *boost_ = false;
+            spin = false;
+        } else if (*robots_rfid_ == 1) {                                             // home
+            translational_velocity_max =
+                comfort_translational_velocity * home_translational_velocity;
+            angular_velocity_max = comfort_angular_velocity * home_angular_velocity;
+            *boost_ = home_boost_mode;
+            spin = home_spin_mode;
+        } else {                                                                     // normal
+            translational_velocity_max =
+                comfort_translational_velocity * normal_translational_velocity;
+            angular_velocity_max = comfort_angular_velocity * normal_angular_velocity;
+            *boost_ = normal_boost_mode;
+            spin = normal_spin_mode;
         }
         last_mouse_ = mouse;
+
+        if (spin) {
+            *mode_override_ = rmcs_msgs::ChassisMode::SPIN;
+        } else {
+            *mode_override_ = rmcs_msgs::ChassisMode::STEP_DOWN;
+        }
         return;
     }
 
@@ -129,6 +169,29 @@ private:
 
     double comfort_translational_velocity = 10.0;
     double comfort_angular_velocity = 15.0;
+
+    double shoot_translational_velocity = 1.0;
+    double shoot_angular_velocity = 1.0;
+    bool shoot_boost_mode = false;
+    bool shoot_spin_mode = false;
+
+    double hurt_translational_velocity = 1.0;
+    double hurt_angular_velocity = 1.0;
+    bool hurt_boost_mode = false;
+    bool hurt_spin_mode = false;
+
+    double home_translational_velocity = 1.0;
+    double home_angular_velocity = 1.0;
+    bool home_boost_mode = false;
+    bool home_spin_mode = false;
+
+    double normal_translational_velocity = 1.0;
+    double normal_angular_velocity = 1.0;
+    bool normal_boost_mode = false;
+    bool normal_spin_mode = false;
+
+    bool spin = false;
+
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;
 
@@ -136,6 +199,8 @@ private:
     OutputInterface<double> angular_velocity_max_;
     OutputInterface<rmcs_msgs::OperateMode> mode_;
     OutputInterface<bool> boost_;
+
+    OutputInterface<rmcs_msgs::ChassisMode> mode_override_;
 
     double translational_velocity_max;
     double angular_velocity_max;

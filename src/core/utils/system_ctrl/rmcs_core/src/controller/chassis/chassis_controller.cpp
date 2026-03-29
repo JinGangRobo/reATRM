@@ -12,6 +12,8 @@
 
 #include "controller/pid/pid_calculator.hpp"
 
+#include <rmcs_msgs/operate_mode.hpp>
+
 namespace rmcs_core::controller::chassis {
 
 class ChassisController
@@ -60,6 +62,9 @@ public:
         register_output("/chassis/control_mode", mode_);
         register_output("/chassis/control_velocity", chassis_control_velocity_);
         register_output("/chassis/is_spinning_forward", is_spinning_forward_);
+
+        register_input("/chassis/operate_mode", operate_mode_, false);
+        register_input("/chassis/operate_mode_override", mode_override_);
     }
 
     void before_updating() override {
@@ -133,6 +138,11 @@ public:
                 } else {
                     if (mode == rmcs_msgs::ChassisMode::AUTO_PILOT)
                         mode = rmcs_msgs::ChassisMode::AUTO;
+                }
+
+                if (operate_mode_.ready()) {
+                    if (*operate_mode_ == OperateMode::ASSIST)
+                        mode = *mode_override_;
                 }
 
                 if (!(*left_back_alive_ && *right_back_alive_ && *left_front_alive_
@@ -284,6 +294,8 @@ private:
     InputInterface<double> rotary_knob_;
     InputInterface<double> translational_velocity_max_;
     InputInterface<double> angular_velocity_max_;
+    InputInterface<rmcs_msgs::OperateMode> operate_mode_;
+    InputInterface<rmcs_msgs::ChassisMode> mode_override_;
 
     InputInterface<bool> left_front_alive_, left_back_alive_, right_front_alive_, right_back_alive_;
 

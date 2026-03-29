@@ -17,7 +17,7 @@ rmcs_executor:
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_err_pid_controller
       - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
 
-      # - rmcs_core::controller::chassis::OperateLogic -> operate_logic
+      - rmcs_core::controller::chassis::OperateLogic -> operate_logic
       - rmcs_core::controller::shooting::FrictionWheelController -> friction_wheel_controller
       - rmcs_core::controller::shooting::HeatController -> heat_controller
       - rmcs_core::controller::shooting::BulletFeederController17mm -> bullet_feeder_controller
@@ -46,10 +46,7 @@ value_broadcaster:
       - /debug/solver/pitch
       - /gimbal/pitch/velocity_imu
       - /debug/pitch/filtered_velocity_imu
-      - /gimbal/bullet_feeder/control_velocity
-      - /gimbal/bullet_feeder/control_torque
-      - /gimbal/bullet_feeder/velocity
-      - /gimbal/bullet_feeder/velocity_filtered
+      - /debug/solver/set_dir_angle
       - /chassis/power
       - /chassis/supercap/voltage
       - /chassis/angular_vmax
@@ -70,6 +67,8 @@ dual_infantry_hardware:
 
 gimbal_controller:
   ros__parameters:
+    shift_control_clamp: 0.0045
+
     upper_limit: -0.28
     lower_limit: 0.35
 
@@ -90,7 +89,7 @@ dual_yaw_controller:
     top_yaw_velocity_ki: 0.01
     top_yaw_velocity_kd: 0.0
 
-    bottom_yaw_smc_c: 4.0
+    bottom_yaw_smc_c: 10.0
     bottom_yaw_smc_k: 1.5
     bottom_yaw_smc_epsilon: 1.0
     bottom_yaw_smc_phi: 2.0
@@ -101,8 +100,34 @@ dual_yaw_controller:
 chassis_controller:
   ros__parameters:
     translational_velocity_limit: 99.0
-    angular_velocity_limit: 14.0
+    angular_velocity_limit: 25.0
     autopilot_spin_velocity_default: 2.0
+
+operate_logic:
+  ros__parameters:
+    comfort_translational_velocity: 10.0
+    comfort_angular_velocity: 15.0
+
+    shoot_translational_velocity: 0.5
+    shoot_angular_velocity: 2.5
+    shoot_boost_mode: true
+    shoot_spin_mode : true
+
+    hurt_translational_velocity: 2.5
+    hurt_angular_velocity: 1.2
+    hurt_boost_mode: true
+    hurt_spin_mode: true
+
+    home_translational_velocity: 1.0
+    home_angular_velocity: 1.0
+    home_boost_mode: false
+    home_spin_mode: false
+
+    normal_translational_velocity: 1.5
+    normal_angular_velocity: 1.0
+    normal_boost_mode: false
+    normal_spin_mode: true
+
 
 omni_wheel_controller:
   ros__parameters:
@@ -111,7 +136,7 @@ omni_wheel_controller:
     wheel_radius_: 0.07
     friction_coefficient: 0.6
 
-    spinning_bais_coefficient: -0.055
+    spinning_bais_coefficient: -0.08
 
 pitch_angle_err_pid_controller:
   ros__parameters:
