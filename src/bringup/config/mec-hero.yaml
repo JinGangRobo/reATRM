@@ -152,9 +152,9 @@ friction_wheel_controller:
       - /gimbal/second_friction
       - /gimbal/third_friction
     friction_velocities:
-      - 460.00
-      - 460.00
-      - 460.00
+      - 450.00
+      - 450.00
+      - 450.00
     friction_soft_start_stop_time: 1.0
 
 heat_controller:
