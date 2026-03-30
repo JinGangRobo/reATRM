@@ -33,7 +33,7 @@ public:
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.022, -0.078, 0.046});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{-0.052, 0.0, 0.084});
         tf_->set_transform<PitchLink, MuzzleLink>(Eigen::Translation3d{0.0, 0.0, 0.0});
 
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(

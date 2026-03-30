@@ -54,8 +54,8 @@ mini_infantry_hardware:
   ros__parameters:
     usb_pid_top_board: 0x13b4
     usb_pid_bottom_board: 0xf112
-    yaw_motor_zero_point: 1482
-    pitch_motor_zero_point: 4644
+    yaw_motor_zero_point: 3606
+    pitch_motor_zero_point: 6881
 
     imu_bias_x: 1
     imu_bias_y: 3
@@ -127,8 +127,8 @@ pitch_velocity_pid_controller:
     setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
     enable: /gimbal/pitch/alive
-    kp: 4.0
-    ki: 0.02
+    kp: 8.0
+    ki: 0.0
     kd: 80.0
 
 friction_wheel_controller:
