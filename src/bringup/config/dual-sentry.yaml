@@ -70,13 +70,8 @@ dual_sentry_hardware:
 chassis_controller:
   ros__parameters:
     translational_velocity_limit: 30.0
-    angular_velocity_limit: 14.0
-    autopilot_spin_velocity_default: 2.0
-
-operate_logic:
-  ros__parameters:
-    comfort_translational_velocity: 20.0
-    comfort_angular_velocity: 10.0
+    angular_velocity_limit: 4.0
+    autopilot_spin_velocity_default: 2.5
 
 gimbal_controller:
   ros__parameters:

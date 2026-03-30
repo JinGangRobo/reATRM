@@ -182,8 +182,11 @@ public:
                 autopilot_velocity_xy.normalize();
                 autopilot_velocity_xy *= translational_velocity_max;
             }
-            // we are not doing velocity limiting for angular velocity.
-            chassis_control_velocity_->vector << autopilot_velocity_xy, (*auto_pilot_velocity_)[2];
+            double autopilot_spin_velocity = autopilot_velocity_xy.norm() < 1e-3
+                                               ? (*auto_pilot_velocity_)[2]
+                                               : autopilot_spin_velocity_default;
+
+            chassis_control_velocity_->vector << autopilot_velocity_xy, autopilot_spin_velocity;
             return;
         }
 
