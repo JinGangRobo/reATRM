@@ -9,6 +9,7 @@
 #include <rmcs_msgs/keyboard.hpp>
 #include <rmcs_msgs/mouse.hpp>
 #include <rmcs_msgs/switch.hpp>
+#include <rmcs_utility/tick_timer.hpp>
 
 #include "controller/pid/pid_calculator.hpp"
 
@@ -145,15 +146,19 @@ public:
                         mode = *mode_override_;
                 }
 
-                if (!(*left_back_alive_ && *right_back_alive_ && *left_front_alive_
-                      && *right_front_alive_)) {
-                    mode = rmcs_msgs::ChassisMode::AUTO;
-                }
                 *mode_ = mode;
                 *is_spinning_forward_ = spinning_forward_;
             }
 
-            update_velocity_control();
+            if (!(*left_back_alive_ && *right_back_alive_ && *left_front_alive_
+                  && *right_front_alive_)) {
+                wheel_alive_protecter_.reset(1'000);
+                wheel_enable_ = false;
+            }
+            if (wheel_alive_protecter_.tick())
+                wheel_enable_ = true;
+
+            update_velocity_control(wheel_enable_);
         } while (false);
 
         last_switch_right_ = switch_right;
@@ -167,7 +172,7 @@ public:
         *chassis_control_velocity_ = {nan, nan, nan};
     }
 
-    void update_velocity_control() {
+    void update_velocity_control(bool enable = true) {
         if (*mode_ == rmcs_msgs::ChassisMode::AUTO_PILOT && auto_pilot_velocity_.ready()
             && (*auto_pilot_velocity_)[3] != 0) {
             Eigen::Vector2d autopilot_velocity_xy = auto_pilot_velocity_->head<2>();
@@ -186,6 +191,11 @@ public:
         auto angular_velocity = *mode_ == rmcs_msgs::ChassisMode::AUTO_PILOT
                                   ? autopilot_spin_velocity_default
                                   : update_angular_velocity_control();
+
+        if (!enable) {
+            translational_velocity.setZero();
+            angular_velocity = 0.0;
+        }
 
         chassis_control_velocity_->vector << translational_velocity, angular_velocity;
     }
@@ -296,6 +306,8 @@ private:
     InputInterface<rmcs_msgs::ChassisMode> mode_override_;
 
     InputInterface<bool> left_front_alive_, left_back_alive_, right_front_alive_, right_back_alive_;
+    rmcs_utility::TickTimer wheel_alive_protecter_;
+    bool wheel_enable_ = true;
 
     InputInterface<Eigen::Vector4d> auto_pilot_velocity_; // [x, y, w, isActive(1/0)]
 
