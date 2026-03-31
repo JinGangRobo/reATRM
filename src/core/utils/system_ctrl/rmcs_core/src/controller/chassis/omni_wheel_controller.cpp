@@ -10,6 +10,7 @@
 #include <rmcs_executor/component.hpp>
 #include <rmcs_msgs/chassis_mode.hpp>
 #include <rmcs_utility/eigen_structured_bindings.hpp>
+#include <rmcs_utility/tick_timer.hpp>
 
 #include "controller/chassis/qcp_solver.hpp"
 #include "controller/pid/matrix_pid_calculator.hpp"
@@ -43,6 +44,11 @@ public:
         register_input("/chassis/right_back_wheel/velocity", right_back_velocity_);
         register_input("/chassis/right_front_wheel/velocity", right_front_velocity_);
 
+        register_input("/chassis/left_front_wheel/alive", left_front_alive_);
+        register_input("/chassis/left_back_wheel/alive", left_back_alive_);
+        register_input("/chassis/right_front_wheel/alive", right_front_alive_);
+        register_input("/chassis/right_back_wheel/alive", right_back_alive_);
+
         register_input("/chassis/control_velocity", chassis_control_velocity_);
         register_input("/chassis/control_power_limit", power_limit_);
 
@@ -62,7 +68,15 @@ public:
     }
 
     void update() override {
-        if (std::isnan(chassis_control_velocity_->vector[0])) {
+        if (!(*left_back_alive_ && *right_back_alive_ && *left_front_alive_
+              && *right_front_alive_)) {
+            wheel_alive_protecter_.reset(1'000);
+            wheel_enable_ = false;
+        }
+        if (wheel_alive_protecter_.tick())
+            wheel_enable_ = true;
+
+        if (std::isnan(chassis_control_velocity_->vector[0]) || !wheel_enable_) {
             reset_all_controls();
             return;
         }
@@ -224,6 +238,10 @@ private:
     InputInterface<double> left_back_velocity_;
     InputInterface<double> right_back_velocity_;
     InputInterface<double> right_front_velocity_;
+
+    InputInterface<bool> left_front_alive_, left_back_alive_, right_front_alive_, right_back_alive_;
+    rmcs_utility::TickTimer wheel_alive_protecter_;
+    bool wheel_enable_ = true;
 
     InputInterface<rmcs_description::BaseLink::DirectionVector> chassis_control_velocity_;
     InputInterface<double> power_limit_;
