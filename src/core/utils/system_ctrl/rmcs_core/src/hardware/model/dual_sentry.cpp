@@ -315,7 +315,7 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {dual_sentry, dual_sentry_command, "/chassis/left_back_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
-            , supercap_(dual_sentry, dual_sentry.get_parameter("supercap_max_voltage").as_double())
+            , supercap_(dual_sentry, 28.5)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 

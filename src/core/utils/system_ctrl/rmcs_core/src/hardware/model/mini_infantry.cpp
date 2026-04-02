@@ -289,7 +289,7 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
                        .set_reduction_ratio(268.0 / 17.0)
                        .set_reversed()})
-            , supercap_(mini_infantry)
+            , supercap_(mini_infantry, 28.5)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 

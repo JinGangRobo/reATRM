@@ -30,17 +30,13 @@ public:
         register_input("/chassis/power", chassis_power_);
         register_input("/chassis/supercap/voltage", supercap_voltage_);
         register_input("/chassis/supercap/enabled", supercap_enabled_);
+        register_input("/chassis/supercap/energy_percentage", supercap_energy_percentage_);
 
         register_input("/referee/chassis/power_limit", chassis_power_limit_referee_);
         register_input("/referee/chassis/buffer_energy", chassis_buffer_energy_referee_);
         register_input("/chassis/boost", boost_mode_status_, false);
 
         register_output("/chassis/control_power_limit", chassis_control_power_limit_, 0.0);
-
-        register_output(
-            "/chassis/supercap/voltage/control_line", supercap_voltage_control_line_, 28.5);
-        register_output("/chassis/supercap/voltage/base_line", supercap_voltage_base_line_, 10.0);
-        register_output("/chassis/supercap/voltage/dead_line", supercap_voltage_dead_line_, 9.0);
     }
 
     void update() override {
@@ -86,30 +82,25 @@ private:
         if (boost_mode_ && *supercap_enabled_)
             power_limit = *mode_ == rmcs_msgs::ChassisMode::LAUNCH_RAMP
                             ? inf_
-                            : *chassis_power_limit_referee_ + 80.0;
+                            : *chassis_power_limit_referee_ + 100.0;
         else
             power_limit = *chassis_power_limit_referee_;
         chassis_power_limit_expected_ = power_limit;
 
-        //                 chassis_control_power_limit =
-        constexpr double supercap_voltage_control_line = 28.5; // = supercap
-        constexpr double supercap_voltage_base_line = 9.0;     // = referee
         power_limit = *chassis_power_limit_referee_
                     + (power_limit - *chassis_power_limit_referee_)
-                          * std::clamp(
-                              (*supercap_voltage_ - supercap_voltage_base_line)
-                                  / (supercap_voltage_control_line - supercap_voltage_base_line),
-                              0.0, 1.0);
+                          * std::clamp(*supercap_energy_percentage_ / 100.0, 0.0, 1.0);
 
         // Maximum excess power when virtual buffer energy is full.
-        constexpr double excess_power_limit = 15;
+        // due to shitty supercap, we have to set this to 0 to prevent energy leak.
+        constexpr double excess_power_limit = 0.0;
+        constexpr double anti_power_leak = 20.0;
 
-        power_limit += excess_power_limit;
+        power_limit = power_limit + excess_power_limit - anti_power_leak;
         power_limit *= virtual_buffer_energy_ / virtual_buffer_energy_limit_;
 
         *chassis_control_power_limit_ = power_limit;
     }
-
 
     static constexpr double inf_ = std::numeric_limits<double>::infinity();
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
@@ -128,6 +119,7 @@ private:
 
     InputInterface<double> supercap_voltage_;
     InputInterface<bool> supercap_enabled_;
+    InputInterface<double> supercap_energy_percentage_;
 
     InputInterface<double> chassis_power_limit_referee_;
     InputInterface<double> chassis_buffer_energy_referee_;
@@ -135,11 +127,6 @@ private:
     bool boost_mode_ = false;
     double chassis_power_limit_expected_;
     OutputInterface<double> chassis_control_power_limit_;
-
-    OutputInterface<double> supercap_voltage_control_line_;
-    OutputInterface<double> supercap_voltage_base_line_;
-    OutputInterface<double> supercap_voltage_dead_line_;
-
 };
 
 } // namespace rmcs_core::controller::chassis

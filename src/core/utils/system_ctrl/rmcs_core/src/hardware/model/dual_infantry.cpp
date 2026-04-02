@@ -312,7 +312,7 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {dual_infantry, dual_infantry_command, "/chassis/left_back_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
-            , supercap_(dual_infantry)
+            , supercap_(dual_infantry, 28.5)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
