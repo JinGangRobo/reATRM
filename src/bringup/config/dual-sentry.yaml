@@ -38,7 +38,7 @@ value_broadcaster:
   ros__parameters:
     forward_list:
       - /gimbal/pitch/angle
-      - /debug/pitch/raw_angle
+      - /gimbal/pitch/raw_angle
       - /debug/top_yaw/raw_angle
       - /chassis/power
       - /chassis/supercap/voltage
@@ -59,7 +59,7 @@ dual_sentry_hardware:
     usb_pid_bottom_board: 0x247f
     bottom_yaw_motor_zero_point: 4000
     top_yaw_motor_zero_point: 2434
-    pitch_motor_zero_point: 33524
+    pitch_motor_zero_point: 34776 # 33524
 
     imu_bias_x: 3
     imu_bias_y: 0
@@ -69,7 +69,7 @@ chassis_controller:
   ros__parameters:
     translational_velocity_limit: 30.0
     angular_velocity_limit: 4.0
-    autopilot_spin_velocity_default: 2.5
+    autopilot_spin_velocity_default: 3.5
 
 gimbal_controller:
   ros__parameters:
