@@ -1,7 +1,7 @@
 #pragma once
 
 #include <eigen3/Eigen/Dense>
-#include <librmcs/device/dr16.hpp>
+#include <librmcs/device/vt03.hpp>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 #include <rmcs_executor/component.hpp>
@@ -11,17 +11,18 @@
 
 namespace rmcs_core::hardware::device {
 
-class 
-Dr16 : public librmcs::device::Dr16 {
+class Vt03 : public librmcs::device::Vt03 {
 public:
-    explicit Dr16(rmcs_executor::Component& component) {
+    explicit Vt03(rmcs_executor::Component& component) {
         component.register_output(
             "/remote/joystick/right", joystick_right_, Eigen::Vector2d::Zero());
         component.register_output("/remote/joystick/left", joystick_left_, Eigen::Vector2d::Zero());
 
         component.register_output(
-            "/remote/switch/right", switch_right_, rmcs_msgs::Switch::UNKNOWN);
-        component.register_output("/remote/switch/left", switch_left_, rmcs_msgs::Switch::UNKNOWN);
+            "/remote/switch/middle", mode_switch_, rmcs_msgs::Switch2::UNKNOWN);
+        component.register_output(
+            "/remote/switch/right", switch_right_, rmcs_msgs::Switch::MIDDLE);
+        component.register_output("/remote/switch/left", switch_left_, rmcs_msgs::Switch::MIDDLE);
 
         component.register_output(
             "/remote/mouse/velocity", mouse_velocity_, Eigen::Vector2d::Zero());
@@ -40,13 +41,12 @@ public:
     }
 
     void update_status() {
-        librmcs::device::Dr16::update_status();
+        librmcs::device::Vt03::update_status();
 
         *joystick_right_ = joystick_right();
         *joystick_left_ = joystick_left();
 
-        *switch_right_ = switch_right();
-        *switch_left_ = switch_left();
+        *mode_switch_ = mode_switch();
 
         *mouse_velocity_ = mouse_velocity();
         *mouse_wheel_ = mouse_wheel();
@@ -59,28 +59,25 @@ public:
     }
 
     Eigen::Vector2d joystick_right() const {
-        return to_eigen_vector(librmcs::device::Dr16::joystick_right());
+        return to_eigen_vector(librmcs::device::Vt03::joystick_right());
     }
     Eigen::Vector2d joystick_left() const {
-        return to_eigen_vector(librmcs::device::Dr16::joystick_left());
+        return to_eigen_vector(librmcs::device::Vt03::joystick_left());
     }
 
-    rmcs_msgs::Switch switch_right() const {
-        return std::bit_cast<rmcs_msgs::Switch>(librmcs::device::Dr16::switch_right());
-    }
-    rmcs_msgs::Switch switch_left() const {
-        return std::bit_cast<rmcs_msgs::Switch>(librmcs::device::Dr16::switch_left());
+    rmcs_msgs::Switch2 mode_switch() const {
+        return std::bit_cast<rmcs_msgs::Switch2>(librmcs::device::Vt03::mode_switch());
     }
 
     Eigen::Vector2d mouse_velocity() const {
-        return to_eigen_vector(librmcs::device::Dr16::mouse_velocity());
+        return to_eigen_vector(librmcs::device::Vt03::mouse_velocity());
     }
 
     rmcs_msgs::Mouse mouse() const {
-        return std::bit_cast<rmcs_msgs::Mouse>(librmcs::device::Dr16::mouse());
+        return std::bit_cast<rmcs_msgs::Mouse>(librmcs::device::Vt03::mouse());
     }
     rmcs_msgs::Keyboard keyboard() const {
-        return std::bit_cast<rmcs_msgs::Keyboard>(librmcs::device::Dr16::keyboard());
+        return std::bit_cast<rmcs_msgs::Keyboard>(librmcs::device::Vt03::keyboard());
     }
 
 private:
@@ -110,6 +107,8 @@ private:
 
     rmcs_executor::Component::OutputInterface<Eigen::Vector2d> joystick_right_;
     rmcs_executor::Component::OutputInterface<Eigen::Vector2d> joystick_left_;
+
+    rmcs_executor::Component::OutputInterface<rmcs_msgs::Switch2> mode_switch_;
 
     rmcs_executor::Component::OutputInterface<rmcs_msgs::Switch> switch_right_;
     rmcs_executor::Component::OutputInterface<rmcs_msgs::Switch> switch_left_;

@@ -18,7 +18,9 @@
 #include "hardware/device/buzzer.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dm_motor.hpp"
-#include "hardware/device/dr16.hpp"
+// #include "hardware/device/dr16.hpp"
+#include "hardware/device/vt03.hpp"
+
 #include "hardware/device/gy614.hpp"
 #include "hardware/device/supercap.hpp"
 #include "utility/low_pass_filter.hpp"
@@ -101,7 +103,8 @@ private:
             , tf_(dual_infantry.tf_)
             , imu_(10.0f, 0.001f, 1000000.0f)
             , gy614_(dual_infantry, "/friction_wheels/temperature")
-            , dr16_{dual_infantry}
+            // , dr16_{dual_infantry}
+            , vt03_(dual_infantry)
             , buzzer_(dual_infantry_command)
             , imu_bias_x(dual_infantry.get_parameter("imu_bias_x").as_int())
             , imu_bias_y(dual_infantry.get_parameter("imu_bias_y").as_int())
@@ -180,7 +183,8 @@ private:
                 gimbal_imu_pose);
 
             gy614_.update_status();
-            dr16_.update_status();
+            // dr16_.update_status();
+            vt03_.update_status();
             buzzer_.update_status();
 
             *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
@@ -245,10 +249,13 @@ private:
             }
         }
 
-        void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
-            dr16_.store_status(uart_data, uart_data_length);
+        // void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override
+        // {
+        //     dr16_.store_status(uart_data, uart_data_length);
+        // }
+        void uart1_receive_callback(const std::byte* data, uint8_t length) override {
+            vt03_.store_status(data, length);
         }
-
         void uart2_receive_callback(const std::byte* data, uint8_t length) override {
             gy614_.store_status(data, length);
         }
@@ -265,7 +272,8 @@ private:
 
         device::Bmi088 imu_;
         device::Gy614 gy614_;
-        device::Dr16 dr16_;
+        // device::Dr16 dr16_;
+        device::Vt03 vt03_;
         device::Buzzer buzzer_;
 
         OutputInterface<double> gimbal_yaw_velocity_imu_;
