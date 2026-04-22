@@ -15,19 +15,19 @@ RUN if id -u $USER_UID ; then userdel `id -un $USER_UID` ; fi
 RUN rm -f /etc/apt/sources.list.d/ubuntu.sources && \
     { \
     echo 'Types: deb'; \
-    echo 'URIs: https://mirrors.tuna.tsinghua.edu.cn/ubuntu'; \
+    echo 'URIs: https://mirrors.ustc.edu.cn/ubuntu'; \
     echo 'Suites: noble noble-updates noble-backports'; \
     echo 'Components: main restricted universe multiverse'; \
     echo 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg'; \
     echo ''; \
     echo 'Types: deb'; \
-    echo 'URIs: https://mirrors.tuna.tsinghua.edu.cn/ubuntu'; \
+    echo 'URIs: https://mirrors.ustc.edu.cn/ubuntu'; \
     echo 'Suites: noble-security'; \
     echo 'Components: main restricted universe multiverse'; \
     echo 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg'; \
     } > /etc/apt/sources.list.d/ubuntu.sources
 RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key  -o /usr/share/keyrings/ros-archive-keyring.gpg
-RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu noble main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] https://mirrors.ustc.edu.cn/ros2/ubuntu noble main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
 
 # Create the user
@@ -95,8 +95,12 @@ RUN echo 'alias ini="source install/setup.bash"' >> /home/$USERNAME/.bashrc
 USER $USERNAME
 
 RUN sudo mkdir /home/ws && sudo chown $USERNAME:$USERNAME /home/ws
-RUN sudo curl -o /etc/ros/rosdep/sources.list.d/20-default.list -L https://mirrors.tuna.tsinghua.edu.cn/github-raw/ros/rosdistro/master/rosdep/sources.list.d/20-default.list
-RUN export ROSDISTRO_INDEX_URL=https://mirrors.tuna.tsinghua.edu.cn/rosdistro/index-v4.yaml && rosdep update || true
+
+RUN sudo mkdir -p /etc/ros/rosdep/sources.list.d/
+RUN sudo curl -o /etc/ros/rosdep/sources.list.d/20-default.list https://mirrors.ustc.edu.cn/rosdistro/rosdep/sources.list.d/20-default.list
+RUN sudo sed -i 's#raw.githubusercontent.com/ros/rosdistro/master#mirrors.ustc.edu.cn/rosdistro#g' /etc/ros/rosdep/sources.list.d/20-default.list
+RUN echo 'export ROSDISTRO_INDEX_URL=https://mirrors.ustc.edu.cn/rosdistro/index-v4.yaml' >> ~/.bashrc
+RUN rosdep update || true
 
 RUN --mount=type=bind,target=/home/ws,source=.,readonly=false cd /home/ws \
     && sudo cp /home/ws/.script/atrm-service /etc/init.d/atrm || true \ 
@@ -107,7 +111,7 @@ RUN --mount=type=bind,target=/home/ws,source=.,readonly=false cd /home/ws \
     && sudo rosdep install --from-paths src --ignore-src -y || true \
     && source /home/ws/.script/envinit.bash
 
-RUN pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple xmacro --break-system-packages
+RUN pip install -i https://mirrors.ustc.edu.cn/pypi/web/simple xmacro --break-system-packages
 
 # ENTRYPOINT [""]
 CMD ["/entrypoint.sh"]
