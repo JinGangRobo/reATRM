@@ -33,6 +33,8 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
             )
         )
 
+        enable_vision_entities = ["dual-sentry", "dual-infantry", "mec-hero", "mini-infantry"]
+
         entities.append(
             Node(
                 package="rmcs_executor",
@@ -49,6 +51,18 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
                 output="log",  # stdout and stderr are logged to launch log file and stderr to the screen.
             )
         )
+
+        # TODO: Better way to identify robots needs vision capabilities
+        if robot_name in enable_vision_entities:
+            entities.append(
+                Node(
+                    package="rmcs_auto_aim_v2",
+                    executable="rmcs_auto_aim_v2_runtime",
+                    respawn=True,
+                    respawn_delay=1.0,
+                    output="screen",
+                )
+            )
 
         if is_automatic:
             pass

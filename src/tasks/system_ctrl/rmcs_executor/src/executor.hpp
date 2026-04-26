@@ -79,7 +79,7 @@ private:
             component->wanted_by_.clear();
             for (auto& output : component->output_list_) {
                 if (!output_map.emplace(output.name, &output).second)
-                    throw std::runtime_error{"Duplicate names of output"};
+                    throw std::runtime_error{"Duplicate names of output: " + output.name};
                 user_output_map.emplace(output.name, output.type);
             }
         }

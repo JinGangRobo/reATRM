@@ -1,0 +1,203 @@
+rmcs_executor:
+  ros__parameters:
+    update_rate: 1000.0
+    components:
+      - rmcs_core::hardware::MiniInfantry -> mini_infantry_hardware
+
+      - rmcs_core::referee::Status -> referee_status
+      - rmcs_core::referee::Command -> referee_command
+
+      - rmcs_core::referee::command::Interaction -> referee_interaction
+      - rmcs_core::referee::command::interaction::Ui -> referee_ui
+      - rmcs_core::referee::app::ui::MiniInfantry -> referee_ui_mini_infantry
+
+      - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
+      - rmcs_core::controller::pid::ErrorPidController -> yaw_angle_pid_controller
+      - rmcs_core::controller::pid::PidController -> yaw_velocity_pid_controller
+      - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_pid_controller
+      - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
+
+      - rmcs_core::controller::shooting::FrictionWheelController -> friction_wheel_controller
+      - rmcs_core::controller::shooting::HeatController -> heat_controller
+      - rmcs_core::controller::shooting::BulletFeederController17mm -> bullet_feeder_controller
+      - rmcs_core::controller::pid::PidController -> left_friction_velocity_pid_controller
+      - rmcs_core::controller::pid::PidController -> right_friction_velocity_pid_controller
+      - rmcs_core::controller::pid::PidController -> bullet_feeder_velocity_pid_controller
+
+      - rmcs_core::controller::chassis::ChassisController -> chassis_controller
+      - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
+      - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
+
+      - rmcs::AutoAimComponent -> auto_aim_component
+
+      - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
+      - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
+
+value_broadcaster:
+  ros__parameters:
+    forward_list:
+      - /gimbal/pitch/raw_angle
+      - /gimbal/pitch/angle
+      - /gimbal/yaw/raw_angle
+      - /gimbal/pitch/control_torque
+      - /gimbal/yaw/control_angle_error
+      - /gimbal/pitch/control_angle_error
+      - /gimbal/pitch/velocity_imu
+      - /gimbal/yaw/velocity_imu
+      - /debug/solver/pitch
+      - /chassis/yaw/velocity_imu
+      - /gimbal/yaw/control_torque
+      - /referee/shooter/initial_speed
+      - /referee/chassis/current_hp
+
+mini_infantry_hardware:
+  ros__parameters:
+    usb_pid_top_board: 0x13b4
+    usb_pid_bottom_board: 0xf112
+    yaw_motor_zero_point: 3606
+    pitch_motor_zero_point: 7556
+
+    imu_bias_x: 1
+    imu_bias_y: 3
+    imu_bias_z: 3
+
+gimbal_controller:
+  ros__parameters:
+    upper_limit: -0.10
+    lower_limit: 0.35
+
+    joystick_left_bias_y: 0.0
+    joystick_left_bias_x: 0.0
+
+    depond_motors:
+      - /gimbal/pitch
+      - /gimbal/yaw
+
+chassis_controller:
+  ros__parameters:
+    translational_velocity_limit: 20.0
+    angular_velocity_limit: 13.0
+
+omni_wheel_controller:
+  ros__parameters:
+    chassis_radius_x: 0.165
+    chassis_radius_y: 0.165
+    wheel_radius_: 0.07
+    friction_coefficient: 0.6
+
+    spinning_bais_coefficient: -0.02
+
+yaw_angle_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/yaw/control_angle_error
+    control: /gimbal/yaw/control_velocity
+    enable: /gimbal/yaw/alive
+    kp: 16.0
+    ki: 0.01
+    kd: 0.0
+    integral_min: -10.0
+    integral_max: 10.0
+
+yaw_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/yaw/velocity_imu
+    setpoint: /gimbal/yaw/control_velocity
+    control: /gimbal/yaw/control_torque
+    enable: /gimbal/yaw/alive
+    kp: 4.0
+    ki: 0.04
+    kd: 50.0
+    integral_min: -60.0
+    integral_max: 60.0
+
+pitch_angle_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/pitch/control_angle_error
+    control: /gimbal/pitch/control_velocity
+    enable: /gimbal/pitch/alive
+    kp: 10.0
+    ki: 0.01
+    kd: 0.0
+    integral_min: -1.0
+    integral_max: 1.0
+
+pitch_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/pitch/velocity_imu
+    setpoint: /gimbal/pitch/control_velocity
+    control: /gimbal/pitch/control_torque
+    enable: /gimbal/pitch/alive
+    kp: 8.0
+    ki: 0.0
+    kd: 80.0
+
+friction_wheel_controller:
+  ros__parameters:
+    friction_wheels:
+      - /gimbal/left_friction
+      - /gimbal/right_friction
+    friction_velocities:
+      - 700.0
+      - 700.0
+    friction_soft_start_stop_time: 1.0
+
+bullet_feeder_controller:
+  ros__parameters:
+    bullets_per_feeder_turn: 9.0
+    shot_frequency: 16.0
+    safe_shot_frequency: 4.0
+    eject_frequency: 9.0
+    eject_time: 0.15
+    deep_eject_frequency: 9.0
+    deep_eject_time: 0.20
+    single_shot_max_stop_delay: 2.0
+
+heat_controller:
+  ros__parameters:
+    heat_per_shot: 10000
+    reserved_heat: 20000
+
+left_friction_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/left_friction/velocity
+    setpoint: /gimbal/left_friction/control_velocity
+    control: /gimbal/left_friction/control_torque
+    kp: 0.003436926
+    ki: 0.00
+    kd: 0.009373434
+
+right_friction_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/right_friction/velocity
+    setpoint: /gimbal/right_friction/control_velocity
+    control: /gimbal/right_friction/control_torque
+    kp: 0.003436926
+    ki: 0.00
+    kd: 0.009373434
+
+bullet_feeder_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/bullet_feeder/velocity_filtered
+    setpoint: /gimbal/bullet_feeder/control_velocity
+    control: /gimbal/bullet_feeder/control_torque
+    kp: 4.0
+    ki: 0.0
+    kd: 20.0
+
+diagnosis:
+  ros__parameters:
+    motors:
+      - /gimbal/pitch
+      - /gimbal/yaw
+      - /gimbal/left_friction
+      - /gimbal/right_friction
+      - /gimbal/bullet_feeder
+      - /chassis/left_front_wheel
+      - /chassis/right_front_wheel
+      - /chassis/left_back_wheel
+      - /chassis/right_back_wheel
+
+    enable_motor_check: true
+    enable_supercap_check: true
+    enable_aim_check: true
+    enable_nav_check: false

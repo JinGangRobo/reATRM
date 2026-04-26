@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 
 #include <eigen3/Eigen/Dense>
 
@@ -81,4 +82,73 @@ private:
 
     Matrix<measure, state> measurement_transition_;
 };
+
+template <size_t state, size_t measure, size_t control = 0>
+class ExtendedKalmanFilter {
+    using State = Eigen::Vector<double, state>;
+    using Measure = Eigen::Vector<double, measure>;
+    using Control = Eigen::Vector<double, control>;
+    using StateJacobian = Eigen::Matrix<double, state, state>;
+    using MeasureJacobian = Eigen::Matrix<double, measure, state>;
+
+    // 函数类型：f(x, u) 和 h(x) 以及它们的雅可比矩阵
+    using ProcessModel = std::function<State(const State&, const Control&)>;
+    using MeasurementModel = std::function<Measure(const State&)>;
+    using ProcessJacobian = std::function<StateJacobian(const State&, const Control&)>;
+    using MeasurementJacobian = std::function<MeasureJacobian(const State&)>;
+
+public:
+    ExtendedKalmanFilter(
+        ProcessModel f, MeasurementModel h, ProcessJacobian F, MeasurementJacobian H,
+        const Matrix<state>& Q, const Matrix<measure>& R)
+        : process_model_(f)
+        , measurement_model_(h)
+        , process_jacobian_(F)
+        , measurement_jacobian_(H)
+        , process_noise_covariance_(Q)
+        , measurement_noise_covariance_(R) {
+        reset();
+    }
+
+    void reset() {
+        posterior_estimate_ = State::Zero();
+        posterior_error_covariance_ = 1000.0 * Matrix<state>::Identity();
+    }
+
+    State update(const Measure& measurement, const Control& control_vector = Control::Zero()) {
+        // 预测步骤（非线性，使用 f 函数）
+        State prior_estimate = process_model_(posterior_estimate_, control_vector);
+        StateJacobian F = process_jacobian_(posterior_estimate_, control_vector);
+        Matrix<state> prior_error_covariance =
+            F * posterior_error_covariance_ * F.transpose() + process_noise_covariance_;
+
+        // 更新步骤（非线性，使用 h 函数）
+        Measure predicted_measurement = measurement_model_(prior_estimate);
+        MeasureJacobian H = measurement_jacobian_(prior_estimate);
+
+        Matrix<measure> innovation_covariance =
+            H * prior_error_covariance * H.transpose() + measurement_noise_covariance_;
+        Matrix<state, measure> kalman_gain =
+            prior_error_covariance * H.transpose() * innovation_covariance.inverse();
+
+        posterior_estimate_ = prior_estimate + kalman_gain * (measurement - predicted_measurement);
+        posterior_error_covariance_ =
+            (Matrix<state>::Identity() - kalman_gain * H) * prior_error_covariance;
+
+        return posterior_estimate_;
+    }
+
+    const State& posterior_estimate() const { return posterior_estimate_; }
+
+private:
+    ProcessModel process_model_;
+    MeasurementModel measurement_model_;
+    ProcessJacobian process_jacobian_;
+    MeasurementJacobian measurement_jacobian_;
+
+    State posterior_estimate_;
+    Matrix<state> process_noise_covariance_, posterior_error_covariance_;
+    Matrix<measure> measurement_noise_covariance_;
+};
+
 } // namespace rmcs_core::utility

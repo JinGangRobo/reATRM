@@ -2,68 +2,54 @@
 
 #include <cmath>
 
+#include <cstdint>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 #include <rmcs_executor/component.hpp>
+#include <rmcs_utility/tick_timer.hpp>
 
 namespace rmcs_core::hardware::device {
 using rmcs_executor::Component;
 
 class Supercap {
 public:
-    explicit Supercap(Component& status_component, Component& command_component) {
+    explicit Supercap(Component& status_component, double max_capacity_voltage = 23.0)
+        : max_capacity_voltage_(max_capacity_voltage) {
         status_component.register_output("/chassis/power", chassis_power_, 0.0);
-        status_component.register_output("/chassis/voltage", chassis_voltage_, 0.0);
         status_component.register_output("/chassis/supercap/voltage", supercap_voltage_, 0.0);
+        status_component.register_output(
+            "/chassis/supercap/energy_percentage", supercap_energy_percentage_, 0.0);
         status_component.register_output("/chassis/supercap/enabled", supercap_enabled_, false);
 
-        command_component.register_input("/referee/chassis/output_status", chassis_output_status_);
-        command_component.register_input(
-            "/chassis/supercap/charge_power_limit", supercap_charge_power_limit_);
+        supercap_watchdog_.reset(1'000);
     }
 
     void store_status(uint64_t can_data) {
         can_data_.store(std::bit_cast<SupercapStatus>(can_data), std::memory_order::relaxed);
+        supercap_watchdog_.reset(1'000);
+        is_data_valid_ = true;
     }
 
     void update_status() {
-        auto status = can_data_.load(std::memory_order::relaxed);
+        if (supercap_watchdog_.tick()) {
+            *supercap_enabled_ = false;
+            is_data_valid_ = false;
+            RCLCPP_WARN(rclcpp::get_logger("HW_Diag"), "Supercap offline!");
+        }
+        if (is_data_valid_) {
+            auto status = can_data_.load(std::memory_order::relaxed);
 
-        *chassis_power_ = uint_to_double(status.chassis_power, -100.0, 400.0);
-        *chassis_voltage_ = uint_to_double(status.chassis_voltage, 0.0, 50.0);
-        *supercap_voltage_ = uint_to_double(status.supercap_voltage, 0.0, 50.0);
-        *supercap_enabled_ = status.enabled;
-    }
-
-    uint16_t generate_command() const {
-        SupercapCommand command;
-
-        command.enabled = *chassis_output_status_;
-
-        double power_limit = *supercap_charge_power_limit_;
-        if (std::isnan(power_limit))
-            command.power_limit = 0;
-        else
-            command.power_limit = static_cast<uint8_t>(std::clamp(power_limit, 0.0, 255.0));
-
-        return std::bit_cast<uint16_t>(command);
-    }
-
-    uint16_t generate_disable_command() const {
-        SupercapCommand command;
-
-        command.enabled = false;
-        double power_limit = *supercap_charge_power_limit_;
-        if (std::isnan(power_limit))
-            command.power_limit = 0;
-        else
-            command.power_limit = static_cast<uint8_t>(std::clamp(power_limit, 0.0, 255.0));
-
-        return std::bit_cast<uint16_t>(command);
+            *chassis_power_ = std::bit_cast<float>(status.chassis_pow);
+            *supercap_voltage_ = ((status.voltage_B1 << 8) | status.voltage_B2) / 100.0;
+            *supercap_energy_percentage_ =
+                ((std::pow(*supercap_voltage_, 2) - low_power_const)
+                 / (std::pow(max_capacity_voltage_, 2) - low_power_const))
+                * 100.0;
+            *supercap_enabled_ = status.supcap_status;
+        }
     }
 
     double chassis_power() { return *chassis_power_; }
-    double chassis_voltage() { return *chassis_voltage_; }
     double supercap_voltage() { return *supercap_voltage_; }
     double supercap_enabled() { return *supercap_enabled_; }
 
@@ -76,27 +62,25 @@ private:
     }
 
     struct __attribute__((packed, aligned(8))) SupercapStatus {
-        uint16_t chassis_power;
-        uint16_t supercap_voltage;
-        uint16_t chassis_voltage;
-        uint8_t enabled;
-        uint8_t unused;
+        uint8_t voltage_B1;
+        uint8_t voltage_B2;
+        uint8_t reserved;
+        uint32_t chassis_pow;
+        uint8_t supcap_status;
     };
     std::atomic<SupercapStatus> can_data_{};
     static_assert(decltype(can_data_)::is_always_lock_free);
 
-    struct __attribute__((packed, aligned(2))) SupercapCommand {
-        uint8_t power_limit;
-        bool enabled;
-    };
+    double max_capacity_voltage_;
+    static constexpr double low_power_const = 5.0 * 5.0;
+
+    bool is_data_valid_ = false;
+    rmcs_utility::TickTimer supercap_watchdog_;
 
     Component::OutputInterface<double> chassis_power_;
-    Component::OutputInterface<double> chassis_voltage_;
     Component::OutputInterface<double> supercap_voltage_;
+    Component::OutputInterface<double> supercap_energy_percentage_;
     Component::OutputInterface<bool> supercap_enabled_;
-
-    Component::InputInterface<bool> chassis_output_status_;
-    Component::InputInterface<double> supercap_charge_power_limit_;
 };
 
 } // namespace rmcs_core::hardware::device

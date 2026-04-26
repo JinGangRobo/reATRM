@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include <limits>
+#include <rmcs_msgs/operate_mode.hpp>
 #include <string>
 
 #include <eigen3/Eigen/Dense>
@@ -32,6 +33,8 @@ public:
         register_input("/remote/switch/left", switch_left_);
         register_input("/remote/keyboard", keyboard_);
 
+        register_input("/chassis/operate_mode", operate_mode_, false);
+
         auto friction_wheels = get_parameter("friction_wheels").as_string_array();
         auto friction_working_velocities = get_parameter("friction_velocities").as_double_array();
         if (friction_wheels.size() != friction_working_velocities.size())
@@ -45,10 +48,12 @@ public:
         friction_count_ = friction_wheels.size();
         friction_working_velocities_ = std::make_unique<double[]>(friction_count_);
         friction_velocities_ = std::make_unique<InputInterface<double>[]>(friction_count_);
+        friction_alive_ = std::make_unique<InputInterface<bool>[]>(friction_count_);
         friction_control_velocities_ = std::make_unique<OutputInterface<double>[]>(friction_count_);
         for (size_t i = 0; i < friction_count_; i++) {
             friction_working_velocities_[i] = friction_working_velocities[i];
             register_input(friction_wheels[i] + "/velocity", friction_velocities_[i]);
+            register_input(friction_wheels[i] + "/alive", friction_alive_[i]);
             register_output(
                 friction_wheels[i] + "/control_velocity", friction_control_velocities_[i], nan_);
         }
@@ -74,9 +79,18 @@ public:
         }
 
         if (switch_right != Switch::DOWN) {
-            if ((!last_keyboard_.v && keyboard.v)
+            if (((!last_keyboard_.v && keyboard.v) && switch_left != Switch::DOWN)
                 || (last_switch_left_ == Switch::MIDDLE && switch_left == Switch::UP)) {
                 friction_enabled_ = !friction_enabled_;
+            }
+            if (switch_right == Switch::UP && switch_left != Switch::DOWN) { // autopilot mode
+                friction_enabled_ = last_autopilot_enabled_ = true;
+            } else if (last_autopilot_enabled_) {
+                friction_enabled_ = last_autopilot_enabled_ = false;
+            }
+            if (operate_mode_.ready()) {
+                if (*operate_mode_ == OperateMode::ASSIST)
+                    friction_enabled_ = last_autopilot_enabled_ = true;
             }
 
             update_friction_velocities();
@@ -132,6 +146,10 @@ private:
             return;
         if (friction_soft_start_stop_percentage_ < 1.0)
             return;
+        for (size_t i = 0; i < friction_count_; i++) {
+            if (!friction_alive_[i].ready() || !*friction_alive_[i])
+                return;
+        }
 
         if (detect_friction_faulty()) {
             if (friction_faulty_count_ == 200) {
@@ -188,6 +206,8 @@ private:
     InputInterface<rmcs_msgs::Switch> switch_left_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
 
+    InputInterface<rmcs_msgs::OperateMode> operate_mode_;
+
     rmcs_msgs::Switch last_switch_right_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Switch last_switch_left_ = rmcs_msgs::Switch::UNKNOWN;
     rmcs_msgs::Keyboard last_keyboard_ = rmcs_msgs::Keyboard::zero();
@@ -197,8 +217,10 @@ private:
     std::unique_ptr<double[]> friction_working_velocities_;
 
     std::unique_ptr<InputInterface<double>[]> friction_velocities_;
+    std::unique_ptr<InputInterface<bool>[]> friction_alive_;
 
     bool friction_enabled_ = false;
+    bool last_autopilot_enabled_ = false;
 
     double friction_soft_start_stop_step_;
     double friction_soft_start_stop_percentage_ = nan_;

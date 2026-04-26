@@ -1,0 +1,3 @@
+#! /bin/bash
+source /home/ws/.script/envinit.bash
+colcon build --executor sequential --symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON

@@ -27,6 +27,7 @@ public:
 
         register_input("/gimbal/bullet_feeder/angle", bullet_feeder_angle_);
         register_input("/gimbal/bullet_feeder/velocity_filtered", bullet_feeder_velocity_);
+        register_input("/gimbal/bullet_feeder/alive", bullet_feeder_alive_);
 
         register_input(
             "/gimbal/control_bullet_allowance/limited_by_heat",
@@ -61,14 +62,11 @@ public:
 
         using namespace rmcs_msgs;
         if ((switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
-            || (switch_left == Switch::DOWN && switch_right == Switch::DOWN)) {
+            || (switch_left == Switch::DOWN && switch_right == Switch::DOWN)
+            || !*bullet_feeder_alive_) {
             reset_all_controls();
             return;
         }
-
-        overdrive_mode_ = keyboard.f;
-        if (keyboard.ctrl && !last_keyboard_.r && keyboard.r)
-            low_latency_mode_ = !low_latency_mode_;
 
         if (bullet_feeder_cool_down_ > 0) {
             bullet_feeder_cool_down_--;
@@ -92,6 +90,8 @@ public:
                 bullet_fed_count_ = static_cast<int>(
                     (*bullet_feeder_angle_ - bullet_feeder_compressed_zero_point_ - 0.1)
                     / bullet_feeder_angle_per_bullet_);
+                bullet_feeder_velocity_pid_.reset();
+                bullet_feeder_angle_pid_.reset();
 
                 bullet_feeder_velocity_pid_.output_max = 0.0;
             }
@@ -115,14 +115,6 @@ public:
                 if (shoot_stage_ == ShootStage::PRELOADING) {
                     if (err_abs < 0.1)
                         set_preloaded();
-                }
-                if (shoot_stage_ == ShootStage::PRELOADED) {
-                    if (low_latency_mode_)
-                        set_compressing();
-                }
-                if (shoot_stage_ == ShootStage::COMPRESSING) {
-                    if (err_abs < 0.1)
-                        set_compressed();
                 }
                 if (shoot_stage_ == ShootStage::SHOOTING) {
                     if (err_abs < 0.1)
@@ -184,19 +176,6 @@ private:
         shoot_stage_ = ShootStage::PRELOADED;
     }
 
-    void set_compressing() {
-        RCLCPP_INFO(get_logger(), "COMPRESSING");
-        shoot_stage_ = ShootStage::COMPRESSING;
-        bullet_feeder_control_angle_ = bullet_feeder_compressed_zero_point_
-                                     + (bullet_fed_count_ + 1) * bullet_feeder_angle_per_bullet_;
-        bullet_feeder_angle_pid_.output_max = 0.8;
-    }
-
-    void set_compressed() {
-        RCLCPP_INFO(get_logger(), "COMPRESSED");
-        shoot_stage_ = ShootStage::COMPRESSED;
-    }
-
     void set_shooting() {
         RCLCPP_INFO(get_logger(), "SHOOTING");
         shoot_stage_ = ShootStage::SHOOTING;
@@ -232,8 +211,8 @@ private:
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
     static constexpr double inf_ = std::numeric_limits<double>::infinity();
 
-    static constexpr double bullet_feeder_compressed_zero_point_ = 0.58;
-    static constexpr double bullet_feeder_angle_per_bullet_ = 2 * std::numbers::pi / 6;
+    static constexpr double bullet_feeder_compressed_zero_point_ = 1.05;
+    static constexpr double bullet_feeder_angle_per_bullet_ = 2 * std::numbers::pi / 5;
 
     InputInterface<bool> friction_ready_;
 
@@ -251,6 +230,7 @@ private:
 
     InputInterface<double> bullet_feeder_angle_;
     InputInterface<double> bullet_feeder_velocity_;
+    InputInterface<bool> bullet_feeder_alive_;
 
     InputInterface<int64_t> control_bullet_allowance_limited_by_heat_;
 

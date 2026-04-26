@@ -30,30 +30,24 @@ public:
         register_input("/chassis/power", chassis_power_);
         register_input("/chassis/supercap/voltage", supercap_voltage_);
         register_input("/chassis/supercap/enabled", supercap_enabled_);
+        register_input("/chassis/supercap/energy_percentage", supercap_energy_percentage_);
 
         register_input("/referee/chassis/power_limit", chassis_power_limit_referee_);
         register_input("/referee/chassis/buffer_energy", chassis_buffer_energy_referee_);
+        register_input("/chassis/boost", boost_mode_status_, false);
 
-        register_output("/chassis/supercap/charge_power_limit", supercap_charge_power_limit_, 0.0);
         register_output("/chassis/control_power_limit", chassis_control_power_limit_, 0.0);
-
-        register_output(
-            "/chassis/supercap/voltage/control_line", supercap_voltage_control_line_, 12.5);
-        register_output("/chassis/supercap/voltage/base_line", supercap_voltage_base_line_, 12.0);
-        register_output("/chassis/supercap/voltage/dead_line", supercap_voltage_dead_line_, 11.0);
     }
 
     void update() override {
-        update_charging_power_limit();
-
-        update_ui();
+        // update_ui();
 
         using namespace rmcs_msgs;
 
         auto switch_right = *switch_right_;
         auto switch_left = *switch_left_;
         auto keyboard = *keyboard_;
-        auto rotary_knob = *rotary_knob_;
+        // auto rotary_knob = *rotary_knob_;
 
         if ((switch_left == Switch::UNKNOWN || switch_right == Switch::UNKNOWN)
             || (switch_left == Switch::DOWN && switch_right == Switch::DOWN)) {
@@ -63,33 +57,11 @@ public:
 
         update_virtual_buffer_energy();
 
-        boost_mode_ = keyboard.shift || rotary_knob < -0.9;
+        boost_mode_ = keyboard.shift || (boost_mode_status_.ready() && *boost_mode_status_);
         update_control_power_limit();
     }
 
 private:
-    void update_charging_power_limit() {
-        // Maximum excess power when buffer energy is sufficient.
-        constexpr double excess_power_limit = 35;
-
-        //                     charging_power_limit =
-        constexpr double buffer_energy_control_line = 120; // = referee + excess
-        constexpr double buffer_energy_base_line = 30;     // = referee
-        constexpr double buffer_energy_dead_line = 0;      // = 0
-
-        *supercap_charge_power_limit_ =
-            *chassis_power_limit_referee_
-                * std::clamp(
-                    (*chassis_buffer_energy_referee_ - buffer_energy_dead_line)
-                        / (buffer_energy_base_line - buffer_energy_dead_line),
-                    0.0, 1.0)
-            + excess_power_limit
-                  * std::clamp(
-                      (*chassis_buffer_energy_referee_ - buffer_energy_base_line)
-                          / (buffer_energy_control_line - buffer_energy_base_line),
-                      0.0, 1.0);
-    }
-
     void reset_power_control() {
         virtual_buffer_energy_ = virtual_buffer_energy_limit_;
         boost_mode_ = false;
@@ -110,34 +82,24 @@ private:
         if (boost_mode_ && *supercap_enabled_)
             power_limit = *mode_ == rmcs_msgs::ChassisMode::LAUNCH_RAMP
                             ? inf_
-                            : *chassis_power_limit_referee_ + 80.0;
+                            : *chassis_power_limit_referee_ + 100.0;
         else
             power_limit = *chassis_power_limit_referee_;
         chassis_power_limit_expected_ = power_limit;
 
-        //                 chassis_control_power_limit =
-        constexpr double supercap_voltage_control_line = 12.5; // = supercap
-        constexpr double supercap_voltage_base_line = 12.0;    // = referee
         power_limit = *chassis_power_limit_referee_
                     + (power_limit - *chassis_power_limit_referee_)
-                          * std::clamp(
-                              (*supercap_voltage_ - supercap_voltage_base_line)
-                                  / (supercap_voltage_control_line - supercap_voltage_base_line),
-                              0.0, 1.0);
+                          * std::clamp(*supercap_energy_percentage_ / 100.0, 0.0, 1.0);
 
         // Maximum excess power when virtual buffer energy is full.
-        constexpr double excess_power_limit = 15;
+        // due to shitty supercap, we have to set this to 0 to prevent energy leak.
+        constexpr double excess_power_limit = 0.0;
+        constexpr double anti_power_leak = 20.0;
 
-        power_limit += excess_power_limit;
+        power_limit = power_limit + excess_power_limit - anti_power_leak;
         power_limit *= virtual_buffer_energy_ / virtual_buffer_energy_limit_;
 
         *chassis_control_power_limit_ = power_limit;
-    }
-
-    void update_ui() {
-        chassis_power_ui_.set_value(static_cast<int32_t>(std::round(*chassis_power_)));
-        chassis_control_power_limit_ui_.set_value(
-            static_cast<int32_t>(std::round(*chassis_control_power_limit_)));
     }
 
     static constexpr double inf_ = std::numeric_limits<double>::infinity();
@@ -149,6 +111,7 @@ private:
     InputInterface<rmcs_msgs::Switch> switch_left_;
     InputInterface<rmcs_msgs::Keyboard> keyboard_;
     InputInterface<double> rotary_knob_;
+    InputInterface<bool> boost_mode_status_;
 
     InputInterface<double> chassis_power_;
     static constexpr double virtual_buffer_energy_limit_ = 30.0;
@@ -156,22 +119,14 @@ private:
 
     InputInterface<double> supercap_voltage_;
     InputInterface<bool> supercap_enabled_;
+    InputInterface<double> supercap_energy_percentage_;
 
     InputInterface<double> chassis_power_limit_referee_;
     InputInterface<double> chassis_buffer_energy_referee_;
 
     bool boost_mode_ = false;
-    OutputInterface<double> supercap_charge_power_limit_;
     double chassis_power_limit_expected_;
     OutputInterface<double> chassis_control_power_limit_;
-
-    OutputInterface<double> supercap_voltage_control_line_;
-    OutputInterface<double> supercap_voltage_base_line_;
-    OutputInterface<double> supercap_voltage_dead_line_;
-
-    ui::Integer chassis_power_ui_{ui::Shape::Color::WHITE, 15, 2, ui::x_center, 100, 0};
-    ui::Integer chassis_control_power_limit_ui_{
-        ui::Shape::Color::WHITE, 15, 2, ui::x_center, 150, 0};
 };
 
 } // namespace rmcs_core::controller::chassis

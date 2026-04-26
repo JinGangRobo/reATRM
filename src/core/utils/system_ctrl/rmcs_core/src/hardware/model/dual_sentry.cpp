@@ -15,6 +15,7 @@
 #include <std_msgs/msg/int32.hpp>
 
 #include "hardware/device/bmi088.hpp"
+#include "hardware/device/buzzer.hpp"
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
@@ -38,7 +39,8 @@ public:
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.16, 0.0, 0.15});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.084, 0.0, 0.048});
+        tf_->set_transform<PitchLink, MuzzleLink>(Eigen::Translation3d{0.0, 0.0, 0.0});
 
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
             "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
@@ -99,6 +101,7 @@ private:
             , imu_(10.0f, 0.001f, 1000000.0f)
             , gy614_(dual_sentry, "/friction_wheels/temperature")
             , dr16_{dual_sentry}
+            , buzzer_(dual_sentry_command)
             , imu_bias_x(dual_sentry.get_parameter("imu_bias_x").as_int())
             , imu_bias_y(dual_sentry.get_parameter("imu_bias_y").as_int())
             , imu_bias_z(dual_sentry.get_parameter("imu_bias_z").as_int())
@@ -116,16 +119,18 @@ private:
                         dual_sentry.get_parameter("top_yaw_motor_zero_point").as_int())));
 
             gimbal_pitch_motor_.configure(
-                device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
-                    static_cast<int>(
-                        dual_sentry.get_parameter("pitch_motor_zero_point").as_int())));
+                device::DmMotor::Config{device::DmMotor::Type::J4310}
+                    .set_encoder_zero_point(
+                        static_cast<int>(
+                            dual_sentry.get_parameter("pitch_motor_zero_point").as_int()))
+                    .set_reversed());
 
             gimbal_left_friction_.configure(
-                device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
-            gimbal_right_friction_.configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::M3508}
                     .set_reduction_ratio(1.)
                     .set_reversed());
+            gimbal_right_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
 
             gimbal_bullet_feeder_.configure(
                 device::DjiMotor::Config{device::DjiMotor::Type::M3508}
@@ -150,6 +155,7 @@ private:
             dual_sentry.register_output("/gimbal/pitch/velocity_imu", gimbal_pitch_velocity_imu_);
 
             dual_sentry.register_output("/debug/pitch/raw_angle", debug_pitch_raw_angle_);
+            dual_sentry.register_output("/debug/top_yaw/raw_angle", debug_top_yaw_raw_angle_);
         }
 
         ~TopBoard() final {
@@ -159,32 +165,33 @@ private:
 
         void update() {
             imu_.update_status();
+            gimbal_top_yaw_motor_.update_status();
+            gimbal_pitch_motor_.update_status();
+
             Eigen::Quaterniond gimbal_imu_pose{imu_.q0(), imu_.q1(), imu_.q2(), imu_.q3()};
 
             tf_->set_transform<rmcs_description::PitchLink, rmcs_description::OdomImu>(
                 gimbal_imu_pose.conjugate());
+            tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
+                gimbal_pitch_motor_.angle());
+
+            fast_tf::rcl::broadcast_all(*tf_);
             tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
                 gimbal_imu_pose);
 
             gy614_.update_status();
             dr16_.update_status();
+            buzzer_.update_status();
 
             *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
             *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
 
             *debug_pitch_raw_angle_ = gimbal_pitch_motor_.last_raw_angle();
-
-            gimbal_top_yaw_motor_.update_status();
-            gimbal_pitch_motor_.update_status();
+            *debug_top_yaw_raw_angle_ = gimbal_top_yaw_motor_.last_raw_angle();
 
             gimbal_left_friction_.update_status();
             gimbal_right_friction_.update_status();
             gimbal_bullet_feeder_.update_status();
-
-            tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
-                gimbal_pitch_motor_.angle());
-
-            fast_tf::rcl::broadcast_all(*tf_);
         }
 
         void command_update() {
@@ -203,7 +210,9 @@ private:
             transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
 
             transmit_buffer_.add_can2_transmission(
-                0x7, gimbal_pitch_motor_.generate_torque_command());
+                0x4, gimbal_pitch_motor_.generate_torque_command());
+
+            transmit_buffer_.add_buzzer_transmission(buzzer_.generate_command());
 
             transmit_buffer_.trigger_transmission();
         }
@@ -229,17 +238,13 @@ private:
         void can2_receive_callback(
             uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
             bool is_remote_transmission, uint8_t can_data_length) override {
+            (void)can_id;
+            (void)can_data;
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
 
-            if (can_id == 0x217) {
+            if (can_id == 0x214) {
                 gimbal_pitch_motor_.store_status(can_data);
-            } else if (can_id == 0x202) {
-                gimbal_left_friction_.store_status(can_data);
-            } else if (can_id == 0x201) {
-                gimbal_right_friction_.store_status(can_data);
-            } else if (can_id == 0x208) {
-                gimbal_bullet_feeder_.store_status(can_data);
             }
         }
 
@@ -264,6 +269,7 @@ private:
         device::Bmi088 imu_;
         device::Gy614 gy614_;
         device::Dr16 dr16_;
+        device::Buzzer buzzer_;
 
         OutputInterface<double> gimbal_yaw_velocity_imu_;
         OutputInterface<double> gimbal_pitch_velocity_imu_;
@@ -272,11 +278,12 @@ private:
         OutputInterface<double> debug_imu_g_y_;
         OutputInterface<double> debug_imu_g_z_;
         OutputInterface<double> debug_pitch_raw_angle_;
+        OutputInterface<double> debug_top_yaw_raw_angle_;
 
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
 
-        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{4.0f, 1000.0f};
-        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{60.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{3.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
 
         device::DjiMotor gimbal_top_yaw_motor_;
         device::DmMotor gimbal_pitch_motor_;
@@ -308,7 +315,7 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
                   {dual_sentry, dual_sentry_command, "/chassis/left_back_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
-            , supercap_(dual_sentry, dual_sentry_command)
+            , supercap_(dual_sentry, 28.5)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
 
@@ -356,7 +363,7 @@ private:
 
             for (int i = 0; i < 4; i++)
                 can_commands[i] = chassis_wheel_motors_[i].generate_command();
-            transmit_buffer_.add_can2_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
+            transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
 
             can_commands[0] = gimbal_bottom_yaw_motor_.generate_command();
             can_commands[1] = 0;
@@ -374,17 +381,6 @@ private:
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
 
-            if (can_id == 0x205) {
-                gimbal_bottom_yaw_motor_.store_status(can_data);
-            }
-        }
-
-        void can2_receive_callback(
-            uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
-            bool is_remote_transmission, uint8_t can_data_length) override {
-            if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
-                return;
-
             if (can_id == 0x201) {
                 chassis_wheel_motors_[0].store_status(can_data);
             } else if (can_id == 0x202) {
@@ -394,6 +390,22 @@ private:
             } else if (can_id == 0x204) {
                 chassis_wheel_motors_[3].store_status(can_data);
             }
+
+            else if (can_id == 0x205) {
+                gimbal_bottom_yaw_motor_.store_status(can_data);
+            } else if (can_id == 0x20c) {
+                supercap_.store_status(can_data);
+            }
+        }
+
+        void can2_receive_callback(
+            uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
+            bool is_remote_transmission, uint8_t can_data_length) override {
+            (void)can_id;
+            (void)can_data;
+
+            if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
+                return;
         }
 
         void uart1_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
@@ -417,6 +429,8 @@ private:
         device::DjiMotor gimbal_bottom_yaw_motor_;
         device::DjiMotor chassis_wheel_motors_[4];
         device::Supercap supercap_;
+
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
 
         librmcs::utility::RingBuffer<std::byte> referee_ring_buffer_receive_{256};
         OutputInterface<rmcs_msgs::SerialInterface> referee_serial_;

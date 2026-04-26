@@ -83,5 +83,7 @@ build/
 # Temporary files
 *.tmp
 *.temp
-
 .cache/
+
+.log/*
+!.log/.gitkeep

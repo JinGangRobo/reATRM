@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 
 #include <limits>
@@ -38,9 +39,6 @@ public:
         component.register_output("/debug/solver/yaw_err", debug_yaw_err_);
         component.register_output("/debug/solver/pitch", debug_control_pitch_);
         component.register_output("/debug/solver/yaw", debug_control_yaw_);
-        component.register_output("/debug/solver/var1", debug_var1);
-        component.register_output("/debug/solver/var2", debug_var2);
-        component.register_output("/debug/solver/var3", debug_var3);
     }
 
     class SetDisabled : public Operation {
@@ -72,8 +70,36 @@ public:
 
     private:
         PitchLink::DirectionVector update(TwoAxisGimbalSolver& super) const override {
-            super.control_enabled_ = true;
-            return fast_tf::cast<PitchLink>(target_, *super.tf_);
+            PitchLink::DirectionVector dir, exception_dir;
+
+            if (!super.control_enabled_) {
+                super.control_enabled_ = true;
+                dir = PitchLink::DirectionVector{Eigen::Vector3d::UnitX()};
+            } else {
+                dir = fast_tf::cast<PitchLink>(super.control_direction_, *super.tf_);
+            }
+
+            exception_dir = fast_tf::cast<PitchLink>(target_, *super.tf_);
+            Eigen::Vector3d normalized_dir = dir->normalized();
+            Eigen::Vector3d normalized_exception_dir = exception_dir->normalized();
+
+            double cos_angle = normalized_dir.dot(normalized_exception_dir);
+
+            cos_angle = std::clamp(cos_angle, -1.0, 1.0);
+            double angle = std::acos(cos_angle);
+
+            if (angle < direction_control_clamp_angle_) {
+                return exception_dir;
+            } else {
+                Eigen::Vector3d rotation_axis = normalized_dir.cross(normalized_exception_dir);
+                if (rotation_axis.norm() < 1e-10) {
+                    return dir;
+                }
+                rotation_axis.normalize();
+                exception_dir.vector = Eigen::AngleAxisd{0.2, rotation_axis} * normalized_dir;
+
+                return exception_dir;
+            }
         }
 
         OdomImu::DirectionVector target_;
@@ -96,7 +122,14 @@ public:
                 dir = fast_tf::cast<PitchLink>(super.control_direction_, *super.tf_);
             }
 
-            auto yaw_transform = Eigen::AngleAxisd{yaw_shift_, Eigen::Vector3d::UnitZ()};
+            auto yaw_transform = Eigen::AngleAxisd{
+                std::isnan(super.last_yaw_error_)
+                        || ((super.last_yaw_error_ * yaw_shift_) > 0.0
+                            && std::abs(super.last_yaw_error_) > 0.4)
+                    ? 0.0
+                    : yaw_shift_,
+                Eigen::Vector3d::UnitZ()};
+
             auto pitch_transform = Eigen::AngleAxisd{pitch_shift_, Eigen::Vector3d::UnitY()};
 
             return PitchLink::DirectionVector{pitch_transform * (yaw_transform * (*dir))};
@@ -113,18 +146,28 @@ public:
         update_yaw_axis();
 
         PitchLink::DirectionVector control_direction = operation.update(*this);
-        if (!control_enabled_)
+        if (!control_enabled_) {
+            last_yaw_error_ = nan_;
             return {nan_, nan_};
+        }
 
         auto [control_direction_yaw_link, pitch] = pitch_link_to_yaw_link(control_direction);
 
         clamp_control_direction(control_direction_yaw_link);
-        if (!control_enabled_)
+        if (!control_enabled_) {
+            last_yaw_error_ = nan_;
             return {nan_, nan_};
+        }
 
         control_direction_ =
             fast_tf::cast<OdomImu>(yaw_link_to_pitch_link(control_direction_yaw_link, pitch), *tf_);
         return calculate_control_errors(control_direction_yaw_link, pitch);
+    }
+
+    Eigen::Vector3d current_control_direction() const {
+        if (!control_enabled_)
+            return {};
+        return control_direction_.vector;
     }
 
     bool enabled() const { return control_enabled_; }
@@ -172,7 +215,8 @@ private:
             return;
         }
 
-        // TODO a better board check
+        // TODO: if you want to measure the upper and lower limit angles, you should disable limit
+        // and let pitch spin to where it should be by itself, and read the debug pitch solver val.
         *debug_control_pitch_ = std::atan2(z, norm);
         *debug_control_yaw_ = std::atan2(y, x);
 
@@ -188,10 +232,14 @@ private:
         const auto& [c, s] = pitch;
 
         AngleError result;
-        result.yaw_angle_error = yaw_output_filter_.update(std::atan2(y, x));
+        result.yaw_angle_error = std::clamp(
+            yaw_output_filter_.update(std::atan2(y, x)), -std::numbers::pi / 3,
+            std::numbers::pi / 3);
         double x_projected = std::sqrt(x * x + y * y);
         result.pitch_angle_error = pitch_output_filter_.update(
             -std::atan2(z * c - x_projected * s, z * s + x_projected * c));
+
+        last_yaw_error_ = result.yaw_angle_error;
 
         *debug_pitch_err_ = result.pitch_angle_error;
         *debug_yaw_err_ = result.yaw_angle_error;
@@ -200,6 +248,7 @@ private:
     }
 
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
+    static constexpr double direction_control_clamp_angle_ = 0.4f; // radians
 
     const Eigen::Vector2d upper_limit_, lower_limit_;
 
@@ -210,13 +259,12 @@ private:
     rmcs_executor::Component::OutputInterface<double> debug_yaw_err_;
     rmcs_executor::Component::OutputInterface<double> debug_control_pitch_;
     rmcs_executor::Component::OutputInterface<double> debug_control_yaw_;
-    rmcs_executor::Component::OutputInterface<double> debug_var1;
-    rmcs_executor::Component::OutputInterface<double> debug_var2;
-    rmcs_executor::Component::OutputInterface<double> debug_var3;
+
+    double last_yaw_error_ = 0.0;
 
     OdomImu::DirectionVector yaw_axis_filtered_{Eigen::Vector3d::UnitZ()};
     rmcs_core::utility::LowPassFilter<> pitch_output_filter_{5.0f, 1000.0f};
-    rmcs_core::utility::LowPassFilter<> yaw_output_filter_{8.0f, 1000.0f};
+    rmcs_core::utility::LowPassFilter<> yaw_output_filter_{5.0f, 1000.0f};
 
     bool control_enabled_ = false;
     OdomImu::DirectionVector control_direction_;

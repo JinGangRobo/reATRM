@@ -1,3 +1,5 @@
+#include <chrono>
+#include <cstdint>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -23,6 +25,9 @@ public:
               get_parameter("kp").as_double(), get_parameter("ki").as_double(),
               get_parameter("kd").as_double()) {
 
+        if (get_parameter("enable", set_enable_interface_name_))
+            register_input(set_enable_interface_name_, enable_);
+
         register_output(get_parameter("control").as_string(), control_);
 
         get_parameter("integral_min", pid_calculator_.integral_min);
@@ -36,15 +41,31 @@ public:
     }
 
     void update() override {
+        if (enable_.active()) {
+            if (!enable_.ready()) {
+                RCLCPP_WARN_THROTTLE(
+                    this->get_logger(), *this->get_clock(), 1000,
+                    "set enable interface '%s' not found",
+                    set_enable_interface_name_.c_str());
+                pid_calculator_.reset();
+                return;
+            } else if (!*enable_) {
+                pid_calculator_.reset();
+                return;
+            }
+        }
+
         auto err = *setpoint_ - *measurement_;
         *control_ = *feedforward_ + pid_calculator_.update(err);
     }
 
 private:
     SmartInput measurement_, setpoint_, feedforward_;
+    std::string set_enable_interface_name_ = "";
 
     PidCalculator pid_calculator_;
 
+    InputInterface<bool> enable_;
     OutputInterface<double> control_;
 };
 

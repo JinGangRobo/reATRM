@@ -8,7 +8,10 @@
   <class type="rmcs_core::hardware::DualSentry" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
-  <class type="rmcs_core::hardware::Infantry" base_class_type="rmcs_executor::Component">
+  <class type="rmcs_core::hardware::DualInfantry" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+  <class type="rmcs_core::hardware::MiniInfantry" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
   <class type="rmcs_core::hardware::WheelLegInfantry" base_class_type="rmcs_executor::Component">
@@ -29,6 +32,9 @@
   <class type="rmcs_core::hardware::TestingInfantry" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
+  <class type="rmcs_core::controller::chassis::OperateLogic" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
   <class type="rmcs_core::controller::chassis::ChassisController" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
@@ -47,10 +53,10 @@
     <class type="rmcs_core::controller::gimbal::SimpleGimbalController" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
-  <class type="rmcs_core::controller::gimbal::HeroGimbalController" base_class_type="rmcs_executor::Component">
+  <class type="rmcs_core::controller::gimbal::DualYawController" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
-  <class type="rmcs_core::controller::gimbal::DualYawController" base_class_type="rmcs_executor::Component">
+  <class type="rmcs_core::controller::gimbal::DualYawSolver" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
   <class type="rmcs_core::controller::gimbal::PlayerViewer" base_class_type="rmcs_executor::Component">
@@ -80,6 +86,9 @@
   <class type="rmcs_core::controller::pid::FeedforwardPidController" base_class_type="rmcs_executor::Component">
     <description>Feedforward pid controller.</description>
   </class>
+  <class type="rmcs_core::controller::diagnosis::Diagnosis" base_class_type="rmcs_executor::Component">
+    <description>Feedforward pid controller.</description>
+  </class>
   <class type="rmcs_core::broadcaster::TfBroadcaster" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
@@ -95,7 +104,7 @@
   <class type="rmcs_core::hardware::cboard::GyroCalibrator" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
-    <class type="rmcs_core::referee::Status" base_class_type="rmcs_executor::Component">
+  <class type="rmcs_core::referee::Status" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
   <class type="rmcs_core::referee::Command" base_class_type="rmcs_executor::Component">
@@ -113,7 +122,13 @@
   <class type="rmcs_core::referee::app::ui::Hero" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
-  <class type="rmcs_core::referee::app::ui::TestHeroUI" base_class_type="rmcs_executor::Component">
+  <class type="rmcs_core::referee::app::ui::DualSentry" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+  <class type="rmcs_core::referee::app::ui::DualInfantry" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+  <class type="rmcs_core::referee::app::ui::MiniInfantry" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
 </library>
