@@ -21,6 +21,9 @@ rmcs_executor:
       # - rmcs_core::controller::pid::PidController -> right_friction_velocity_pid_controller
       # - rmcs_core::controller::pid::PidController -> bullet_feeder_velocity_pid_controller
 
+      # - rmcs_core::controller::pid::ErrorPidController -> Right_leg_L0_err_pid_controller
+      # - rmcs_core::controller::pid::ErrorPidController -> Left_leg_L0_err_pid_controller
+
       - rmcs_core::controller::chassis::ChassisController -> chassis_controller
       # - rmcs_core::controller::chassis::VmcController -> vmc_controller
       - rmcs_core::controller::chassis::WheelegController -> wheeleg_controller
@@ -29,7 +32,7 @@ rmcs_executor:
       # - rmcs_core::controller::chassis::DifferentialWheelController -> differential_wheel_controller
       # - rmcs_core::controller::chassis::ChassisPowerController -> chassis_power_controller
       # - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
-
+      - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 value_broadcaster:
@@ -67,6 +70,7 @@ value_broadcaster:
       - /debug/right/L0
       - /debug/right/FN
       - /debug/right/Theta
+      
 
 
 
@@ -91,15 +95,15 @@ value_broadcaster:
 
 wheeleg_infantry_hardware:
   ros__parameters:
-    usb_pid_bottom_board: 0xa6f7
+    usb_pid_bottom_board: 0x117e
     bottom_yaw_motor_zero_point: 0
     top_yaw_motor_zero_point: -350
     pitch_motor_zero_point: 6500
 
-    left_front_hip_motors_zero_point: 36542
-    left_back_hip_motors_zero_point: 35804    
-    right_front_hip_motors_zero_point: 31810
-    right_back_hip_motors_zero_point: 29702
+    left_front_hip_motors_zero_point: 36376
+    left_back_hip_motors_zero_point: 36641
+    right_front_hip_motors_zero_point: 31070
+    right_back_hip_motors_zero_point: 30027
     
 
     
@@ -118,20 +122,6 @@ gimbal_controller:
     joystick_left_bias_y: 0.0
     joystick_left_bias_x: 0.0
 
-# dual_yaw_controller:
-#   ros__parameters:
-#     top_yaw_angle_kp: 20.0
-#     top_yaw_angle_ki: 0.01
-#     top_yaw_angle_kd: 0.0
-#     top_yaw_velocity_kp: 3.4
-#     top_yaw_velocity_ki: 0.02
-#     top_yaw_velocity_kd: 0.0
-#     bottom_yaw_angle_kp: 5.0
-#     bottom_yaw_angle_ki: 0.0
-#     bottom_yaw_angle_kd: 0.0
-#     bottom_yaw_velocity_kp: 2.3
-#     bottom_yaw_velocity_ki: 0.0
-#     bottom_yaw_velocity_kd: 0.0
 
 
 # pitch_angle_err_pid_controller:
@@ -212,3 +202,15 @@ bullet_feeder_velocity_pid_controller:
     kp: 1.0
     ki: 0.0
     kd: 0.0
+
+diagnosis:
+  ros__parameters:
+    motors:
+      - /chassis/left_front_hip
+
+
+    enable_motor_check: true
+    enable_supercap_check: false
+    enable_aim_check: true
+    enable_nav_check: false
+    
