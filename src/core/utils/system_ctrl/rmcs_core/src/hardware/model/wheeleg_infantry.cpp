@@ -69,9 +69,9 @@ private:
 
             , chassis_wheel_motors_(
                   {wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.0)},
                   {wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reversed().set_reduction_ratio(268.0/17.0)
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reversed().set_reduction_ratio(1.0)
 
                   })
             , left_front_hip_motors_(

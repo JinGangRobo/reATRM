@@ -36,10 +36,10 @@ public:
         l4_ = 0.210;
         l5_ = 0.0;
 
-        left_phi1_offset_ = std::numbers::pi;
-        left_phi4_offset_ = std::numbers::pi;
-        right_phi1_offset_ = std::numbers::pi;
-        right_phi4_offset_ = std::numbers::pi;
+        left_phi1_offset_ = std::numbers::pi-0.05;
+        left_phi4_offset_ = std::numbers::pi-0.05;
+        right_phi1_offset_ = std::numbers::pi-0.05;
+        right_phi4_offset_ = std::numbers::pi-0.05;
 
         odom_.track_width = 0.36;    // 轮距
         last_time_ = this->get_clock()->now();
@@ -272,7 +272,7 @@ public:
             // double left_angle_err = safe_target_theta - legs_[LEFT].theta;
             // Tp_L = leg_Left_Tp_pid_.update(left_angle_err);
             // Tp_L = 0.0;
-            Tp_L = Tp[LEFT] * 1.5 - anti_crash_;
+            Tp_L = Tp[LEFT] - anti_crash_;
             // Tp_L = -anti_crash_;
         }
 
@@ -285,7 +285,7 @@ public:
             // double right_angle_err = safe_target_theta - legs_[RIGHT].theta;
             // Tp_R = leg_Right_Tp_pid_.update(right_angle_err);
             // Tp_R = 0.0;
-            Tp_R = Tp[RIGHT] * 1.5 + anti_crash_;
+            Tp_R = Tp[RIGHT] + anti_crash_;
             // Tp_R = anti_crash_;
         }
 
@@ -297,7 +297,7 @@ public:
         auto safe_clamp = [&](double v) {
             if (std::isnan(v))
                 return 0.0;
-            return std::clamp(v, -25.0, 25.0);
+            return std::clamp(v, -15.0, 15.0);
         };
 
         *t_joint_[LEFT][FRONT] = safe_clamp(T_L_Back);
@@ -325,8 +325,8 @@ public:
         //     return std::clamp(v, -1.0, 1.0);
         // };
 
-        *t_wheel_[LEFT] = (wheelT[LEFT] * 17.0 / 268.0) * 4.0;
-        *t_wheel_[RIGHT] = (wheelT[RIGHT] * 17.0 / 268.0) * 4.0;
+        *t_wheel_[LEFT] = (wheelT[LEFT] * 17.0 / 268.0) * 1.0;
+        *t_wheel_[RIGHT] = (wheelT[RIGHT] * 17.0 / 268.0) * 1.0;
     }
 
 private:
@@ -465,8 +465,8 @@ private:
             uint8_t j = i * 6;
             T_K_[i][0] = (k[j + 0][0] * lsqr + k[j + 0][1] * leg_len_ + k[j + 0][2]) * -theta;
             T_K_[i][1] = (k[j + 1][0] * lsqr + k[j + 1][1] * leg_len_ + k[j + 1][2]) * -d_theta;
-            T_K_[i][2] = (k[j + 2][0] * lsqr + k[j + 2][1] * leg_len_ + k[j + 2][2]) * -dist_;
-            T_K_[i][3] = (k[j + 3][0] * lsqr + k[j + 3][1] * leg_len_ + k[j + 3][2]) * -vel_;
+            T_K_[i][2] = (k[j + 2][0] * lsqr + k[j + 2][1] * leg_len_ + k[j + 2][2]) * 0.0;
+            T_K_[i][3] = (k[j + 3][0] * lsqr + k[j + 3][1] * leg_len_ + k[j + 3][2]) * vel_;
             T_K_[i][4] = (k[j + 4][0] * lsqr + k[j + 4][1] * leg_len_ + k[j + 4][2]) * -*imu_pitch_;
             T_K_[i][5] =
                 (k[j + 5][0] * lsqr + k[j + 5][1] * leg_len_ + k[j + 5][2]) * *imu_d_pitch_;
@@ -483,7 +483,6 @@ private:
             T_[i] = T_K_[i][0] + T_K_[i][1] + T_K_[i][2] + T_K_[i][3] + T_K_[i][4] + T_K_[i][5];
         }
         wheelT[side] = T_[0];
-        RCLCPP_INFO(get_logger(), "LQR T_%s: %f", side == LEFT ? "LEFT" : "RIGHT", wheelT[side]);
         Tp[side] = T_[1];
     }
 
