@@ -67,8 +67,8 @@ public:
             register_input(motor + "/alive", *motor_alive_input);
             motor_alive_inputs_.push_back(std::move(motor_alive_input));
         }
-        register_input("/chassis/supercap/enabled", supercap_alive_input_);
-        register_input("/gimbal/auto_aim/available", aim_ready_input_);
+        register_input("/chassis/supercap/enabled", supercap_alive_input_, false);
+        register_input("/gimbal/auto_aim/available", aim_ready_input_, false);
         register_input("/autopilot/diagnosis", pilot_diag_input_, false);
 
         register_output("/buzzer/score", buzzer_score_output_);
