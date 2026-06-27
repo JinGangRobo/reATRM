@@ -23,13 +23,16 @@ class WheelLegInfantry
     , public rclcpp::Node {
 public:
     WheelLegInfantry()
-        : Node{get_component_name(), rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
-        , command_component_(create_partner_component<WheelLegInfantryCommand>(
-              get_component_name() + "_command", *this)) {
+        : Node{
+              get_component_name(),
+              rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
+        , command_component_(
+              create_partner_component<WheelLegInfantryCommand>(
+                  get_component_name() + "_command", *this)) {
         using namespace rmcs_description;
 
         register_output("/tf", tf_);
-        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.16, 0.0, 0.15});
+        // tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.16, 0.0, 0.15});
 
         bottom_board_ = std::make_unique<BottomBoard>(
             *this, *command_component_,
@@ -69,41 +72,48 @@ private:
 
             , chassis_wheel_motors_(
                   {wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.0)},
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(
+                       1.0)},
                   {wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_wheel",
-                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reversed().set_reduction_ratio(1.0)
+                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                       .set_reversed()
+                       .set_reduction_ratio(1.0)
 
                   })
             , left_front_hip_motors_(
                   wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_front_hip",
-                  device::DmMotor::Config{device::DmMotor::Type::J8009}
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}
                       .set_reversed()
-                      .set_encoder_zero_point(static_cast<int>(
-                          wheeleg_infantry.get_parameter("left_front_hip_motors_zero_point")
-                              .as_int())))
+                      .set_encoder_zero_point(
+                          static_cast<int>(
+                              wheeleg_infantry.get_parameter("left_front_hip_motors_zero_point")
+                                  .as_int())))
             , left_back_hip_motors_(
                   wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_back_hip",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
                       .set_reversed()
-                      .set_encoder_zero_point(static_cast<int>(
-                          wheeleg_infantry.get_parameter("left_back_hip_motors_zero_point")
-                              .as_int())))
+                      .set_encoder_zero_point(
+                          static_cast<int>(
+                              wheeleg_infantry.get_parameter("left_back_hip_motors_zero_point")
+                                  .as_int())))
             , right_front_hip_motors_(
                   wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_front_hip",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
 
                       .set_reversed()
-                      .set_encoder_zero_point(static_cast<int>(
-                          wheeleg_infantry.get_parameter("right_front_hip_motors_zero_point")
-                              .as_int())))
+                      .set_encoder_zero_point(
+                          static_cast<int>(
+                              wheeleg_infantry.get_parameter("right_front_hip_motors_zero_point")
+                                  .as_int())))
             , right_back_hip_motors_(
                   wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_back_hip",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
 
                       .set_reversed()
-                      .set_encoder_zero_point(static_cast<int>(
-                          wheeleg_infantry.get_parameter("right_back_hip_motors_zero_point")
-                              .as_int())))
+                      .set_encoder_zero_point(
+                          static_cast<int>(
+                              wheeleg_infantry.get_parameter("right_back_hip_motors_zero_point")
+                                  .as_int())))
             , dr16_{wheeleg_infantry}
 
             , transmit_buffer_(*this, 32)
@@ -143,6 +153,12 @@ private:
             wheeleg_infantry.register_output("/chassis/imu/pitch", chassis_pitch_angle_imu_);
             wheeleg_infantry.register_output("/chassis/imu/roll", chassis_roll_angle_imu_);
 
+            wheeleg_infantry.register_output("/debug/imu/ax", imu_ax);
+            wheeleg_infantry.register_output("/debug/imu/ay", imu_ay);
+            wheeleg_infantry.register_output("/debug/imu/az", imu_az);
+            wheeleg_infantry.register_output("/debug/imu/ddz", imu_ddz);
+            wheeleg_infantry.register_output("/debug/imu/ddx", imu_ddx);
+
             wheeleg_infantry.register_output(
                 "/debug/left_front_hip/raw_angle", debug_left_front_hip_raw_angle_);
             wheeleg_infantry.register_output(
@@ -165,7 +181,18 @@ private:
             // 2. 将世界系向量投影到机体系（推荐方法，防止 Yaw 耦合）
             Eigen::Vector3d up_in_chassis = chassis_imu_pose.conjugate() * Eigen::Vector3d::UnitZ();
             *chassis_pitch_angle_imu_ = std::asin(up_in_chassis.x());
-            *chassis_roll_angle_imu_ = std::atan2(-up_in_chassis.y(), up_in_chassis.z());
+            double w = chassis_imu_pose.w();
+            double x = chassis_imu_pose.x();
+            double y = chassis_imu_pose.y();
+            double z = chassis_imu_pose.z();
+
+            // 1. 直接解算重力向量在车身三轴上的分量（单位：g）
+            double gx = 2.0 * (x * z - w * y);
+            double gy = 2.0 * (w * x + y * z);
+            double gz = w * w - x * x - y * y + z * z;
+
+            // 2. 利用重力分量直接计算出绝对不失真的物理倾角（不受另一个轴的影响）
+            *chassis_roll_angle_imu_ = std::atan2(gy, gz);
 
             *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
             *chassis_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
@@ -178,6 +205,8 @@ private:
             chassis_wheel_motors_[0].update_status();
             chassis_wheel_motors_[1].update_status();
             left_front_hip_motors_.update_status();
+            
+            
             left_back_hip_motors_.update_status();
             right_front_hip_motors_.update_status();
             right_back_hip_motors_.update_status();
@@ -190,6 +219,36 @@ private:
             *debug_imu_gx_bais_ = imu_.cali_gx_ref();
             *debug_imu_gy_bais_ = imu_.cali_gy_ref();
             *debug_imu_gz_bais_ = imu_.cali_gz_ref();
+
+            // 由加速度计测量值结合姿态矩阵消去重力加速度
+            double r11 = chassis_imu_pose.w() * chassis_imu_pose.w()
+                       + chassis_imu_pose.x() * chassis_imu_pose.x()
+                       - chassis_imu_pose.y() * chassis_imu_pose.y()
+                       - chassis_imu_pose.z() * chassis_imu_pose.z();
+            double r12 = 2.0
+                       * (chassis_imu_pose.x() * chassis_imu_pose.y()
+                          - chassis_imu_pose.w() * chassis_imu_pose.z());
+            double r13 = 2.0
+                       * (chassis_imu_pose.x() * chassis_imu_pose.z()
+                          + chassis_imu_pose.w() * chassis_imu_pose.y());
+
+            double r31 = 2.0
+                       * (chassis_imu_pose.x() * chassis_imu_pose.z()
+                          + chassis_imu_pose.w() * chassis_imu_pose.y());
+            double r32 = 2.0
+                       * (chassis_imu_pose.y() * chassis_imu_pose.z()
+                          - chassis_imu_pose.w() * chassis_imu_pose.x());
+            double r33 = chassis_imu_pose.w() * chassis_imu_pose.w()
+                       - chassis_imu_pose.x() * chassis_imu_pose.x()
+                       - chassis_imu_pose.y() * chassis_imu_pose.y()
+                       + chassis_imu_pose.z() * chassis_imu_pose.z();
+
+            // 2. 投影到 Z 轴、减 1g 消除重力、乘以 9.80665 转换单位
+            *imu_ddx = (r11 * imu_.ax() + r12 * imu_.ay() + r13 * imu_.az()) * 9.80665;
+            *imu_ddz = ((r31 * imu_.ax() + r32 * imu_.ay() + r33 * imu_.az()) - 1.0) * 9.80665;
+            *imu_az = imu_.az();
+            // *imu_gx = imu_.gx();
+            // *imu_gy = imu_.gy();
             // transmit_buffer_.add_can1_transmission(0x01, motor_.generate_torque_command(10));
         }
 
@@ -255,7 +314,6 @@ private:
                 chassis_wheel_motors_[1].store_status(can_data);
             }
         }
-
         device::DjiMotor chassis_wheel_motors_[2];
 
         device::DmMotor left_front_hip_motors_;
@@ -264,9 +322,17 @@ private:
         device::DmMotor right_back_hip_motors_;
 
         device::Dr16 dr16_;
-
+        OutputInterface<double> imu_gx;
         OutputInterface<double> imu_gz;
         OutputInterface<double> imu_gy;
+
+        OutputInterface<double> imu_ax;
+        OutputInterface<double> imu_az;
+        OutputInterface<double> imu_ay;
+
+        OutputInterface<double> imu_ddz;
+        OutputInterface<double> imu_ddx;
+
         OutputInterface<double> debug_imu_g_z_;
 
         int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;

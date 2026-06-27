@@ -10,6 +10,8 @@
 #include <rmcs_executor/component.hpp>
 
 #include "controller/pid/pid_calculator.hpp"
+#include "utility/kalman_filter.hpp"
+#include "utility/low_pass_filter.hpp"
 #include <rmcs_description/tf_description.hpp>
 
 namespace rmcs_core::controller::chassis {
@@ -22,13 +24,14 @@ public:
         : Node(
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
-        , leg_L0_pid_(800.0, 0.0, 15.0)
-        , leg_Right_L0_pid_(800.0, 0.0, 15.0)
+        , leg_Left_L0_pid_(60.0, 0.0, 50.0)
+        , leg_Right_L0_pid_(60.0, 0.0, 50.0)
+
         , leg_Left_Tp_pid_(15.0, 0.0, 5.0)
         , leg_Right_Tp_pid_(15.0, 0.0, 5.0)
-        , anti_crash_pid_(30.0, 0.0, 5.0) {
 
-        RCLCPP_INFO(get_logger(), "=== Step 3.5: VMC with High-Precision Gyro ===");
+        , anti_crash_pid_(40.0, 0.0, 0.2)
+        , yaw_speed_pid_(0.2, 0.0, 5.0) {
 
         l1_ = 0.210;
         l2_ = 0.250;
@@ -36,16 +39,17 @@ public:
         l4_ = 0.210;
         l5_ = 0.0;
 
-        left_phi1_offset_ = std::numbers::pi-0.05;
-        left_phi4_offset_ = std::numbers::pi-0.05;
-        right_phi1_offset_ = std::numbers::pi-0.05;
-        right_phi4_offset_ = std::numbers::pi-0.05;
+        roll_k_ = 1000.0;
 
-        odom_.track_width = 0.36;    // 轮距
+        left_phi1_offset_ = std::numbers::pi - 0.1;
+        left_phi4_offset_ = std::numbers::pi - 0.1;
+        right_phi1_offset_ = std::numbers::pi - 0.1;
+        right_phi4_offset_ = std::numbers::pi - 0.1;
+
         last_time_ = this->get_clock()->now();
-        robot_weight_per_leg_ = 0.0; // 重力补偿
+        robot_weight_per_leg_ = -50.0; // 重力补偿
 
-        wheel_weight_ = 0.5;         // 轮子重量
+        wheel_weight_ = 0.5;               // 轮子重量
 
         register_input("/chassis/left_back_hip/angle", joint_pos_[LEFT][FRONT]);
         register_input("/chassis/left_front_hip/angle", joint_pos_[LEFT][BACK]);
@@ -59,12 +63,10 @@ public:
 
         register_input("/chassis/imu/pitch", imu_pitch_, false);
         register_input("/chassis/imu/pitch_velocity", imu_d_pitch_, false);
-
-        // register_output("/chassis/Right_leg_L0_err", right_leg_L0_err_,0.0);
-        // register_output("/chassis/Left_leg_L0_err", left_leg_L0_err_,0.0);
-
-        // register_input("/chassis/Right_leg_F0", right_F0_, false);
-        // register_input("/chassis/Left_leg_F0", left_F0_, false);
+        register_input("/chassis/imu/yaw_velocity", imu_d_yaw_, false);
+        register_input("/chassis/imu/roll", imu_roll_);
+        register_input("/debug/imu/ddz", imu_ddx_);
+        register_input("/debug/imu/ddz", imu_ddz_);
 
         register_input("/chassis/control_velocity", chassis_control_velocity_, false);
         register_input("/remote/rotary_knob", rotary_knob_, false);
@@ -80,45 +82,36 @@ public:
         register_output("/chassis/right_front_hip/control_torque", t_joint_[RIGHT][BACK]);
 
         register_output("/debug/left/L0", dbg_L0_[LEFT]);
+        register_output("/debug/right/L0", dbg_L0_[RIGHT]);
         register_output("/debug/left/Theta", dbg_theta_[LEFT]);
         register_output("/debug/right/Theta", dbg_theta_[RIGHT]);
+        register_output("/debug/left/dTheta", dbg_dtheta_[LEFT]);
+        register_output("/debug/right/dTheta", dbg_dtheta_[RIGHT]);
+        register_output("/debug/left/sportFN", dbg_sportFN[LEFT]);
+        register_output("/debug/right/sportFN", dbg_sportFN[RIGHT]);
+        register_output("/debug/vel", dbg_vel);
+        register_output("/debug/vel_filterd", dbg_vel_filtered);
     }
 
     void update() override {
-
-        double raw_pitch = *imu_pitch_;
-        double raw_d_pitch = *imu_d_pitch_;
 
         // 遥控器部分
 
         double rc_cmd_v = 0.0;
         double rc_cmd_w = 0.0;
-        bool is_killed = false;
 
-        if (chassis_control_velocity_.ready()) {
-            auto vel_vec = (*chassis_control_velocity_).vector;
-            if (std::isnan(vel_vec[0]) || std::isnan(vel_vec[2])) {
-                is_killed = true;
-            } else {
-                rc_cmd_v = -vel_vec[0];
-                rc_cmd_w = -vel_vec[1];
-
-                rc_cmd_v = std::clamp(rc_cmd_v, -0.5, 0.5);
-                rc_cmd_w = std::clamp(rc_cmd_w, -20.0, 20.0);
-            }
-        }
-
-        static double current_target_vel = 0.0;
-        static double vel_integral = 0.0;
-
-        if (is_killed) {
-            current_target_vel = 0.0;
-            vel_integral = 0.0;
-            *t_wheel_[LEFT] = 0.0;
-            *t_wheel_[RIGHT] = 0.0;
+        if (std::isnan(chassis_control_velocity_->vector[0])) {
+            reset_all_controls();
             return;
         }
-        // 高度调节
+
+        auto vel_vec = (*chassis_control_velocity_).vector;
+        rc_cmd_v = -vel_vec[0];
+        rc_cmd_w = -vel_vec[1];
+
+        rc_cmd_v = std::clamp(rc_cmd_v, -1.5, 1.5);
+        rc_cmd_w = std::clamp(rc_cmd_w, -20.0, 20.0);
+
         double knob_val = 0.0;
         if (rotary_knob_.ready()) {
             knob_val = -*rotary_knob_;
@@ -127,17 +120,20 @@ public:
             knob_val = 0.0;
         }
 
-        double min_L0 = 0.16;                   // 最矮状态
-        double max_L0 = 0.38;                   // 最高状态
-        double L0_speed_multiplier = 0.5;       // 伸缩速度倍率
+        double min_L0 = 0.16;             // 最矮状态
+        double max_L0 = 0.32;             // 最高状态
+        double L0_speed_multiplier = 0.5; // 伸缩速度倍率
 
-        static double current_target_L0 = 0.30; // 默认高度
+        // 默认高度
 
         current_target_L0 += knob_val * L0_speed_multiplier * 0.001;
 
         current_target_L0 = std::clamp(current_target_L0, min_L0, max_L0);
 
-        double target_L0 = current_target_L0;
+        target_L0 = current_target_L0;
+
+        double target_roll = 0.0;
+
         // 高度调节结束
 
         if (std::abs(rc_cmd_v) < 0.05)
@@ -161,10 +157,9 @@ public:
             current_target_vel = rc_cmd_v;
         }
 
-        double pitch = -raw_pitch;
-        double d_pitch = raw_d_pitch;
-
         double target_vel = current_target_vel;
+
+        pitch_filter = imu_pitch_filter.update(*imu_pitch_);
 
         rclcpp::Time current_time = this->get_clock()->now();
         double dt = (current_time - last_time_).seconds();
@@ -172,161 +167,92 @@ public:
         if (dt <= 0.0 || dt > 0.1)
             dt = 0.001;
 
-        double v_L = 0, v_R_raw = 0;
-
-        if (wheel_vel_[LEFT].ready())
-            v_L = (*wheel_vel_[LEFT] / reduction_ratio_) * wheel_radius_;
-        if (wheel_vel_[RIGHT].ready())
-            v_R_raw = (*wheel_vel_[RIGHT] / reduction_ratio_) * wheel_radius_;
-
-        double v_R = -v_R_raw;
-        odom_.update(v_L, v_R, dt); // 里程计计算
-
-        // 目前速度环使用的外环积分控制 LQR没调通 先用这个简单的 PI 来防止溜车，等 LQR 调通了再换
-        // double vel_err = target_vel - odom_.v;
-
-        // double Kp_v = 1.0;
-        // double Ki_v = 0.02;
-        // double max_pitch_tilt = 0.26;    // 最大倾斜角度
-
-        // if (rc_cmd_v == 0.0) {
-        //     vel_integral *= 0.2;
-        // } else if (std::abs(odom_.v) < 1.0) {
-        //     vel_integral = vel_integral * 0.999 + vel_err * dt;
-        // }
-        // if (-0.05 < std::abs(odom_.v) && std::abs(odom_.v) < 0.05) {
-        //     vel_integral = vel_integral * 0.999 + vel_err * dt;
-        // }
-        // vel_integral = std::clamp(vel_integral, -max_pitch_tilt / Ki_v, max_pitch_tilt / Ki_v);
-
-        // double pi_adjust_pitch = -(Kp_v * vel_err + Ki_v * vel_integral);
-
-        // pi_adjust_pitch = std::clamp(pi_adjust_pitch, -max_pitch_tilt, max_pitch_tilt);
-
-        // double base_pitch_offset = 0.04; // 0.16高度下的静态补偿
-
-        // double dynamic_target_pitch = base_pitch_offset + pi_adjust_pitch;
-
-        // LQR计算部分
-        // double avg_L0 = std::clamp((legs_[LEFT].L0 + legs_[RIGHT].L0) / 2.0, 0.22, 0.40);
-        // double K[12];
-        // calculate_lqr_gains(avg_L0, K);
-        // double x_err[6] = {0};
-
-        // x_err[0] = pitch - dynamic_target_pitch;
-        // x_err[1] = d_pitch - 0.0;
-        // x_err[2] = 0.0;
-        // x_err[3] = 0.0;
-        // x_err[4] = 0.0;
-        // x_err[5] = 0.0;
-
-        // double u_wheel = 0.0;
-        // for (int i = 0; i < 6; i++) {
-        //     u_wheel += -K[i] * x_err[i];
-        // }
-
-        // double lqr_scale = 1.0; // 因为腿部并没有在和轮子有联动 所以LQR乘了一个比较大的倍率
-        // double lqr_direction = -1.0;
-        // u_wheel = u_wheel * lqr_scale * lqr_direction;'
-
-        double u_wheel = 0.0;
-
         process_kinematics(LEFT);
         process_kinematics(RIGHT);
-        calculate_lqr_gains(LEFT, L0[LEFT]);
-        calculate_lqr_gains(RIGHT, L0[RIGHT]);
-        // LegForceCalc(LEFT);
-        // LegForceCalc(RIGHT);
 
-        // 腿部摆角软限位
-        double mech_limit = 0.0;                       // 限位值
 
-        double center_phi = 0.0;                       // 机身坐标系下的垂直中点 (1.57)
-        double min_phi_body = center_phi - mech_limit; // 机身系下的最小角度 (最前)
-        double max_phi_body = center_phi + mech_limit; // 机身系下的最大角度 (最后)
-
-        double target_theta_world = 0.0;
-
-        double target_phi_body = center_phi;
-
-        double safe_phi_body = std::clamp(target_phi_body, min_phi_body, max_phi_body);
-
-        double safe_target_theta = 0.0;
+        velocity_calculate();
+        kf_init_();
+        OnSensorDataReceived(body_velocity, -*imu_ddx_);
+        calculate_lqr_gains(LEFT, L0[LEFT], target_vel, filtered_velocity);
+        calculate_lqr_gains(RIGHT, L0[RIGHT], target_vel, filtered_velocity);
 
         // 腿部PID计算
         double F_L = 0, Tp_L = 0;
         double F_R = 0, Tp_R = 0;
-        double right_F0_;
-        double left_F0_;
 
-        // double anti_crash_ = anti_crash_pid_.update(legs_[LEFT].theta - legs_[RIGHT].theta);
-        double anti_crash_ = 0.0;
+        double anti_crash_ = anti_crash_pid_.update(legs_[LEFT].theta - legs_[RIGHT].theta);
+        // double anti_crash_ = 0.0;
+
         double right_leg_L0_err_;
         double left_leg_L0_err_;
+        double roll_err_force_;
+        double robot_weight_per_leg;
+
+        if (sportFN[LEFT] < 20.0 || sportFN[RIGHT] < 20.0) {
+            roll_err_force_ = 0.0;
+            robot_weight_per_leg = 0.0;
+
+        } else {
+            roll_err_force_ = (target_roll - *imu_roll_) * roll_k_;
+            robot_weight_per_leg = robot_weight_per_leg_;
+        }
+
         if (legs_[LEFT].solved) {
             left_leg_L0_err_ = target_L0 - legs_[LEFT].L0;
 
-            F_L = leg_L0_pid_.update(left_leg_L0_err_) + robot_weight_per_leg_;
-            // F_L = 15.0;
-
-            // double left_angle_err = safe_target_theta - legs_[LEFT].theta;
-            // Tp_L = leg_Left_Tp_pid_.update(left_angle_err);
-            // Tp_L = 0.0;
-            Tp_L = Tp[LEFT] - anti_crash_;
-            // Tp_L = -anti_crash_;
+            F_L =
+                leg_Left_L0_pid_.update(left_leg_L0_err_) + robot_weight_per_leg_ - roll_err_force_;
+            Tp_L = Tp[LEFT] + anti_crash_;
         }
 
         if (legs_[RIGHT].solved) {
 
             right_leg_L0_err_ = target_L0 - legs_[RIGHT].L0;
 
-            F_R = leg_Right_L0_pid_.update(right_leg_L0_err_) + robot_weight_per_leg_;
-            // F_R =15.0;
-            // double right_angle_err = safe_target_theta - legs_[RIGHT].theta;
-            // Tp_R = leg_Right_Tp_pid_.update(right_angle_err);
-            // Tp_R = 0.0;
-            Tp_R = Tp[RIGHT] + anti_crash_;
-            // Tp_R = anti_crash_;
+            F_R = leg_Right_L0_pid_.update(right_leg_L0_err_) + robot_weight_per_leg_
+                + roll_err_force_;
+            Tp_R = Tp[RIGHT] - anti_crash_;
         }
 
         double T_L_Back, T_L_Front, T_R_Back, T_R_Front;
         map_vmc_force(LEFT, F_L, Tp_L, T_L_Back, T_L_Front);
         map_vmc_force(RIGHT, F_R, Tp_R, T_R_Back, T_R_Front);
 
-        // 关节电机扭矩限幅
-        auto safe_clamp = [&](double v) {
-            if (std::isnan(v))
-                return 0.0;
-            return std::clamp(v, -15.0, 15.0);
-        };
-
-        *t_joint_[LEFT][FRONT] = safe_clamp(T_L_Back);
-        *t_joint_[LEFT][BACK] = safe_clamp(T_L_Front);
-        *t_joint_[RIGHT][FRONT] = safe_clamp(T_R_Back);
-        *t_joint_[RIGHT][BACK] = safe_clamp(T_R_Front);
+        *t_joint_[LEFT][FRONT] = T_L_Back;
+        *t_joint_[LEFT][BACK] = T_L_Front;
+        *t_joint_[RIGHT][FRONT] = T_R_Back;
+        *t_joint_[RIGHT][BACK] = T_R_Front;
 
         *dbg_L0_[LEFT] = legs_[LEFT].L0;
+        *dbg_L0_[RIGHT] = legs_[RIGHT].L0;
         *dbg_theta_[LEFT] = legs_[LEFT].theta;
         *dbg_theta_[RIGHT] = legs_[RIGHT].theta;
+        *dbg_dtheta_[LEFT] = kinematic_w_theta[LEFT];
+        *dbg_dtheta_[RIGHT] = kinematic_w_theta[RIGHT];
+        *dbg_sportFN[LEFT] = sportFN[LEFT];
+        *dbg_sportFN[RIGHT] = sportFN[RIGHT];
+        *dbg_vel = body_velocity;
+        *dbg_vel_filtered = filtered_velocity;
 
         // 差动转向控制
-        // double K_turn = 1.0;
+
+        // double K_turn = 0.0;
         // double u_turn = rc_cmd_w * K_turn;
 
-        // double final_u_L = wheelT[LEFT] - u_turn;
-        // double final_u_R = wheelT[RIGHT] + u_turn;
+        double u_turn = yaw_speed_pid_.update((-rc_cmd_w) * 1.0 - *imu_d_yaw_);
 
-        // double out_wheel_L = final_u_L / reduction_ratio_;
-        // double out_wheel_R = (final_u_R * -1.0) / reduction_ratio_;
+        if (sportFN[LEFT] < 20) {
+            *t_wheel_[LEFT] = (wheelT[LEFT] * 17.0 / 268.0);
+        } else {
+            *t_wheel_[LEFT] = (wheelT[LEFT] * 17.0 / 268.0) + u_turn;
+        }
 
-        // auto clamp_wheel = [&](double v) {
-        //     if (std::isnan(v))
-        //         return 0.0;
-        //     return std::clamp(v, -1.0, 1.0);
-        // };
-
-        *t_wheel_[LEFT] = (wheelT[LEFT] * 17.0 / 268.0) * 1.0;
-        *t_wheel_[RIGHT] = (wheelT[RIGHT] * 17.0 / 268.0) * 1.0;
+        if (sportFN[RIGHT] < 20) {
+            *t_wheel_[RIGHT] = (wheelT[RIGHT] * 17.0 / 268.0);
+        } else {
+            *t_wheel_[RIGHT] = (wheelT[RIGHT] * 17.0 / 268.0) - u_turn;
+        }
     }
 
 private:
@@ -345,145 +271,122 @@ private:
     double l1_, l2_, l3_, l4_, l5_;
     double left_phi1_offset_, left_phi4_offset_, right_phi1_offset_, right_phi4_offset_;
     double robot_weight_per_leg_;
-    double DEGREE_2_RAD = std::numbers::pi / 180.0;
+
     InputInterface<double> joint_pos_[2][2];
     InputInterface<double> joint_vel_[2][2];
-    InputInterface<double> imu_pitch_, imu_d_pitch_;
+    InputInterface<double> imu_pitch_, imu_d_pitch_, imu_d_yaw_, imu_roll_, imu_ddz_, imu_ddx_;
 
     InputInterface<rmcs_description::BaseLink::DirectionVector> chassis_control_velocity_;
 
     InputInterface<double> rotary_knob_;
     OutputInterface<double> t_joint_[2][2];
-    OutputInterface<double> dbg_L0_[2], dbg_theta_[2];
+    OutputInterface<double> dbg_L0_[2], dbg_theta_[2], dbg_dtheta_[2], dbg_sportFN[2], dbg_vel,
+        dbg_vel_filtered;
 
     LegStatus legs_[2];
-    rmcs_core::controller::pid::PidCalculator leg_L0_pid_;
+    rmcs_core::controller::pid::PidCalculator leg_Left_L0_pid_;
     rmcs_core::controller::pid::PidCalculator leg_Right_L0_pid_;
     rmcs_core::controller::pid::PidCalculator leg_Left_Tp_pid_;
     rmcs_core::controller::pid::PidCalculator leg_Right_Tp_pid_;
     rmcs_core::controller::pid::PidCalculator anti_crash_pid_;
+    rmcs_core::controller::pid::PidCalculator roll_pid_;
+    rmcs_core::controller::pid::PidCalculator yaw_speed_pid_;
+    rmcs_core::utility::LowPassFilter<> imu_pitch_filter{20.0f, 1000.0f};
+    rmcs_core::utility::LowPassFilter<> ddot_z_w_filter{37.3f, 1000.0f};
 
+    double pitch_filter = 0.0;
+    double body_velocity = 0.0;
+    double current_target_vel = 0.0;
+    double filtered_velocity = 0.0;
+    double dist_ = 0.0;
+    double current_target_L0 = 0.13;
+    double target_L0;
     double wheel_radius_ = 0.058;           // 轮子半径
     double reduction_ratio_ = 268.0 / 17.0; // 减速比
     double wheel_weight_ = 0.5;             // 轮子重量
-
+    double roll_k_;
     double kinematic_theta[2];
     double kinematic_w_theta[2];
+    double D_L0[2];
+    double D_phi2[2];
     double L0[2];
     double Tp[2];
+    double sportFN[2];
     double wheelT[2];
 
     InputInterface<double> wheel_vel_[2];
     OutputInterface<double> t_wheel_[2];
 
-    struct OdomCalculator {
-        double x = 0.0;
-        double y = 0.0;
-        double yaw = 0.0;
-
-        double s = 0.0;
-        double v = 0.0;
-        double w = 0.0;
-
-        double track_width = 0.4;           // 轮距
-
-        void update(double v_L, double v_R, double dt) {
-
-            v = (v_L + v_R) / 2.0;
-            w = (v_R - v_L) / track_width;
-            s += v * dt;
-            yaw += w * dt;
-            yaw = std::atan2(std::sin(yaw), std::cos(yaw));
-            x += v * std::cos(yaw) * dt;
-            y += v * std::sin(yaw) * dt;
-        }
-        void reset() {
-            x = 0.0;
-            y = 0.0;
-            yaw = 0.0;
-            s = 0.0;
-            v = 0.0;
-            w = 0.0;
-        }
-    };
-
-    OdomCalculator odom_;
     rclcpp::Time last_time_;
+    void reset_all_controls() {
+        current_target_vel = 0.0;
+        *t_wheel_[LEFT] = 0.0;
+        *t_wheel_[RIGHT] = 0.0;
+        *t_joint_[LEFT][FRONT] = 0.0;
+        *t_joint_[LEFT][BACK] = 0.0;
+        *t_joint_[RIGHT][FRONT] = 0.0;
+        *t_joint_[RIGHT][BACK] = 0.0;
+        current_target_L0 = 0.13;
+    }
+    void velocity_calculate() {
+        double left_w_wheel_ =
+            (*wheel_vel_[LEFT] / reduction_ratio_) + D_phi2[LEFT] - *imu_d_pitch_;
+        double right_w_wheel_ =
+            (*wheel_vel_[RIGHT] / reduction_ratio_) + D_phi2[RIGHT] - *imu_d_pitch_;
 
-    // void calculate_lqr_gains(double L, double* K_out) {
-    //     const double P[6][3] = {
-    //         // 我们只提取前6行(轮子控制)，彻底丢掉髋关节的干扰
-    //         { 99.3792, -118.6757, -15.2298},
-    //         { 17.1818,  -20.3025,  -3.8227},
-    //         {-21.5961,    8.7075, -11.1011},
-    //         {-34.7038,   17.7707, -16.8081},
-    //         {179.9289, -162.0310,  61.2403},
-    //         { 29.8472,  -25.1950,  11.2166}, // K[5]: Leg dAng
-    //     };
-    //     double L2 = L * L;
-    //     for (int i = 0; i < 6; i++) {
-    //         K_out[i] = P[i][0] * L2 + P[i][1] * L + P[i][2];
-    //     }
-    // }
+        double left_v_body_ = left_w_wheel_ * wheel_radius_ + L0[LEFT] * kinematic_theta[LEFT] * std::cos(kinematic_theta[LEFT])
+                            + D_L0[LEFT] * std::sin(kinematic_theta[LEFT]);
 
-    void calculate_lqr_gains(int side, double L0) {
+        double right_v_body_ = right_w_wheel_ * wheel_radius_ + L0[RIGHT] * kinematic_theta[RIGHT] * std::cos(kinematic_theta[RIGHT])
+                             + D_L0[RIGHT] * std::sin(kinematic_theta[RIGHT]);
+        double vel_m = (left_v_body_ + right_v_body_) / 2.0;
+        if (sportFN[LEFT] < 20.0 && sportFN[RIGHT] < 20.0f) {
+            vel_m = 0;
+        }
+        body_velocity = vel_m;
+    }
+
+    void calculate_lqr_gains(int side, double L0, double vel, double vel_) {
 
         double w_theta = kinematic_w_theta[side];
         double theta = kinematic_theta[side];
-        double k[12][3] = {
-            {  67.9359,  -63.8194,  -7.6284},
-            {   0.8628,   -2.0442,  -0.3059},
-            {  -4.7515,    0.9133,  -9.1717},
-            { -23.3841,   16.9861, -10.8968},
-            { 102.8670, -114.6216,  47.8767},
-            {  12.8094,  -11.7436,   5.5136},
-            {  54.1380,  -91.7153,  62.9892},
-            {   2.4768,   -3.5791,   1.7836},
-            { -63.4130,   16.8473,  11.1278},
-            { -25.5687,   -5.6609,  10.6532},
-            {-472.2591,  400.3138,  56.2421},
-            { -19.1531,   23.5305,   0.3676}
+        static const Eigen::Matrix<double, 12, 3> K_poly{
+            {    60.4638,   -70.3176,    -6.5438},
+            {    -3.6340,    -7.0609,    -0.1953},
+            {    36.5273,   -29.7571,    -2.9203},
+            {    14.0516,   -14.4658,    -2.9994},
+            {    68.4233,   -84.0850,    34.8581},
+            {    10.8650,   -10.7467,     4.0707},
+            {    24.8887,   -73.1983,    52.5905},
+            {   -16.0217,    10.5177,     2.7448},
+            {    70.8964,   -92.2227,    39.4185},
+            {    75.8473,   -76.9852,    28.0531},
+            {  -492.2891,   393.2205,    32.6987},
+            {   -58.2475,    45.4204,    -1.9708}
         };
-        /* External variables --------------------------------------------------------*/
-        /* Private function prototypes -----------------------------------------------*/
-        double leg_len_ = L0;
-        float lsqr = leg_len_ * leg_len_;
+
         double d_theta;
-        if (side == LEFT) {
-            d_theta = w_theta;
-        } else {
-            d_theta = -w_theta;
-        }
-        double dist_ = 0.0;
-        double vel_ = *wheel_vel_[side] * (17.0 / 268.0) * 0.058;
-        
-        dist_ += vel_ * 0.001;
-       
 
-        double T_[2], T_K_[2][6];
-        for (uint8_t i = 0; i < 2; ++i) {
-            uint8_t j = i * 6;
-            T_K_[i][0] = (k[j + 0][0] * lsqr + k[j + 0][1] * leg_len_ + k[j + 0][2]) * -theta;
-            T_K_[i][1] = (k[j + 1][0] * lsqr + k[j + 1][1] * leg_len_ + k[j + 1][2]) * -d_theta;
-            T_K_[i][2] = (k[j + 2][0] * lsqr + k[j + 2][1] * leg_len_ + k[j + 2][2]) * 0.0;
-            T_K_[i][3] = (k[j + 3][0] * lsqr + k[j + 3][1] * leg_len_ + k[j + 3][2]) * vel_;
-            T_K_[i][4] = (k[j + 4][0] * lsqr + k[j + 4][1] * leg_len_ + k[j + 4][2]) * -*imu_pitch_;
-            T_K_[i][5] =
-                (k[j + 5][0] * lsqr + k[j + 5][1] * leg_len_ + k[j + 5][2]) * *imu_d_pitch_;
-        }
+        d_theta = w_theta;
 
-        // // if (F_N_ < 20.0f) {
-        //     for (uint8_t i = 0; i < 6; ++i) {
-        //         T_K_[0][i] = 0.0f;
-        //     };
-        //     T_K_[1][2] = T_K_[1][3] = T_K_[1][4] = T_K_[1][5] = 0.0f;
-        // // }
+        // RCLCPP_INFO(get_logger(), "dist %f, vel %f", dist_, vel_);
 
-        for (uint8_t i = 0; i < 2; ++i) {
-            T_[i] = T_K_[i][0] + T_K_[i][1] + T_K_[i][2] + T_K_[i][3] + T_K_[i][4] + T_K_[i][5];
-        }
-        wheelT[side] = T_[0];
-        Tp[side] = T_[1];
+        Eigen::Vector3d L_vec(L0 * L0, L0, 1.0);
+        Eigen::Matrix<double, 12, 1> K_flat = K_poly * L_vec;
+
+        Eigen::Matrix<double, 2, 6> K =
+            Eigen::Map<const Eigen::Matrix<double, 2, 6, Eigen::RowMajor>>(K_flat.data());
+
+        Eigen::Matrix<double, 6, 1> x = {theta,       d_theta,        -0.0,
+                                         (vel - vel_), -(*imu_pitch_), *imu_d_pitch_};
+        // double FN = sportFN[side];
+        // if (FN < 20.0) {
+        //     K.row(0).setZero();
+        //     K.row(1).tail<4>().setZero();
+        // }
+        Eigen::Vector2d u = K * x;
+        wheelT[side] = u(0);
+        Tp[side] = u(1);
     }
 
     double normalize_angle(double angle) {
@@ -503,7 +406,7 @@ private:
 
         double last_w_theta_;
         double last_v_l0_;
-        double ddot_z_M_ = 9.8;
+        double ddot_z_M_ = *imu_ddz_;
         double ddot_z_w_;
 
         if (side == LEFT) {
@@ -523,13 +426,6 @@ private:
         double a0 = 2 * l2_ * (xd - xb);
         double b0 = 2 * l2_ * (yd - yb);
 
-        // double c0 = l2_ * l2_ + std::pow(xd - xb, 2) + std::pow(yd - yb, 2) - l3_ * l3_;
-        // double delta = a0 * a0 + b0 * b0 - c0 * c0;
-
-        // if (delta < 0) {
-        //     leg.solved = false;
-        //     return;
-        // }
         leg.solved = true;
 
         double phi2 =
@@ -541,7 +437,7 @@ private:
 
         leg.L0 = std::sqrt(std::pow(xc - l5_ / 2.0, 2) + std::pow(yc, 2));
         double phi0 = std::atan2(yc, xc - l5_ / 2.0);
-        leg.theta = std::numbers::pi / 2.0 - phi0 - *imu_pitch_;
+        leg.theta = phi0 - std::numbers::pi / 2.0 + *imu_pitch_;
         kinematic_theta[side] = leg.theta;
         L0[side] = leg.L0;
         double phi3 = std::atan2(yb - yd + l2_ * std::sin(phi2), xb - xd + l2_ * std::cos(phi2));
@@ -570,12 +466,15 @@ private:
         double w_phi0_ = (phi0_pred - phi0) / predict_dt;
         double v_l0_ =
             ((std::sqrt(std::pow(xc_ - l5_ / 2, 2) + std::pow(yc_, 2))) - leg.L0) / predict_dt;
-        double w_theta_ =
-            (0.5 * std::numbers::pi - phi0_pred - *imu_pitch_ - leg.theta) / predict_dt;
+        double w_theta_;
+        if (side == LEFT) {
+            w_theta_ = (phi0_pred - 0.5 * std::numbers::pi + *imu_pitch_ - leg.theta) / predict_dt;
+        } else {
+            w_theta_ = -(phi0_pred - 0.5 * std::numbers::pi + *imu_pitch_ - leg.theta) / predict_dt;
+        }
 
         kinematic_w_theta[side] = w_theta_;
 
-        // RCLCPP_INFO(get_logger(), "Predicted theta velocity: %f", kinematic_w_theta[RIGHT]);
         double v_height_ = v_l0_ * std::cos(leg.theta) - leg.L0 * std::sin(leg.theta) * w_theta_;
         double dot_v_l0_ =
             (v_l0_ - last_v_l0_) / (0.002 + 0.008) + dot_v_l0_ * 0.008 / (0.002 + 0.008);
@@ -587,6 +486,9 @@ private:
                   + leg.L0 * powf(w_theta_, 2) * std::sin(leg.theta);
         last_w_theta_ = w_theta_;
         last_v_l0_ = v_l0_;
+
+        D_L0[side] = v_l0_;
+        D_phi2[side] = w_phi2_;
 
         // 雅可比
 
@@ -612,13 +514,12 @@ private:
         double mea_F_ = J11 * mea_t1_ + J21 * mea_t2_;
         double mea_Tp_ = J12 * mea_t1_ + J22 * mea_t2_;
         double p_ = mea_F_ * std::cos(leg.theta) + mea_Tp_ * std::sin(leg.theta) / leg.L0;
-        double F_N_ = p_ + wheel_weight_ * (9.8f + ddot_z_w_);
-        // RCLCPP_INFO(get_logger(), "sport force: %f", F_N_);
+        if (side == LEFT) {
+            sportFN[side] = p_ + wheel_weight_ * (9.8f + ddot_z_w_);
+        } else {
+            sportFN[side] = -p_ + wheel_weight_ * (9.8f + ddot_z_w_);
+        }
     }
-    // void LegForceCalc(int side) {
-    //     LegStatus& leg = legs_[side];
-
-    // }
 
     void map_vmc_force(int side, double F, double Tp, double& T_Back, double& T_Front) {
         LegStatus& leg = legs_[side];
@@ -641,9 +542,83 @@ private:
         T_Back = (sign_F_Back * leg.J11 * F) + (sign_Tp_Back * leg.J21 * Tp);
         T_Front = (sign_F_Front * leg.J12 * F) + (sign_Tp_Front * leg.J22 * Tp);
     }
+    using KF = rmcs_core::utility::KalmanFilter<2, 2, 0>;
+
+    void kf_init_() {
+        // 状态量：[电机角度速度, 机体前进加速度] (State=2)
+        // 观测量：[电机角度速度, 机体前进加速度] (Measure=2)
+        // 控制量：[无] (Control=0)
+
+        // 2. 采样时间设置 (例如 1ms 采样周期，根据你的实际定时器调整)
+        double dt = 0.001;
+
+        // 3. 初始化状态转移矩阵 A (v_k = v_{k-1} + a_{k-1} * dt)
+        Eigen::Matrix2d A;
+        A << 1.0, dt, 0.0, 1.0;
+
+        // 4. 初始化观测矩阵 H (直接观测到速度和加速度)
+        Eigen::Matrix2d H;
+        H << 1.0, 0.0, 0.0, 1.0;
+
+        // 5. 配置过程噪声 Q (物理模型的不确定性)
+        double vel_process_noise = 25.0;
+        double acc_process_noise = 2000.0;
+
+        Eigen::Matrix2d Q;
+        Q << vel_process_noise, 0.0, 0.0, acc_process_noise;
+
+        // 6. 配置测量噪声 R (传感器的固有白噪声)
+        double vel_measure_noise = 800.0;
+        double acc_measure_noise = 0.01;
+
+        Eigen::Matrix2d R;
+        R << vel_measure_noise, 0.0, 0.0, acc_measure_noise;
+
+        // 7. 实例化卡尔曼滤波器
+        // 使用模板参数指定维度：state=2, measure=2, control=0
+        kf_ = std::make_unique<KF>(A, H, Q, R);
+    }
+
+    std::unique_ptr<KF> kf_;
+    void OnSensorDataReceived(double raw_wheel_speed, double raw_imu_accel) {
+        // 创建测量向量 z = [v_m, a_m]^T
+        Eigen::Vector2d measurement;
+        measurement << static_cast<double>(raw_wheel_speed), raw_imu_accel;
+
+        // 调用更新方程，自动完成【预测】与【矫正】
+        // 由于 CONTROL_DIM 为 0，不需要传第二个参数
+        Eigen::Vector2d optimal_state = kf_->update(measurement);
+
+        // 提取融合后的最优结果
+        filtered_velocity = optimal_state(0);            // 融合后的干净速度
+        double filtered_acceleration = optimal_state(1); // 融合后的干净加速度
+        // RCLCPP_INFO(get_logger(), "vel %f, velb %f", filtered_velocity, body_velocity);
+
+        // double moto_vel = *wheel_vel_[side];
+        // double vel_ = moto_vel * (17.0 / 268.0) * 0.058  ;
+
+        if (fabs(filtered_velocity) < 0.1) {
+            dist_ += filtered_velocity * 0.001;
+        } else {
+            dist_ = 0.0f;
+        }
+    }
 };
 
 } // namespace rmcs_core::controller::chassis
 
 #include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(rmcs_core::controller::chassis::WheelegController, rmcs_executor::Component)
+
+/*body_fusion = 1;    %机体速度
+g = 9.8;            %重力加速度
+R = 0.058;          %轮半径
+m_w = 0.24; %轮质量
+m _p = 0.845;        %摆杆质量
+M = 10.5;           %机体质量
+I_w = 0.00037840; %轮转动惯量
+I_M =  0.277;                 %机体转动惯量
+l = 0.0;                  %机体质心离转轴距离
+
+Q_cost=diag([4000 1 1500 1 20000 1]);
+R_cost=diag([15, 1]);*/

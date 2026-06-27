@@ -63,6 +63,8 @@ value_broadcaster:
       - /chassis/imu/roll
       - /chassis/imu/roll_velocity
 
+      - /chassis/imu/yaw_velocity
+
 
       - /debug/left/L0
       - /debug/left/FN
@@ -70,6 +72,11 @@ value_broadcaster:
       - /debug/right/L0
       - /debug/right/FN
       - /debug/right/Theta
+      
+      - /debug/left/dTheta
+      - /debug/right/dTheta
+      - /debug/left/sportFN
+      - /debug/right/sportFN
       
 
 
@@ -90,7 +97,13 @@ value_broadcaster:
       - /chassis/vmc/left/force_normal
       - /chassis/vmc/right/force_normal
       - /chassis/rotary_knob
-      
+
+
+      - /debug/imu/ax
+      - /debug/imu/ay
+      - /debug/imu/az
+      - /debug/vel_filterd
+      - /debug/vel
 
 
 wheeleg_infantry_hardware:
@@ -100,10 +113,11 @@ wheeleg_infantry_hardware:
     top_yaw_motor_zero_point: -350
     pitch_motor_zero_point: 6500
 
-    left_front_hip_motors_zero_point: 36376
-    left_back_hip_motors_zero_point: 36641
-    right_front_hip_motors_zero_point: 31070
-    right_back_hip_motors_zero_point: 30027
+    left_front_hip_motors_zero_point: 28225
+    left_back_hip_motors_zero_point: 29176
+    right_front_hip_motors_zero_point: 34163
+    right_back_hip_motors_zero_point: 30358
+  
     
 
     
