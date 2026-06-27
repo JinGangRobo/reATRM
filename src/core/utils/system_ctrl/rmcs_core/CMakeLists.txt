@@ -22,7 +22,10 @@ ament_auto_add_library (
   ${PROJECT_NAME} SHARED
   ${PROJECT_SOURCE}
 )
-
+set_source_files_properties(  
+    src/controller/arm/ikfast64_robot.cpp  
+    PROPERTIES COMPILE_FLAGS "-w"  
+)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/librmcs)
