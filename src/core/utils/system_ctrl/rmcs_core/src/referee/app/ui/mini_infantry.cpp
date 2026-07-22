@@ -57,7 +57,7 @@ public:
 
         register_input("/gimbal/left_friction/control_velocity", first_friction_control_velocity_);
         register_input("/gimbal/left_friction/velocity", first_friction_velocity_);
-        register_input("/gimbal/auto_aim/available", auto_aim_ready_);
+        register_input("/gimbal/auto_aim/available", auto_aim_ready_, false);
 
         register_input("/referee/shooter/bullet_allowance", robot_bullet_allowance_);
         register_input("/referee/shooter/initial_speed", robot_initial_speed_);

@@ -12,7 +12,7 @@ class Buzzer : librmcs::device::Buzzer {
 public:
     Buzzer(rmcs_executor::Component& command_component)
         : librmcs::device::Buzzer() {
-        command_component.register_input("/buzzer/score", buzzer_score_input_);
+        command_component.register_input("/buzzer/score", buzzer_score_input_, false);
 
         set_score(
             {device::Buzzer::Tone::LOW, device::Buzzer::Tone::MEDIUM, device::Buzzer::Tone::HIGH,
