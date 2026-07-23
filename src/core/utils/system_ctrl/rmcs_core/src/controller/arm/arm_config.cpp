@@ -48,11 +48,14 @@ public:
 
     void update() override {
         std::lock_guard<std::mutex> lock(data_mutex_);
+
         for (std::size_t i = 0; i < num_joints_; ++i) {
             const double angle = *joint_angle_[i];
             joint[i].update(angle, *joint_velocity_[i], *joint_torque_[i]);
         }
+
         static std::size_t count{0};
+        
         if (++count >= 9) {
             sensor_msgs::msg::JointState msg;
             msg.header.stamp = this->now();

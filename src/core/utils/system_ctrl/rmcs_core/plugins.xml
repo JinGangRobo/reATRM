@@ -131,4 +131,14 @@
   <class type="rmcs_core::controller::arm::SlaveArmController" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
+  <class type="rmcs_core::controller::arm::ArmController" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+  <class type="rmcs_core::controller::arm::ArmConfig" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+  <class type="rmcs_core::controller::arm::ArmSolver" base_class_type="rmcs_executor::Component">
+    <description>Test plugin.</description>
+  </class>
+  
 </library>

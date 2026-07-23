@@ -12,6 +12,7 @@ endif()
 
 find_package (ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies ()
+find_package(urdf REQUIRED)
 
 file (GLOB_RECURSE PROJECT_SOURCE CONFIGURE_DEPENDS
   ${PROJECT_SOURCE_DIR}/src/*.cpp
@@ -23,11 +24,12 @@ ament_auto_add_library (
   ${PROJECT_SOURCE}
 )
 set_source_files_properties(  
-    src/controller/arm/ikfast64_robot.cpp  
+    src/core/utils/system_ctrl/rmcs_core/src/controller/arm/IKfast/ikfast64_robot.cpp
     PROPERTIES COMPILE_FLAGS "-w"  
 )
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/src/controller)
 include_directories(${PROJECT_SOURCE_DIR}/librmcs)
 
 include_directories(SYSTEM "/usr/include/libusb-1.0")
