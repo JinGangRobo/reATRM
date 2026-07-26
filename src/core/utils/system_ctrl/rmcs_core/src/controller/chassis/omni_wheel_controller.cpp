@@ -15,6 +15,7 @@
 #include "controller/chassis/qcp_solver.hpp"
 #include "controller/pid/matrix_pid_calculator.hpp"
 #include "controller/pid/pid_calculator.hpp"
+#include "utility/low_pass_filter.hpp"
 
 namespace rmcs_core::controller::chassis {
 
@@ -28,17 +29,17 @@ public:
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , translational_velocity_pid_calculator_(5.0, 0.0, 0.0)
         , angular_velocity_pid_calculator_(5.0, 0.0, 0.0)
+        , direction_pid_calculator_(0.005, 0.0, 0.0)
         , wheel_velocity_pid_(0.6, 0.0, 0.0) {
         get_parameter("mass", mess_);
         get_parameter("moment_of_inertia", moment_of_inertia_);
         get_parameter("chassis_radius_x", chassis_radius_x_);
         get_parameter("chassis_radius_y", chassis_radius_y_);
         get_parameter("wheel_radius", wheel_radius_);
-        get_parameter("friction_coefficient", friction_coefficient_);
-        get_parameter("spinning_bais_coefficient", spinning_bais_coefficient_);
 
         register_input("/chassis/left_front_wheel/max_torque", wheel_motor_max_control_torque_);
 
+        register_input("/chassis/control_mode", mode_);
         register_input("/chassis/left_front_wheel/velocity", left_front_velocity_);
         register_input("/chassis/left_back_wheel/velocity", left_back_velocity_);
         register_input("/chassis/right_back_wheel/velocity", right_back_velocity_);
@@ -51,6 +52,8 @@ public:
 
         register_input("/chassis/control_velocity", chassis_control_velocity_);
         register_input("/chassis/control_power_limit", power_limit_);
+
+        register_input("/gimbal/yaw/angle", gimbal_yaw_angle_, false);
 
         register_output(
             "/chassis/left_front_wheel/control_torque", left_front_control_torque_, nan_);
@@ -127,22 +130,46 @@ private:
     ChassisControlTorque calculate_chassis_control_torque(const Eigen::Vector3d& chassis_velocity) {
         ChassisControlTorque result;
 
-        // Fix spinning bais
-        Eigen::Vector3d control_velocity_rotated;
-        control_velocity_rotated.head<2>() =
-            Eigen::Rotation2Dd{
-                spinning_bais_coefficient_ * chassis_velocity.z()
-                * chassis_velocity.head<2>().norm()
-                * static_cast<double>(chassis_control_velocity_->vector[2] != 0)}
-            * chassis_control_velocity_->vector.head<2>();
+        Eigen::Vector3d control_velocity_rotated = chassis_control_velocity_->vector;
 
-        control_velocity_rotated[2] = chassis_control_velocity_->vector[2];
+        if (*mode_ == rmcs_msgs::ChassisMode::SPIN) {     // Fix spinning bais
+            double direction_err =
+                (atan2(
+                    control_velocity_rotated.x() * chassis_velocity.y()
+                        - control_velocity_rotated.y() * chassis_velocity.x(),
+                    control_velocity_rotated.head<2>().dot(chassis_velocity.head<2>())))
+                * (chassis_control_velocity_->vector.z() > 0 ? -1 : 1);
+
+            if (abs(direction_err) < direction_fix_range_) {
+                direction_pid_output_ += direction_pid_calculator_.update(
+                    direction_err  // Need more case to prove number 100 is ok
+                    * std::clamp(-(abs(translational_torque_diff_) * 100) + 1, 0.0, 1.0));
+                direction_pid_output_ = std::clamp(
+                    fmod(direction_pid_output_, direction_fix_range_), -direction_fix_range_, 0.0);
+            }
+
+            control_velocity_rotated.head<2>() =
+                Eigen::Rotation2Dd{
+                    (chassis_control_velocity_->vector.z() > 0 ? 1 : -1) * direction_pid_output_}
+                * chassis_control_velocity_->vector.head<2>();
+        }
 
         Eigen::Vector3d err = control_velocity_rotated - chassis_velocity;
+        err.head<2>() = Eigen::Rotation2Dd{-*gimbal_yaw_angle_} * err.head<2>();
+
         Eigen::Vector2d translational_torque =
             (-std::numbers::sqrt2 / 4 * wheel_radius_) * mess_
-            * translational_velocity_pid_calculator_.update(err.head<2>());
+            * (Eigen::Rotation2Dd{*gimbal_yaw_angle_}
+               * translational_velocity_pid_calculator_.update(err.head<2>()));
+
         result.torque.x() = translational_torque.norm();
+        double translational_torque_filtered =
+            translational_torque_filter_.update(translational_torque.norm());
+
+        translational_torque_diff_ = translational_torque_diff_filter_.update(
+            translational_torque_filtered - last_translational_torque_);
+        last_translational_torque_ = translational_torque_filtered;
+
         result.torque.y() = (-std::numbers::sqrt2 / 4 * wheel_radius_)
                           * (moment_of_inertia_ / (chassis_radius_x_ + chassis_radius_y_))
                           * angular_velocity_pid_calculator_.update(err[2]);
@@ -230,15 +257,20 @@ private:
     double wheel_radius_ = 0.07;
     double friction_coefficient_ = 0.6;
 
-    double spinning_bais_coefficient_ = 0.0;
+    double direction_fix_range_ = std::numbers::pi / 3;
+    double direction_pid_output_ = -0.2;
+    double last_translational_torque_;
+    double translational_torque_diff_;
 
     InputInterface<double> wheel_motor_max_control_torque_;
 
+    InputInterface<rmcs_msgs::ChassisMode> mode_;
     InputInterface<double> left_front_velocity_;
     InputInterface<double> left_back_velocity_;
     InputInterface<double> right_back_velocity_;
     InputInterface<double> right_front_velocity_;
 
+    InputInterface<double> gimbal_yaw_angle_;
     InputInterface<bool> left_front_alive_, left_back_alive_, right_front_alive_, right_back_alive_;
     rmcs_utility::TickTimer wheel_alive_protecter_;
     bool wheel_enable_ = true;
@@ -248,10 +280,14 @@ private:
 
     pid::MatrixPidCalculator<2> translational_velocity_pid_calculator_;
     pid::PidCalculator angular_velocity_pid_calculator_;
+    pid::PidCalculator direction_pid_calculator_;
 
     pid::MatrixPidCalculator<4> wheel_velocity_pid_;
 
     QcpSolver qcp_solver_;
+
+    utility::LowPassFilter<> translational_torque_diff_filter_{5, 1000};
+    utility::LowPassFilter<> translational_torque_filter_{5, 1000};
 
     OutputInterface<double> left_front_control_torque_;
     OutputInterface<double> left_back_control_torque_;
