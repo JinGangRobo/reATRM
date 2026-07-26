@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: arm_description
+    relative_path: urdf/JGarm.urdf
+  srdf:
+    relative_path: config/JGarm.srdf
+  package_settings:
+    author_name: Hannerlookwu
+    author_email: Hannerlookwu@gmail
+    generated_timestamp: 1785056085
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

@@ -6,20 +6,6 @@
   name="JGarm">
   <link
     name="base_link">
-    <inertial>
-      <origin
-        xyz="0.00170621245166062 -6.79032598654983E-06 -0.0459954725006719"
-        rpy="0 0 0" />
-      <mass
-        value="0.747471424523758" />
-      <inertia
-        ixx="0.00103093214064814"
-        ixy="-4.09620613786356E-08"
-        ixz="1.18690358159925E-08"
-        iyy="0.000735066439100947"
-        iyz="4.36006543973006E-08"
-        izz="0.00158351844293629" />
-    </inertial>
     <visual>
       <origin
         xyz="0 0 0"
@@ -45,7 +31,7 @@
     </collision>
   </link>
   <link
-    name="link1">
+    name="link_1">
     <inertial>
       <origin
         xyz="0.025292 -0.0021277 0.053006"
@@ -85,7 +71,7 @@
     </collision>
   </link>
   <joint
-    name="joint1"
+    name="joint_1"
     type="revolute">
     <origin
       xyz="0 0 0"
@@ -93,17 +79,19 @@
     <parent
       link="base_link" />
     <child
-      link="link1" />
+      link="link_1" />
     <axis
       xyz="0 0 1" />
     <limit
       lower="-3.14"
       upper="3.14"
-      effort="100"
-      velocity="100" />
+      effort="25"
+      velocity="7.75" />
+    <dynamics
+      friction="0.3" />
   </joint>
   <link
-    name="link2">
+    name="link_2">
     <inertial>
       <origin
         xyz="-0.00027428 0.19656 0.0094203"
@@ -143,25 +131,27 @@
     </collision>
   </link>
   <joint
-    name="joint2"
+    name="joint_2"
     type="revolute">
     <origin
       xyz="0.03 0.05 0.06"
       rpy="1.5708 0 -3.1416" />
     <parent
-      link="link1" />
+      link="link_1" />
     <child
-      link="link2" />
+      link="link_2" />
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="100"
-      velocity="100" />
+      lower="-1.528"
+      upper="1.084"
+      effort="63"
+      velocity="4.71" />
+    <dynamics
+      friction="0.5" />
   </joint>
   <link
-    name="link3">
+    name="link_3">
     <inertial>
       <origin
         xyz="-0.0012755 0.043295 -0.053823"
@@ -201,25 +191,27 @@
     </collision>
   </link>
   <joint
-    name="joint3"
+    name="joint_3"
     type="revolute">
     <origin
       xyz="0 0.38 0"
       rpy="0 0 1.5708" />
     <parent
-      link="link2" />
+      link="link_2" />
     <child
-      link="link3" />
+      link="link_3" />
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="100"
-      velocity="100" />
+      lower="-0.5335"
+      upper="1.450"
+      effort="35"
+      velocity="4.71" />
+    <dynamics
+      friction="0.2" />
   </joint>
   <link
-    name="link4">
+    name="link_4">
     <inertial>
       <origin
         xyz="1.1848E-05 0.002584 0.055104"
@@ -259,25 +251,27 @@
     </collision>
   </link>
   <joint
-    name="joint4"
+    name="joint_4"
     type="revolute">
     <origin
       xyz="-0.005 0.1535 -0.05"
       rpy="-1.5708 0 0" />
     <parent
-      link="link3" />
+      link="link_3" />
     <child
-      link="link4" />
+      link="link_4" />
     <axis
       xyz="0 0 1" />
     <limit
       lower="-3.14"
       upper="3.14"
-      effort="100"
-      velocity="100" />
+      effort="18"
+      velocity="7.54" />
+    <dynamics
+      friction="0.2" />
   </joint>
   <link
-    name="link5">
+    name="link_5">
     <inertial>
       <origin
         xyz="6.0551E-05 -0.025037 3.7661E-05"
@@ -317,25 +311,27 @@
     </collision>
   </link>
   <joint
-    name="joint5"
+    name="joint_5"
     type="revolute">
     <origin
-      xyz="2.29E-05 0 0.136"
+      xyz="0 0 0.136"
       rpy="1.5708 0.022902 0" />
     <parent
-      link="link4" />
+      link="link_4" />
     <child
-      link="link5" />
+      link="link_5" />
     <axis
       xyz="0 0 -1" />
     <limit
-      lower="-3.14"
-      upper="3.14"
-      effort="100"
-      velocity="100" />
+      lower="-1.967"
+      upper="1.937"
+      effort="6"
+      velocity="20" />
+    <dynamics
+      friction="0.2" />
   </joint>
   <link
-    name="link6">
+    name="link_6">
     <inertial>
       <origin
         xyz="-3.2784E-07 0.00091477 0.067918"
@@ -375,21 +371,23 @@
     </collision>
   </link>
   <joint
-    name="joint6"
+    name="joint_6"
     type="revolute">
     <origin
-      xyz="0 0.1685 -6.0612E-05"
+      xyz="0 0.1685 0"
       rpy="1.5708 0 0" />
     <parent
-      link="link5" />
+      link="link_5" />
     <child
-      link="link6" />
+      link="link_6" />
     <axis
       xyz="0 0 1" />
     <limit
       lower="-3.14"
       upper="3.14"
-      effort="100"
-      velocity="100" />
+      effort="3"
+      velocity="10" />
+    <dynamics
+      friction="0.2" />
   </joint>
 </robot>

@@ -1,6 +1,6 @@
 <launch>
     <let name="urdf_path" 
-         value="$(find-pkg-share arm_description)/urdf/JGarm.urdf"/>
+         value="$(find-pkg-share arm_description)/urdf/arm_description.urdf"/>
     <let name="rviz_config_path"
          value="$(find-pkg-share arm_description)/rviz/arm_config.rviz"/>
     <node pkg="robot_state_publisher" exec="robot_state_publisher">
