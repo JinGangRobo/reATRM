@@ -6,12 +6,12 @@ from launch import (
     LaunchDescription,
     LaunchDescriptionEntity,
 )
-from launch.actions import LogInfo
+from launch.actions import LogInfo,DeclareLaunchArgument,IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration
 
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
     def visit(
@@ -51,7 +51,11 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
                 output="log",  # stdout and stderr are logged to launch log file and stderr to the screen.
             )
         )
-
+        demo_launch_path = os.path.join(
+            FindPackageShare("arm_moveit_config").perform(context),
+            "launch",
+            "demo.launch.py"
+        )
         # TODO: Better way to identify robots needs vision capabilities
         if robot_name in enable_vision_entities:
             entities.append(
@@ -63,6 +67,16 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
                     output="screen",
                 )
             )
+        else:
+            entities.append(
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(demo_launch_path),
+                launch_arguments={
+                    "use_rviz": LaunchConfiguration("use_rviz")
+                }.items(),
+            )
+        )
+
 
         if is_automatic:
             pass
@@ -71,6 +85,11 @@ class MyLaunchDescriptionEntity(LaunchDescriptionEntity):
 
 
 def generate_launch_description():
-    ld = LaunchDescription([MyLaunchDescriptionEntity()])
+    ld = LaunchDescription(
+        [
+            DeclareLaunchArgument("use_rviz", default_value="true"),
+            MyLaunchDescriptionEntity()
+        ]
+    )
 
     return ld

@@ -16,6 +16,7 @@ public:
         rmcs_executor::Component& status_component, rmcs_executor::Component& command_component,
         const std::string& name_prefix)
         : librmcs::device::LkMotor() {
+        status_component.register_output(name_prefix + "/raw_angle", raw_angle_, 0.0);
         status_component.register_output(name_prefix + "/angle", angle_, 0.0);
         status_component.register_output(name_prefix + "/velocity", velocity_, 0.0);
         status_component.register_output(name_prefix + "/torque", torque_, 0.0);
@@ -56,8 +57,9 @@ public:
             *alive_ = false;
             RCLCPP_WARN(rclcpp::get_logger("HW_Diag"), "Lk Motor %s offline!", motor_name_.c_str());
         }
-
+        
         *angle_ = angle();
+        *raw_angle_ = last_raw_angle();
         *velocity_ = velocity();
         *torque_ = torque();
         *temperature_ = temperature();
@@ -142,7 +144,7 @@ public:
 
 private:
     static constexpr double nan_ = std::numeric_limits<double>::quiet_NaN();
-
+    rmcs_executor::Component::OutputInterface<double> raw_angle_;
     rmcs_executor::Component::OutputInterface<double> angle_;
     rmcs_executor::Component::OutputInterface<double> velocity_;
     rmcs_executor::Component::OutputInterface<double> torque_;

@@ -34,7 +34,7 @@ public:
             Joint(*this,"/arm/joint_4"), Joint(*this,"/arm/joint_5"), Joint(*this,"/arm/joint_6"), 
         } {
         arm_urdf_ = this->create_subscription<std_msgs::msg::String>(
-            "/robot_description", rclcpp::QoS(10).transient_local().reliable(),
+            "/robot_description", rclcpp::QoS(0).transient_local().reliable(),
             [this](const std_msgs::msg::String::ConstSharedPtr& msg) { this->load_urdf(msg); });
         joint_states_pub_ =
             this->create_publisher<sensor_msgs::msg::JointState>("/joint_states", 10);
@@ -46,25 +46,42 @@ public:
         register_output("urdf_loaded", is_load, false);
     };
 
+    static inline double normalize_angle(double angle) {
+        double a = std::fmod(angle + M_PI, 2.0 * M_PI);
+        if (a < 0.0) {
+            a += 2.0 * M_PI;
+        }
+        return a - M_PI;
+        }
+
     void update() override {
         std::lock_guard<std::mutex> lock(data_mutex_);
-
+        std::array<double, num_joints_> calibrated_angles;
+        std::array<double, num_joints_> calibrated_velocities;
         for (std::size_t i = 0; i < num_joints_; ++i) {
-            const double angle = *joint_angle_[i];
-            joint[i].update(angle, *joint_velocity_[i], *joint_torque_[i]);
+            double raw_angle = *joint_angle_[i];
+            double raw_vel   = *joint_velocity_[i]; 
+            double gear_ratio = (i == 1 || i == 2) ? 50.0 : 1.0;
+            double act_angle = (raw_angle / gear_ratio - joint_offsets_[i]) * joint_directions_[i];
+            calibrated_angles[i]     = act_angle;
+            calibrated_velocities[i] = (raw_vel / gear_ratio) * joint_directions_[i];
+
+            joint[i].update(calibrated_angles[i], calibrated_velocities[i], *joint_torque_[i]);
         }
 
         static std::size_t count{0};
-        
         if (++count >= 9) {
             sensor_msgs::msg::JointState msg;
-            msg.header.stamp = this->now();
+            msg.header.stamp    = this->now();
             msg.header.frame_id = "base_link";
-            msg.name = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
-            msg.position = {*joint_angle_[0], *joint_angle_[1], *joint_angle_[2],
-                            *joint_angle_[3], *joint_angle_[4], *joint_angle_[5]};
-            msg.velocity = {*joint_velocity_[0], *joint_velocity_[1], *joint_velocity_[2],
-                            *joint_velocity_[3], *joint_velocity_[4], *joint_velocity_[5]};
+            msg.name            = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
+            // msg.position = {*joint_angle_[0], *joint_angle_[1], *joint_angle_[2],
+            //             *joint_angle_[3], *joint_angle_[4], *joint_angle_[5]};
+            msg.position = {calibrated_angles[0],calibrated_angles[1],calibrated_angles[2],
+                            calibrated_angles[3],calibrated_angles[4],calibrated_angles[5]};
+            msg.velocity = {calibrated_velocities[0], calibrated_velocities[1], calibrated_velocities[2],
+                        calibrated_velocities[3], calibrated_velocities[4], calibrated_velocities[5]};
+        
             joint_states_pub_->publish(msg);
             count = 0;
         }
@@ -73,6 +90,22 @@ public:
 private:
     static constexpr std::size_t num_joints_ = 6;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_states_pub_;
+    const std::array<double, num_joints_> joint_offsets_ = {
+    3.775127,   // J1
+    1.226224,   // J2 
+   -1.249272,   // J3 
+    3.626331,   // J4
+    6.125952,   // J5
+    1.460350    // J6
+    };
+    const std::array<double, num_joints_> joint_directions_ = {
+        1.0,   // joint_1
+        1.0,   // joint_2
+        1.0,   // joint_3 
+        1.0,   // joint_4
+        1.0,   // joint_5 
+        1.0    // joint_6
+    };
     void modify_link_length(const urdf::Model& model) {
         link[0].load_length(model.getJoint("joint_2")->parent_to_joint_origin_transform.position.z);
         link[1].load_length(model.getJoint("joint_3")->parent_to_joint_origin_transform.position.y);

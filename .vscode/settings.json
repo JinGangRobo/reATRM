@@ -24,5 +24,6 @@
         "**/__pycache__": true
     },
     "C_Cpp.intelliSenseEngine": "disabled",
-    "ROS2.distro": "jazzy"
+    "ROS2.distro": "jazzy",
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true
 }

@@ -1,14 +1,8 @@
-//todo 
-// Input physcal joint angle, joint lower limit, joint upper limit and filtered target joint angle,
-// Input other joint states
-// caculate gravity compensation torque and friction torque, 
-// and output target joint torque
-
 #include <cstddef>
 #include <eigen3/Eigen/Dense>
 #include <array>
 #include <cmath>
-#include <numbers>
+#include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rmcs_executor/component.hpp>
@@ -31,19 +25,19 @@ public:
                 get_component_name(),
                 rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , joint_angle_pid_controller{
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0)   }
+                pid::PidCalculator(200.0, 0.0, 0.0),
+                pid::PidCalculator(1600.0, 0.0, 0.0),
+                pid::PidCalculator(200.0, 0.0, 0.0),
+                pid::PidCalculator(200.0, 0.0, 0.0),
+                pid::PidCalculator(200.0, 0.0, 0.0),
+                pid::PidCalculator(50.0, 0.0, 0.0)   }
         , joint_vel_pid_controller{
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0),
-                pid::PidCalculator(0.0, 0.0, 0.0)   } 
+                pid::PidCalculator(1.0, 0.0, 0.0),
+                pid::PidCalculator(1.0, 0.0, 0.0),
+                pid::PidCalculator(1.0, 0.0, 0.0),
+                pid::PidCalculator(0.2, 0.0, 0.0),
+                pid::PidCalculator(0.2, 0.0, 0.0),
+                pid::PidCalculator(0.1, 0.0, 0.0)   } 
         {
             for(std::size_t i = 0; i < 6; ++i){
                 const std::string joint_prefix = "/arm/joint_" + std::to_string(i+1);
@@ -54,7 +48,7 @@ public:
                 register_input(joint_prefix + "/velocity", joint_velocity_[i]);
                 register_input(joint_prefix + "/friction", joint_friction_[i]);
 
-                register_output(joint_prefix + "/target_torque", target_torque_[i], NAN);
+                register_output(joint_prefix + "/motor/control_torque", target_torque_[i], NAN);
             }
             for(std::size_t i = 0; i < 6; ++i){
                 const std::string joint_prefix = "/arm/link_" + std::to_string(i+1);
@@ -70,8 +64,10 @@ public:
 
         void update() override {
             //todo
+            
             TorqueVec torque_cmd;
             if(!*is_loaded){
+                RCLCPP_WARN(rclcpp::get_logger("[Arm_Solver]"), "URDF NOT Fatel");
                 return;
             }
             torque_cmd.setZero();
@@ -100,8 +96,7 @@ private:
     using controller_type = TorqueVec (ArmSolver::*)();
     std::vector<controller_type> controller_list_;
     static double normalize_angle(double angle) {
-        angle = std::fmod(angle + M_PI, 2 * M_PI);
-        return angle < 0 ? angle + M_PI : angle - M_PI;
+        return std::remainder(angle, 2.0 * M_PI);
     }
     TorqueVec pid_calculate(){
         auto clamp_angle = [this](std::size_t idx, double target_theta) {
@@ -135,6 +130,7 @@ private:
         return torque_gravity;
     }
     TorqueVec friction_calculate(){
+        //Todo
         TorqueVec torque_friction;
         torque_friction.setZero();
         return torque_friction;

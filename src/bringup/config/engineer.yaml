@@ -3,177 +3,45 @@ rmcs_executor:
     update_rate: 1000.0
     components:
       - rmcs_core::hardware::Engineer -> engineer_hardware
-
-      - rmcs_core::controller::arm::SlaveArmController ->arm_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint0_angle_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint0_velocity_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint1_angle_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint1_velocity_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint2_angle_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint2_velocity_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint3_angle_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint3_velocity_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint4_angle_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint4_velocity_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint5_angle_pid_controller
-      - rmcs_core::controller::pid::ErrorPidController -> joint5_velocity_pid_controller
-
+      - rmcs_core::controller::arm::ArmConfig -> arm_config
+      - rmcs_core::controller::arm::ArmController -> arm_controller
+      - rmcs_core::controller::arm::ArmSolver -> arm_solver
+      - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
       - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
 
-
-diagnosis:
+value_broadcaster:
   ros__parameters:
     forward_list:
-    - /arm/joint0/angle
-    - /arm/joint1/angle
-    - /arm/joint2/angle
-    - /arm/joint3/angle
-    - /arm/joint4/angle
-    - /arm/joint5/angle
-    - /arm/joint0/control_angle
-    - /arm/joint1/control_angle
-    - /arm/joint2/control_angle
-    - /arm/joint3/control_angle
-    - /arm/joint4/control_angle
-    - /arm/joint5/control_angle
+      - /arm/joint_1/motor/angle
+      - /arm/joint_2/motor/angle
+      - /arm/joint_3/motor/angle
+      - /arm/joint_4/motor/angle
+      - /arm/joint_5/motor/angle
+      - /arm/joint_6/motor/angle
 
 engineer_hardware:
   ros__parameters:
-    usb_pid_arm_board: 0xa513
+    usb_pid_arm_board: 0x1fd9
+    arm_joint1_motor_zero_point: 29682
+    arm_joint2_motor_zero_point: 54083
+    arm_joint3_motor_zero_point: 35846
+    arm_joint4_motor_zero_point: 31294
+    arm_joint5_motor_zero_point: 32801
+    arm_joint6_motor_zero_point: 30864
 
-joint0_angle_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint0/angle  
-    setpoint: /arm/joint0/control_angle  
-    control: /arm/joint0/control_velocity  
-    # enable: /arm/joint0/alive  
-    kp: 0.0  
-    ki: 0.0  
-    kd: 0.0  
-    integral_min: -10.0
-    integral_max: 10.0
-  
-joint0_velocity_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint0/velocity  
-    setpoint: /arm/joint0/control_velocity  
-    control: /arm/joint0/control_torque  
-    # enable: /arm/joint0/alive  
-    kp: 0.1  
-    ki: 0.0  
-    kd: 0.0
+arm_solver:
+  ros__parameters:
+    controller_list: ["pid"]
+    
+diagnosis:
+  ros__parameters:
+    motors:
+      - /arm/joint_1/motor
+      - /arm/joint_2/motor
+      - /arm/joint_3/motor
+      - /arm/joint_4/motor
+      - /arm/joint_5/motor
+      - /arm/joint_6/motor
 
-joint1_angle_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint1/angle  
-    setpoint: /arm/joint1/control_angle  
-    control: /arm/joint1/control_velocity  
-    # enable: /arm/joint1/alive  
-    kp: 0.0  
-    ki: 0.0  
-    kd: 0.0  
-    integral_min: -10.0
-    integral_max: 10.0
-  
-joint1_velocity_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint1/velocity  
-    setpoint: /arm/joint1/control_velocity  
-    control: /arm/joint1/control_torque  
-    # enable: /arm/joint1/alive  
-    kp: 0.0  
-    ki: 0.0  
-    kd: 0.0
-
-joint2_angle_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint2/angle  
-    setpoint: /arm/joint2/control_angle  
-    control: /arm/joint2/control_velocity  
-    # enable: /arm/joint2/alive  
-    kp: 0.0  
-    ki: 0.0  
-    kd: 0.0  
-    integral_min: -10.0
-    integral_max: 10.0
-
-joint2_velocity_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint2/velocity  
-    setpoint: /arm/joint2/control_velocity  
-    control: /arm/joint2/control_torque  
-    # enable: /arm/joint2/alive  
-    kp: 0.0  
-    ki: 0.0  
-    kd: 0.0
-
-joint3_angle_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint3/angle  
-    setpoint: /arm/joint3/control_angle  
-    control: /arm/joint3/control_velocity  
-    enable: /arm/joint3/alive  
-    kp: 0.1  
-    ki: 0.0  
-    kd: 0.0
-    integral_min: -10.0
-    integral_max: 10.0  
-  
-joint3_velocity_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint3/velocity  
-    setpoint: /arm/joint3/control_velocity  
-    control: /arm/joint3/control_torque  
-    enable: /arm/joint3/alive  
-    kp: 0.1  
-    ki: 0.0  
-    kd: 0.0
-
-joint4_angle_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint4/angle  
-    setpoint: /arm/joint4/control_angle  
-    control: /arm/joint4/control_velocity  
-    enable: /arm/joint4/alive  
-    kp: 0.1  
-    ki: 0.0  
-    kd: 0.0
-    integral_min: -10.0
-    integral_max: 10.0  
-  
-joint4_velocity_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint4/velocity  
-    setpoint: /arm/joint4/control_velocity  
-    control: /arm/joint4/control_torque  
-    enable: /arm/joint4/alive  
-    kp: 0.1  
-    ki: 0.0  
-    kd: 0.0
-
-joint5_angle_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint5/angle  
-    setpoint: /arm/joint5/control_angle  
-    control: /arm/joint5/control_velocity  
-    enable: /arm/joint5/alive  
-    kp: 0.1  
-    ki: 0.0  
-    kd: 0.0
-    integral_min: -10.0
-    integral_max: 10.0  
-  
-joint5_velocity_pid_controller:  
-  ros__parameters:  
-    measurement: /arm/joint5/velocity  
-    setpoint: /arm/joint5/control_velocity  
-    control: /arm/joint5/control_torque  
-    enable: /arm/joint5/alive  
-    kp: 0.1  
-    ki: 0.0  
-    kd: 0.0
-
-    enable_motor_check: false
+    enable_motor_check: true
     enable_supercap_check: false
-    enable_aim_check: false
-    enable_nav_check: false
