@@ -105,12 +105,14 @@ dual_yaw_controller:
 
 omni_wheel_controller:
   ros__parameters:
-    chassis_radius_x: 0.165
-    chassis_radius_y: 0.165
-    wheel_radius_: 0.07
+    mass: 18.7
+    chassis_radius_x: 0.3
+    chassis_radius_y: 0.3
+    wheel_radius: 0.07
     friction_coefficient: 0.6
 
-    spinning_bais_coefficient: -0.081
+    spinning_bias_adjust: false
+    spinning_bias_coefficient: -0.06
 
 pitch_angle_err_pid_controller:
   ros__parameters:

@@ -36,9 +36,12 @@ public:
         get_parameter("chassis_radius_x", chassis_radius_x_);
         get_parameter("chassis_radius_y", chassis_radius_y_);
         get_parameter("wheel_radius", wheel_radius_);
+        get_parameter("spinning_bias_adjust", spinning_bias_adjust_);
+        get_parameter("spinning_bias_coefficient", spinning_bais_coefficient_);
 
         register_input("/chassis/left_front_wheel/max_torque", wheel_motor_max_control_torque_);
 
+        register_input("/remote/rotary_knob", rotary_knob_);
         register_input("/chassis/control_mode", mode_);
         register_input("/chassis/left_front_wheel/velocity", left_front_velocity_);
         register_input("/chassis/left_back_wheel/velocity", left_back_velocity_);
@@ -62,6 +65,8 @@ public:
             "/chassis/right_back_wheel/control_torque", right_back_control_torque_, nan_);
         register_output(
             "/chassis/right_front_wheel/control_torque", right_front_control_torque_, nan_);
+
+        register_output("/chassis/debug/spinning_bias", debug_spinning_bias_, nan_);
     }
 
     void before_updating() override {
@@ -84,6 +89,11 @@ public:
             return;
         }
 
+        if (spinning_bias_adjust_) {
+            spinning_bais_coefficient_ += *rotary_knob_ * 0.0001;
+            *debug_spinning_bias_ = spinning_bais_coefficient_;
+        }
+
         Eigen::Vector4d wheel_velocities = {
             *left_front_velocity_, *left_back_velocity_,  //
             *right_back_velocity_, *right_front_velocity_ //
@@ -93,8 +103,12 @@ public:
         auto chassis_control_torque = calculate_chassis_control_torque(chassis_velocity);
         const auto wheel_pid_torques =
             calculate_wheel_pid_torques(wheel_velocities, chassis_velocity);
-        chassis_control_torque.torque = constrain_chassis_control_torque(
+
+        Eigen::Vector3d constrained_result = constrain_chassis_control_torque(
             wheel_velocities, chassis_control_torque, wheel_pid_torques);
+        chassis_control_torque.torque = constrained_result.head<2>();
+        illegal_power_ = constrained_result.z();
+
         const auto wheel_control_torques =
             calculate_wheel_control_torques(chassis_control_torque, wheel_pid_torques);
 
@@ -108,6 +122,8 @@ private:
     struct ChassisControlTorque {
         Eigen::Vector2d torque;
         Eigen::Vector2d lambda;
+        Eigen::Vector2d torque_vector;
+        double control_vector_angle;
     };
 
     void reset_all_controls() {
@@ -131,45 +147,23 @@ private:
         ChassisControlTorque result;
 
         Eigen::Vector3d control_velocity_rotated = chassis_control_velocity_->vector;
-
-        if (*mode_ == rmcs_msgs::ChassisMode::SPIN) {     // Fix spinning bais
-            double direction_err =
-                (atan2(
-                    control_velocity_rotated.x() * chassis_velocity.y()
-                        - control_velocity_rotated.y() * chassis_velocity.x(),
-                    control_velocity_rotated.head<2>().dot(chassis_velocity.head<2>())))
-                * (chassis_control_velocity_->vector.z() > 0 ? -1 : 1);
-
-            if (abs(direction_err) < direction_fix_range_) {
-                direction_pid_output_ += direction_pid_calculator_.update(
-                    direction_err  // Need more case to prove number 100 is ok
-                    * std::clamp(-(abs(translational_torque_diff_) * 100) + 1, 0.0, 1.0));
-                direction_pid_output_ = std::clamp(
-                    fmod(direction_pid_output_, direction_fix_range_), -direction_fix_range_, 0.0);
-            }
-
-            control_velocity_rotated.head<2>() =
-                Eigen::Rotation2Dd{
-                    (chassis_control_velocity_->vector.z() > 0 ? 1 : -1) * direction_pid_output_}
-                * chassis_control_velocity_->vector.head<2>();
-        }
+        result.control_vector_angle =
+            atan2(control_velocity_rotated.y(), control_velocity_rotated.x());
 
         Eigen::Vector3d err = control_velocity_rotated - chassis_velocity;
         err.head<2>() = Eigen::Rotation2Dd{-*gimbal_yaw_angle_} * err.head<2>();
 
         Eigen::Vector2d translational_torque =
             (-std::numbers::sqrt2 / 4 * wheel_radius_) * mess_
-            * (Eigen::Rotation2Dd{*gimbal_yaw_angle_}
+            * (Eigen::Rotation2Dd{
+                   *gimbal_yaw_angle_                     // gimbal yaw frame to chassis frame
+                   + (spinning_bais_coefficient_ * chassis_velocity.z()
+                      / (1 + illegal_power_))             // fix spinning bias
+               }
                * translational_velocity_pid_calculator_.update(err.head<2>()));
 
+        result.torque_vector = translational_torque;
         result.torque.x() = translational_torque.norm();
-        double translational_torque_filtered =
-            translational_torque_filter_.update(translational_torque.norm());
-
-        translational_torque_diff_ = translational_torque_diff_filter_.update(
-            translational_torque_filtered - last_translational_torque_);
-        last_translational_torque_ = translational_torque_filtered;
-
         result.torque.y() = (-std::numbers::sqrt2 / 4 * wheel_radius_)
                           * (moment_of_inertia_ / (chassis_radius_x_ + chassis_radius_y_))
                           * angular_velocity_pid_calculator_.update(err[2]);
@@ -191,15 +185,15 @@ private:
         double a_plus_b = chassis_radius_x_ + chassis_radius_y_;
         Eigen::Vector4d wheel_control_velocity = {
             -x + y + a_plus_b * z,
-            -x - y + a_plus_b * z,                                   //
+            -x - y + a_plus_b * z,                        //
             +x - y + a_plus_b * z,
-            +x + y + a_plus_b * z,                                   //
+            +x + y + a_plus_b * z,                        //
         };
         wheel_control_velocity *= -1 / (std::numbers::sqrt2 * wheel_radius_);
         return wheel_velocity_pid_.update(wheel_control_velocity - wheel_velocities);
     }
 
-    Eigen::Vector2d constrain_chassis_control_torque(
+    Eigen::Vector3d constrain_chassis_control_torque(
         const Eigen::Vector4d& wheel_velocities, const ChassisControlTorque& chassis_control_torque,
         const Eigen::Vector4d& wheel_pid_torques) const {
         const auto& [w1, w2, w3, w4] = wheel_velocities;
@@ -224,15 +218,47 @@ private:
                        + k2_ * wheel_velocities.array().pow(2).sum() //
                        - no_load_power_ - *power_limit_;
 
-        auto result = qcp_solver_.solve(
+        Eigen::Vector3d result;
+        result.head<2>() = qcp_solver_.solve(
             {1.0, 1.0}, {x_max, std::abs(y_max)}, {rhombus_right, rhombus_top}, {a, b, c, d, e, f});
         result.y() *= y_sign;
+        result.z() = chassis_control_torque.torque.x() - result.x();
+
         return result;
     }
 
-    static Eigen::Vector4d calculate_wheel_control_torques(
+    Eigen::Vector4d calculate_wheel_control_torques(
         ChassisControlTorque chassis_control_torque, Eigen::Vector4d wheel_pid_torques) {
-        const auto& [lambda_1, lambda_2] = chassis_control_torque.lambda;
+        auto& [lambda_1, lambda_2] = chassis_control_torque.lambda;
+        Eigen::Vector2d reference_torque =
+            Eigen::Rotation2Dd{-chassis_control_torque.control_vector_angle}
+            * chassis_control_torque.torque_vector;
+
+        // Torque redistribution
+        if (chassis_control_torque.torque.x() > 0) {
+            Eigen::Vector2d corrected_torque;
+            if (chassis_control_torque.torque.x() > abs(reference_torque.y())) {
+                corrected_torque = {
+                    copysign(
+                        sqrt(
+                            chassis_control_torque.torque.x() * chassis_control_torque.torque.x()
+                            - reference_torque.y() * reference_torque.y()),
+                        reference_torque.x()),
+                    reference_torque.y()};
+            } else {
+                corrected_torque = {
+                    0, copysign(chassis_control_torque.torque.x(), reference_torque.y())};
+            }
+            Eigen::Vector2d corrected_torque_direction =
+                Eigen::Rotation2Dd{chassis_control_torque.control_vector_angle} * corrected_torque;
+            corrected_torque_direction.normalize();
+            auto [x, y] = corrected_torque_direction;
+
+            lambda_1 = -x + y;
+            lambda_2 = -x - y;
+        }
+
+        // Apply torques
         Eigen::Vector4d wheel_torques = {
             +lambda_1 * chassis_control_torque.torque.x(),
             +lambda_2 * chassis_control_torque.torque.x(),
@@ -257,10 +283,10 @@ private:
     double wheel_radius_ = 0.07;
     double friction_coefficient_ = 0.6;
 
-    double direction_fix_range_ = std::numbers::pi / 3;
-    double direction_pid_output_ = -0.2;
-    double last_translational_torque_;
-    double translational_torque_diff_;
+    double illegal_power_ = 0.0;
+
+    bool spinning_bias_adjust_ = false;
+    double spinning_bais_coefficient_ = 0.0;
 
     InputInterface<double> wheel_motor_max_control_torque_;
 
@@ -293,6 +319,9 @@ private:
     OutputInterface<double> left_back_control_torque_;
     OutputInterface<double> right_back_control_torque_;
     OutputInterface<double> right_front_control_torque_;
+
+    InputInterface<double> rotary_knob_;
+    OutputInterface<double> debug_spinning_bias_;
 };
 
 } // namespace rmcs_core::controller::chassis
