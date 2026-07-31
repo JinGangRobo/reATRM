@@ -73,11 +73,11 @@ private:
             , chassis_wheel_motors_(
                   {wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(
-                       1.0)},
+                       268.0 / 17.0)},
                   {wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_wheel",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
                        .set_reversed()
-                       .set_reduction_ratio(1.0)
+                       .set_reduction_ratio(268.0 / 17.0)
 
                   })
             , left_front_hip_motors_(
@@ -100,7 +100,6 @@ private:
                   wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_front_hip",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
 
-                      .set_reversed()
                       .set_encoder_zero_point(
                           static_cast<int>(
                               wheeleg_infantry.get_parameter("right_front_hip_motors_zero_point")
@@ -109,7 +108,6 @@ private:
                   wheeleg_infantry, wheeleg_infantry_command, "/chassis/right_back_hip",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
 
-                      .set_reversed()
                       .set_encoder_zero_point(
                           static_cast<int>(
                               wheeleg_infantry.get_parameter("right_back_hip_motors_zero_point")
@@ -152,6 +150,7 @@ private:
 
             wheeleg_infantry.register_output("/chassis/imu/pitch", chassis_pitch_angle_imu_);
             wheeleg_infantry.register_output("/chassis/imu/roll", chassis_roll_angle_imu_);
+            wheeleg_infantry.register_output("/chassis/imu/yaw", chassis_yaw_angle_imu_);
 
             wheeleg_infantry.register_output("/debug/imu/ax", imu_ax);
             wheeleg_infantry.register_output("/debug/imu/ay", imu_ay);
@@ -194,6 +193,14 @@ private:
             // 2. 利用重力分量直接计算出绝对不失真的物理倾角（不受另一个轴的影响）
             *chassis_roll_angle_imu_ = std::atan2(gy, gz);
 
+            // 1. 获取机体的前向向量 (X轴) 在世界系下的方向
+            // q 是你的四元数，UnitX 是 (1,0,0)
+            Eigen::Vector3d forward_in_world = chassis_imu_pose * Eigen::Vector3d::UnitX();
+
+            // 2. 将其投影到水平面 (即去掉 Z 分量)
+            // 这样得到的 Yaw 就是相对于世界系 X 轴的偏航角
+            *chassis_yaw_angle_imu_ = std::atan2(forward_in_world.y(), forward_in_world.x());
+
             *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
             *chassis_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
             *chassis_roll_velocity_imu_ = imu_gx_velocity_filter_.update(imu_.gx());
@@ -205,8 +212,7 @@ private:
             chassis_wheel_motors_[0].update_status();
             chassis_wheel_motors_[1].update_status();
             left_front_hip_motors_.update_status();
-            
-            
+
             left_back_hip_motors_.update_status();
             right_front_hip_motors_.update_status();
             right_back_hip_motors_.update_status();
@@ -347,6 +353,7 @@ private:
         OutputInterface<double> chassis_roll_velocity_imu_;
 
         OutputInterface<double> chassis_pitch_angle_imu_;
+        OutputInterface<double> chassis_yaw_angle_imu_;
         OutputInterface<double> chassis_roll_angle_imu_;
 
         OutputInterface<double> debug_left_front_hip_raw_angle_;
