@@ -18,6 +18,7 @@ value_broadcaster:
       - /arm/joint_4/motor/angle
       - /arm/joint_5/motor/angle
       - /arm/joint_6/motor/angle
+      - /arm/joint_2/motor/control_torque
 
 engineer_hardware:
   ros__parameters:
@@ -31,7 +32,7 @@ engineer_hardware:
 
 arm_solver:
   ros__parameters:
-    controller_list: ["pid"]
+    controller_list: ["gravity","friction"]
     
 diagnosis:
   ros__parameters:

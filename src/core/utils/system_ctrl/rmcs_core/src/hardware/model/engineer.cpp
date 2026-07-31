@@ -107,7 +107,6 @@ private:
             , arm_joint6_motor_(
                   engineer, engineer_command, "/arm/joint_6/motor",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
-                  .set_reversed()
                   .set_encoder_zero_point(static_cast<int>(engineer.get_parameter("arm_joint6_motor_zero_point").as_int())))
             , supercap_(engineer, 28.5)
             , transmit_buffer_(*this, 32)

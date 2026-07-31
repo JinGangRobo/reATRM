@@ -62,9 +62,9 @@ public:
             double raw_angle = *joint_angle_[i];
             double raw_vel   = *joint_velocity_[i]; 
             double gear_ratio = (i == 1 || i == 2) ? 50.0 : 1.0;
-            double act_angle = (raw_angle / gear_ratio - joint_offsets_[i]) * joint_directions_[i];
-            calibrated_angles[i]     = act_angle;
-            calibrated_velocities[i] = (raw_vel / gear_ratio) * joint_directions_[i];
+            double act_angle = (raw_angle / gear_ratio - joint_offsets_[i]) ;
+            calibrated_angles[i]     = normalize_angle(act_angle);
+            calibrated_velocities[i] = (raw_vel / gear_ratio);
 
             joint[i].update(calibrated_angles[i], calibrated_velocities[i], *joint_torque_[i]);
         }
@@ -96,15 +96,7 @@ private:
    -1.249272,   // J3 
     3.626331,   // J4
     6.125952,   // J5
-    1.460350    // J6
-    };
-    const std::array<double, num_joints_> joint_directions_ = {
-        1.0,   // joint_1
-        1.0,   // joint_2
-        1.0,   // joint_3 
-        1.0,   // joint_4
-        1.0,   // joint_5 
-        1.0    // joint_6
+    1.702718    // J6
     };
     void modify_link_length(const urdf::Model& model) {
         link[0].load_length(model.getJoint("joint_2")->parent_to_joint_origin_transform.position.z);

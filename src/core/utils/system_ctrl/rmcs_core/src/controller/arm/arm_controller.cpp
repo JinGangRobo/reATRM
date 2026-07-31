@@ -1,3 +1,4 @@
+#include <boost/mpl/assert.hpp>
 #include <limits>
 #include <rclcpp/logger.hpp>
 #define IKFAST_HAS_LIBRARY
@@ -42,7 +43,6 @@ public:
                 register_input(joint_prefix + "/theta", theta[i]);
                 register_input(joint_prefix + "/lower_limit", joint_lower_limit_[i]);
                 register_input(joint_prefix + "/upper_limit", joint_upper_limit_[i]);
-                
                 register_output(joint_prefix + "/target_theta", target_theta[i], NAN);
             }
             register_output("/arm/enable_flag", is_arm_enable_, false);
@@ -77,14 +77,16 @@ public:
             if (last_arm_mode_ != *arm_mode_) {
                 switch (*arm_mode_) {
                     case ArmMode::Custome: {
-                        Eigen::Matrix<double, 6, 1> current_theta_vec;
-                        std::array<IkReal, 6> current_joints;
+                        std::array<IkReal, 6> current_angles;
                         for (std::size_t i = 0; i < 6; ++i) {
-                            double urdf_angle = theta[i].ready() ? *theta[i] : 0.0;
-                            current_joints[i] = urdf_angle;
-                            current_theta_vec[i] = urdf_to_motor_frame(urdf_angle, i);
+                            if (theta[i].ready() && !std::isnan(*theta[i])) {
+                                *target_theta[i] = *theta[i];
+                                current_angles[i] = *theta[i];
+                            } else if (std::isnan(*target_theta[i])) {
+                            *target_theta[i] = 0.0;
+                            }
                         }
-                        ComputeFk(current_joints.data(), target_eetrans_.data(), target_eerot_.data());
+                        ComputeFk(current_angles.data(), target_eetrans_.data(), target_eerot_.data());
                         RCLCPP_INFO(
                         rclcpp::get_logger("ArmController"),
                         "FK Initialized TCP target to: [%.3f, %.3f, %.3f]",
@@ -115,27 +117,6 @@ public:
         }
 
 private:
-    double urdf_to_motor_frame(double urdf_theta, std::size_t joint_idx) const {
-        double link_angle = (urdf_theta / joint_directions_[joint_idx]) + joint_offsets_[joint_idx];
-        return link_angle * joint_gear_ratios_[joint_idx];
-    }
-    double motor_to_urdf_frame(double motor_theta, std::size_t joint_idx) const {
-        double link_angle = motor_theta / joint_gear_ratios_[joint_idx];
-        return (link_angle - joint_offsets_[joint_idx]) * joint_directions_[joint_idx];
-    }
-    bool isValidJoint(const std::vector<IkReal>& solution) {
-        if (solution.size() < 6) return false;
-        for (std::size_t i = 0; i < 6; ++i) {
-            if (!joint_lower_limit_[i].ready() || !joint_upper_limit_[i].ready()) continue;
-            double lower = *joint_lower_limit_[i];
-            double upper = *joint_upper_limit_[i];
-        if (std::isnan(lower) || std::isnan(upper)) continue;
-        if (solution[i] < lower || solution[i] > upper) {
-            return false;
-        }
-    }
-        return true;
-    }
     double NormAngle(double angle){
         double a = std::fmod(angle + M_PI, 2.0 * M_PI);
         if (a < 0.0)
@@ -143,6 +124,23 @@ private:
             a += 2.0 * M_PI;
         }
         return a - M_PI;
+        }
+        bool isValidJoint(const std::vector<IkReal>& solution) {
+        if (solution.size() < 6) return false;
+        for (std::size_t i = 0; i < 6; ++i) {
+            if (!joint_lower_limit_[i].ready() || !joint_upper_limit_[i].ready()){ 
+                //RCLCPP_WARN(rclcpp::get_logger("IK"), "Joint Limit Interface NOT READY!");
+                continue;}
+            double lower = *joint_lower_limit_[i];
+            double upper = *joint_upper_limit_[i];
+        if (std::isnan(lower) || std::isnan(upper)) continue;
+        double norm_sol = NormAngle(solution[i]); 
+        if (norm_sol < lower || norm_sol > upper) {
+            //RCLCPP_WARN(rclcpp::get_logger("IK"), "Joint %zu limit breached! Sol: %.2f(Norm: %.2f) , Limit: [%.2f, %.2f]",i + 1, solution[i], norm_sol, lower, upper);
+            return false;
+        }
+        }
+        return true;
     }
     void mode_selection() {
         auto switch_right = *switch_right_;
@@ -185,12 +183,7 @@ private:
         // and then filter the joint angles and output them
 
         ikfast::IkSolutionList<IkReal> solutions;
-        // IkReal eerot[9]={
-        //     1.0, 0.0 ,0.0,
-        //     0.0, 1.0 ,0.0,
-        //     0.0, 0.0 ,1.0
-        // };
-        // IkReal eetrans[3] = {0.0,0.0,0.0};
+
         // for(auto& v:eetrans){
         //     if(v==0.0)
         //         v=0.01;
@@ -198,12 +191,9 @@ private:
         bool IkSuccess = ComputeIk(target_eetrans_.data(), target_eerot_.data(), nullptr, solutions);
         // bool IkSuccess = ComputeIk(eetrans, eerot, nullptr, solutions);
         if(!IkSuccess){
+            RCLCPP_WARN(rclcpp::get_logger("IK"),"IK Failed");
             for (std::size_t j = 0; j < 6; ++j) {
                 *target_theta[j] = theta[j].ready() ? *theta[j] : 0.0;
-                // if (theta[j].ready()) {
-                //     *target_theta[j] = urdf_to_motor_frame(*theta[j], j);
-                // }
-
             }
             return ;
         }else {
@@ -221,6 +211,7 @@ private:
                     error += e*e;
                 }
                 if(error < min_error && isValidJoint(sol_values)) {
+                    //RCLCPP_INFO(rclcpp::get_logger("IK"),"IK Success");
                     min_error = error;
                     best_sol = sol_values;
                 }
@@ -228,24 +219,16 @@ private:
             if(!best_sol.empty()){
                 Eigen::Matrix<double, 6, 1> raw_target_theta;
                 for(std::size_t i = 0;i < 6;++i){
-                    double current_urdf_angle = theta[i].ready() ? *theta[i] : 0.0;
-                    double delta_urdf = NormAngle(best_sol[i] - current_urdf_angle);
-                    double continuous_urdf_target = current_urdf_angle + delta_urdf;
-                    // raw_target_theta[i] = urdf_to_motor_frame(continuous_urdf_target, i);
-                    raw_target_theta[i] = continuous_urdf_target;
+                double base_angle = !std::isnan(*target_theta[i])
+                                    ? *target_theta[i]
+                                    : (theta[i].ready() ? *theta[i] : 0.0);
+                    double delta_urdf = NormAngle(best_sol[i] - base_angle);
+                    raw_target_theta[i] = base_angle + delta_urdf;
                 }
                 Eigen::Matrix<double, 6, 1> filtered_target = custom_joint_filter_.update(raw_target_theta);
                 for (std::size_t j = 0; j < 6; ++j) {
                     *target_theta[j] = filtered_target[j];
                 }
-        //         RCLCPP_INFO(rclcpp::get_logger("ArmDebug"), 
-        // "J1: [%.2f -> %.2f] | J2: [%.2f -> %.2f] | J3: [%.2f -> %.2f] | J4: [%.2f -> %.2f] | J5: [%.2f -> %.2f] | J6: [%.2f -> %.2f]",
-        //         urdf_to_motor_frame(*theta[0], 0), filtered_target[0],
-        //         urdf_to_motor_frame(*theta[1], 1), filtered_target[1],
-        //         urdf_to_motor_frame(*theta[2], 2), filtered_target[2],
-        //         urdf_to_motor_frame(*theta[3], 3), filtered_target[3],
-        //         urdf_to_motor_frame(*theta[4], 4), filtered_target[4],
-        //         urdf_to_motor_frame(*theta[5], 5), filtered_target[5]);
             }
         }
     } 
@@ -264,7 +247,6 @@ private:
                            ? *joint_upper_limit_[idx] : M_PI;
             return std::clamp(target, lower, upper);
         };
-        // RCLCPP_INFO(rclcpp::get_logger("DR16_Position"),"%lf ,%lf, %lf",joystick_left_->x(),joystick_right_->x(),joystick_left_->y());
         if (std::fabs(joystick_left_->x()) > DEADZONE) {
             double next_target = *target_theta[2] - STEP * joystick_left_->x();
             *target_theta[2]   = safe_clamp(2, next_target);
@@ -314,25 +296,6 @@ private:
         }
         custom_joint_filter_.reset();
     }
-    const std::array<double, 6> joint_offsets_ = {
-        3.775127,   // J1
-        1.226224,   // J2 
-        -1.249272,   // J3 
-        3.626331,   // J4
-        6.125952,   // J5
-        1.460350    // J6
-    };
-    const std::array<double, 6> joint_directions_ = {
-        1.0, 
-        1.0, 
-        1.0, 
-        1.0, 
-        1.0, 
-        1.0
-    };
-    const std::array<double, 6> joint_gear_ratios_ = {
-        1.0, 50.0, 50.0, 1.0, 1.0, 1.0
-    };
     rmcs_msgs::Switch last_switch_left_{rmcs_msgs::Switch::UNKNOWN};
     rmcs_msgs::Switch last_switch_right_{rmcs_msgs::Switch::UNKNOWN};
     InputInterface<rmcs_msgs::Switch> switch_right_;
