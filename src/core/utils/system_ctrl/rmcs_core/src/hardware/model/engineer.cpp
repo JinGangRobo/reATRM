@@ -9,14 +9,15 @@
 #include <rclcpp/node.hpp>
 #include <rmcs_description/tf_description.hpp>
 #include <rmcs_executor/component.hpp>
-// #include <rmcs_msgs/serial_interface.hpp>
-// #include <rmcs_utility/fps_counter.hpp>
-// #include <serial/serial.h>
+#include <rmcs_msgs/serial_interface.hpp>
+#include <rmcs_utility/fps_counter.hpp>
+#include <serial/serial.h>
 #include <std_msgs/msg/int32.hpp>
 #include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
+#include "hardware/device/vt03.hpp"
 #include "hardware/device/lk_motor.hpp"
-#include "hardware/device/supercap.hpp"
+#include "hardware/device/dji_motor.hpp"
 namespace rmcs_core::hardware {
 
 class Engineer
@@ -36,13 +37,22 @@ public:
         arm_board_ = std::make_unique<ArmBoard>(
             *this, *command_component_,
             static_cast<int>(get_parameter("usb_pid_arm_board").as_int()));
+        chassis_board_ = std::make_unique<ChassisBoard>(
+            *this, *command_component_,
+            static_cast<int>(get_parameter("usb_pid_chassis_board").as_int()));
         using namespace rmcs_description;
     }
     ~Engineer() override = default;
 
-    void update() override { arm_board_->update(); }
+    void update() override { 
+        arm_board_->update(); 
+        chassis_board_->update();
+    }
 
-    void command_update() { arm_board_->command_update(); }
+    void command_update() { 
+        arm_board_->command_update(); 
+        chassis_board_->command_update();
+    }
 
 private:
     void arm_calibrate_subscription_callback(std_msgs::msg::Int32::UniquePtr) {
@@ -79,7 +89,7 @@ private:
         friend class Engineer;
         explicit ArmBoard(Engineer& engineer, EngineerCommand& engineer_command, int usb_pid = -1)
             : librmcs::client::CBoard(usb_pid)
-            , dr16_(engineer)
+            , vt03_(engineer)
             , arm_joint1_motor_(
                   engineer, engineer_command, "/arm/joint_1/motor",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
@@ -108,7 +118,6 @@ private:
                   engineer, engineer_command, "/arm/joint_6/motor",
                   device::DmMotor::Config{device::DmMotor::Type::J4310}
                   .set_encoder_zero_point(static_cast<int>(engineer.get_parameter("arm_joint6_motor_zero_point").as_int())))
-            , supercap_(engineer, 28.5)
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {}
 
@@ -117,21 +126,13 @@ private:
             event_thread_.join();
         }
         void update() {
+            vt03_.update_status();
             arm_joint1_motor_.update_status();
             arm_joint2_motor_.update_status();
             arm_joint3_motor_.update_status();
             arm_joint4_motor_.update_status();
             arm_joint5_motor_.update_status();
             arm_joint6_motor_.update_status();
-            dr16_.update_status();
-            // static int cnt = 0;
-            // if (cnt++ % 100 == 0) {  // 每100个周期打一次，避免刷屏
-            //     RCLCPP_INFO(rclcpp::get_logger("Test"), 
-            //     "Joint2 motor angle: %f (rad)", arm_joint2_motor_.angle());
-            //     RCLCPP_INFO(rclcpp::get_logger("Test"), 
-            //     "Joint3 motor angle: %f (rad)", arm_joint3_motor_.angle());
-
-            // }   
         }
         void command_update() {
             static bool even_phase{true};
@@ -209,8 +210,8 @@ private:
                 }
             } 
         }
-        void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
-            dr16_.store_status(uart_data, uart_data_length);
+        void uart2_receive_callback(const std::byte* data, uint8_t length) override {
+            vt03_.store_status(data, length);
         }
         bool joint1_calibrated_ = false;
         bool joint2_calibrated_ = false;
@@ -218,19 +219,81 @@ private:
         bool joint4_calibrated_ = false;
         bool joint5_calibrated_ = false;
         bool joint6_calibrated_ = false;
-        device::Dr16 dr16_;
+        device::Vt03 vt03_;
         device::DmMotor arm_joint1_motor_;
         device::LkMotor arm_joint2_motor_;
         device::LkMotor arm_joint3_motor_;
         device::DmMotor arm_joint4_motor_;
         device::DmMotor arm_joint5_motor_;
         device::DmMotor arm_joint6_motor_;
-        device::Supercap supercap_;
+        librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
+        std::thread event_thread_;
+    };
+    class ChassisBoard final : private librmcs::client::CBoard {
+    public:
+        friend class Engineer;
+        explicit ChassisBoard(Engineer& engineer, EngineerCommand& engineer_command, int usb_pid = -1)
+            : librmcs::client::CBoard(usb_pid)
+            , dr16_(engineer)
+            , chassis_wheel_motors_(
+                  device::DjiMotor{engineer, engineer_command, "/chassis/left_front_wheel",
+                                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
+                  device::DjiMotor{engineer, engineer_command, "/chassis/left_back_wheel",
+                                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
+                  device::DjiMotor{engineer, engineer_command, "/chassis/right_back_wheel",
+                                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}},
+                  device::DjiMotor{engineer, engineer_command, "/chassis/right_front_wheel",
+                                   device::DjiMotor::Config{device::DjiMotor::Type::M3508}})
+            , transmit_buffer_(*this, 32)
+            , event_thread_([this]() { handle_events(); }) {}
+
+        ~ChassisBoard() final {
+            stop_handling_events();
+            event_thread_.join();
+        }
+        void update() {
+            dr16_.update_status();  
+            for (auto& motor : chassis_wheel_motors_) {
+                motor.update_status();
+            }
+        }
+
+        void command_update() {
+            uint16_t batch_commands[4];
+
+            for (int i = 0; i < 4; i++)
+                batch_commands[i] = chassis_wheel_motors_[i].generate_command();
+
+            transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(batch_commands));
+            transmit_buffer_.trigger_transmission();
+        }
+    private:
+        void can1_receive_callback(
+            uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
+            bool is_remote_transmission, uint8_t can_data_length) override {
+            if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
+                return;
+            if (can_id == 0x201) {
+                chassis_wheel_motors_[0].store_status(can_data);
+            } else if (can_id == 0x202) {
+                chassis_wheel_motors_[1].store_status(can_data);
+            } else if (can_id == 0x203) {
+                chassis_wheel_motors_[2].store_status(can_data);
+            } else if (can_id == 0x204) {
+                chassis_wheel_motors_[3].store_status(can_data);
+            }
+        }
+        void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
+            dr16_.store_status(uart_data, uart_data_length);
+        }
+        device::Dr16 dr16_;
+        device::DjiMotor chassis_wheel_motors_[4];
         librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
         std::thread event_thread_;
     };
     rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr arm_calibrate_subscription_;
     std::unique_ptr<ArmBoard> arm_board_;
+    std::unique_ptr<ChassisBoard> chassis_board_;
 };
 
 } // namespace rmcs_core::hardware
