@@ -26,9 +26,9 @@ public:
         : Node(
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
-        , translational_velocity_pid_calculator_(5.0, 0.0, 0.0)
-        , angular_velocity_pid_calculator_(5.0, 0.0, 0.0)
-        , wheel_velocity_pid_(0.6, 0.0, 0.0) {
+        , translational_velocity_pid_calculator_(2.0, 0.0, 0.0)
+        , angular_velocity_pid_calculator_(2.0, 0.0, 0.0)
+        , wheel_velocity_pid_(0.3, 0.0, 0.0) {
         get_parameter("mass", mess_);
         get_parameter("moment_of_inertia", moment_of_inertia_);
         get_parameter("chassis_radius_x", chassis_radius_x_);
@@ -50,7 +50,7 @@ public:
         register_input("/chassis/right_back_wheel/alive", right_back_alive_);
 
         register_input("/chassis/control_velocity", chassis_control_velocity_);
-        register_input("/chassis/control_power_limit", power_limit_);
+        register_input("/chassis/control_power_limit", power_limit_,false);
 
         register_output(
             "/chassis/left_front_wheel/control_torque", left_front_control_torque_, nan_);
@@ -62,6 +62,11 @@ public:
     }
 
     void before_updating() override {
+        //engineer 现在无需设置功率限制，先设置为无限大
+        if(!power_limit_.ready()){
+            power_limit_.make_and_bind_directly(inf_);
+            RCLCPP_WARN(get_logger(),"Failed to fetch \"/chassis/control_power_limit\". Set to infinity.");
+        }
         RCLCPP_INFO(
             get_logger(), "Max control torque of wheel motor: %.f",
             *wheel_motor_max_control_torque_);

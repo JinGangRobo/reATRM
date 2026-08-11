@@ -1,0 +1,48 @@
+rmcs_executor:
+  ros__parameters:
+    update_rate: 1000.0
+    components:
+      - rmcs_core::hardware::Engineer -> engineer_hardware
+      - rmcs_core::controller::arm::ArmConfig -> arm_config
+      - rmcs_core::controller::arm::ArmController -> arm_controller
+      - rmcs_core::controller::arm::ArmSolver -> arm_solver
+      - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
+      - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
+
+value_broadcaster:
+  ros__parameters:
+    forward_list:
+      - /arm/joint_1/motor/angle
+      - /arm/joint_2/motor/angle
+      - /arm/joint_3/motor/angle
+      - /arm/joint_4/motor/angle
+      - /arm/joint_5/motor/angle
+      - /arm/joint_6/motor/angle
+      - /arm/joint_2/motor/control_torque
+
+engineer_hardware:
+  ros__parameters:
+    usb_pid_arm_board: 0x1fd9
+    arm_joint1_motor_zero_point: 29682
+    arm_joint2_motor_zero_point: 54083
+    arm_joint3_motor_zero_point: 35846
+    arm_joint4_motor_zero_point: 31294
+    arm_joint5_motor_zero_point: 32801
+    arm_joint6_motor_zero_point: 30864
+
+arm_solver:
+  ros__parameters:
+    controller_list: ["gravity","friction"]
+    
+diagnosis:
+  ros__parameters:
+    motors:
+      - /arm/joint_1/motor
+      - /arm/joint_2/motor
+      - /arm/joint_3/motor
+      - /arm/joint_4/motor
+      - /arm/joint_5/motor
+      - /arm/joint_6/motor
+
+    enable_motor_check: true
+    enable_supercap_check: false
