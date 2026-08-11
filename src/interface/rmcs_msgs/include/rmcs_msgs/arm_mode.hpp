@@ -5,9 +5,10 @@
 namespace rmcs_msgs {
 
 enum class ArmMode : uint8_t {
-    execute_dr16_position,
-    execute_dr16_orientation,
+    execute_vt03_position,
+    execute_vt03_orientation,
     Custome,
+    Gripper,
     None
 };
 

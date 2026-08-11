@@ -25,8 +25,8 @@ public:
                 get_component_name(),
                 rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true))
         , joint_angle_pid_controller{
-                pid::PidCalculator(200.0, 0.0, 0.0),
-                pid::PidCalculator(1600.0, 0.0, 0.0),
+                pid::PidCalculator(100.0, 0.0, 0.0),
+                pid::PidCalculator(800.0, 0.0, 0.0),
                 pid::PidCalculator(200.0, 0.0, 0.0),
                 pid::PidCalculator(200.0, 0.0, 0.0),
                 pid::PidCalculator(400.0, 0.0, 0.0),
