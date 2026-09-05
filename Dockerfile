@@ -52,13 +52,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     echo "deb https://mirrors.tuna.tsinghua.edu.cn/llvm-apt/noble/ llvm-toolchain-noble main" > /etc/apt/sources.list.d/llvm-apt.list && \
     apt-get update && \
     version=`apt-cache search clangd- | grep clangd- | awk -F' ' '{print $1}' | sort -V | tail -1 | cut -d- -f2` && \
-    apt-get install -y --no-install-recommends clangd-$version && \
+    apt-get install -y --no-install-recommends clang-$version clang-format-$version clangd-$version && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50 && \
-    update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-$version 50
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-$version 50 && \
+    update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-$version 50 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-$version 50
 
 RUN apt-get update && apt-get install -y \
-    clangd clang clang-format python3-pip vim htop \
+    python3-pip vim htop \
     gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
     libopencv-dev \
     libceres-dev \

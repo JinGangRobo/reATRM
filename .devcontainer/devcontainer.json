@@ -27,7 +27,8 @@
                 "ms-azuretools.vscode-containers",
                 "xaver.clang-format",
                 "llvm-vs-code-extensions.vscode-clangd",
-                "DotJoshJohnson.xml"
+                "DotJoshJohnson.xml",
+                "vivaxy.vscode-conventional-commits"
             ]
         }
     },
