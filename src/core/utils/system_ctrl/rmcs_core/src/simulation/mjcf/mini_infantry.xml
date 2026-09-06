@@ -12,13 +12,14 @@
         <!-- Chassis is fixed to the world (no free joint): no contact tuning needed.
          Wheels / gimbal / friction wheels spin under their own motor torques. -->
         <body name="base" pos="0 0 0.12">
+            <freejoint/>
             <geom name="chassis" type="box" size="0.16 0.16 0.04" mass="3.0" rgba="0.6 0.6 0.6 1" contype="0" conaffinity="0" />
             <site name="base_imu" pos="0 0 0.03" />
 
             <!-- 4 omni wheels (only spin simulated) -->
             <body name="wheel_rf" pos="0.14 0.14 -0.03">
                 <joint name="wheel_rf" type="hinge" axis="0 1 0" damping="0.01" />
-                <geom name="wheel_rf_g" type="cylinder" size="0.06 0.02" euler="0 0 0" mass="0.15" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+                <geom name="wheel_rf_g" type="box" size="0.06 0.02 0.06" euler="0 0 0" mass="0.15" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
             </body>
             <body name="wheel_lf" pos="-0.14 0.14 -0.03">
                 <joint name="wheel_lf" type="hinge" axis="0 1 0" damping="0.01" />
@@ -48,19 +49,19 @@
                     <geom name="pitch_g" type="box" size="0.02 0.05 0.02" pos="0 0 0" mass="0.3" rgba="0.75 0.6 0.2 1" contype="0" conaffinity="0" />
 
                     <!-- two friction wheels -->
-                    <body name="left_friction" pos="0.03 0.0 0.035">
+                    <body name="left_friction" pos="0.03 0.1 0.035">
                         <joint name="left_friction" type="hinge" axis="1 0 0" damping="0.005" />
-                        <geom name="left_friction_g" type="cylinder" size="0.018 0.025" mass="0.03" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+                        <geom name="left_friction_g" type="box" size="0.018 0.025 0.01" mass="0.03" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
                     </body>
-                    <body name="right_friction" pos="0.03 0.0 -0.035">
+                    <body name="right_friction" pos="0.03 -0.1 -0.035">
                         <joint name="right_friction" type="hinge" axis="1 0 0" damping="0.005" />
-                        <geom name="right_friction_g" type="cylinder" size="0.018 0.025" mass="0.03" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+                        <geom name="right_friction_g" type="box" size="0.018 0.025 0.01" mass="0.03" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
                     </body>
 
                     <!-- bullet feeder -->
-                    <body name="bullet_feeder" pos="-0.04 0.0 0.0">
+                    <body name="bullet_feeder" pos="-0.34 0.0 0.0">
                         <joint name="bullet_feeder" type="hinge" axis="0 1 0" damping="0.005" />
-                        <geom name="bullet_feeder_g" type="cylinder" size="0.02 0.03" mass="0.04" rgba="0.4 0.4 0.8 1" contype="0" conaffinity="0" />
+                        <geom name="bullet_feeder_g" type="box" size="0.02 0.03 0.02" mass="0.04" rgba="0.4 0.4 0.8 1" contype="0" conaffinity="0" />
                     </body>
                 </body>
             </body>

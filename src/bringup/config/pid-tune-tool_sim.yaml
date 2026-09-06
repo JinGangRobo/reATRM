@@ -1,0 +1,76 @@
+# reATRM simulation config for the (unmodified) PidTuneTool hardware model.
+#
+# The simulation subsystem supports exactly one backend: MuJoCo. The
+# SimulationBootstrap component installs a CBoard transport factory; every
+# hardware-model CBoard attaches to the MuJoCo backend, which streams DJI
+# feedback + IMU to the model. usb_pid_top/bottom_board are symbolic board keys
+# (1 = top, 2 = bottom) looked up in the config-driven binding below.
+#
+# PidTuneTool specifics vs mini-infantry: the DR16 is on the BOTTOM board
+# (dbus=1 on pid 2), which also hosts the single GM6020 (/motor). The top board
+# is IMU-only and rides the rotor, so /top/imu/gz = motor output velocity feeds
+# the velocity PID loop (setpoint from the model's DR16 step logic).
+rmcs_executor:
+  ros__parameters:
+    update_rate: 1000.0
+    components:
+      - rmcs_core::simulation::SimulationBootstrap -> sim_bootstrap
+      - rmcs_core::hardware::PidTuneTool -> hardware
+      - rmcs_core::controller::pid::PidController -> velocity_pid_controller
+      - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
+
+sim_bootstrap:
+  ros__parameters:
+    # Bare name -> <share>/rmcs_core/mjcf/pid_tune_tool.xml.
+    model_file: "pid_tune_tool.xml"
+    gui: false
+    remote_switch_right: middle
+    remote_switch_left: middle
+    remote_channel0: 1024
+    remote_channel1: 1024
+    remote_channel2: 1024
+    remote_channel3: 1024
+    # boards: "pid|dbus|gyro_sensor|acc_sensor"
+    #   pid 1 = top board (rotating, IMU only), pid 2 = bottom (Dr16 + motor)
+    boards:
+      - "1|0|top_gyro|top_acc"
+      - "2|1|base_gyro|base_acc"
+    # motors: "pid|can_bus|fb_can_id|kind|reduction|sign|zero|command_id|actuator"
+    # GM6020 on the bottom board, feedback 0x206 (0x1FF group slot 1).
+    motors:
+      - "2|1|0x206|GM6020|1.0|1|0|0|rotor"
+
+velocity_pid_controller:
+  ros__parameters:
+    measurement: /top/imu/gz
+    setpoint: /motor/control_velocity
+    control: /motor/control_torque
+    kp: 3.0
+    ki: 0.02
+    kd: 40.0
+    integral_min: -30.0
+    integral_max: 30.0
+
+value_broadcaster:
+  ros__parameters:
+    forward_list:
+      - /top/imu/gz
+      - /top/imu/gy
+      - /bottom/imu/gz
+      - /bottom/imu/gy
+      - /motor/raw_angle
+      - /motor/control_velocity
+      - /motor/control_torque
+
+hardware:
+  ros__parameters:
+    usb_pid_top_board: 1
+    usb_pid_bottom_board: 2
+    motor_zero_point: 0
+
+    velocity_step: 1.0
+    step_time: 400.0
+
+    imu_bias_x: 0
+    imu_bias_y: 0
+    imu_bias_z: 0

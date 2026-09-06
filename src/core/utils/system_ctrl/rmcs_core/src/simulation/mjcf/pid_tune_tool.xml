@@ -1,0 +1,38 @@
+<!-- reATRM pid-tune-tool (MuJoCo sim model, P6).
+     A single GM6020 velocity-tuning stand: the bottom board hosts the Dr16 +
+     GM6020 motor + a fixed base IMU; the top board is an IMU-only board riding
+     the rotor, so /top/imu/gz measures the motor output velocity for the
+     velocity PID loop (see pid-tune-tool_sim.yaml).
+     Naming follows mini_infantry.xml: joint == body == actuator name; sensor
+     names are independent (base_gyro/base_acc, top_gyro/top_acc). -->
+<mujoco model="pid_tune_tool">
+    <compiler angle="radian"/>
+    <option timestep="0.001"/>
+    <default>
+        <joint armature="0.01"/>
+        <geom contype="0" conaffinity="0"/>
+    </default>
+
+    <worldbody>
+        <body name="base" pos="0 0 0.1">
+            <geom name="base" type="cylinder" size="0.09 0.05" mass="1.5"/>
+            <site name="base_imu" pos="0 0 0.03"/>
+            <joint name="rotor" type="hinge" axis="0 0 1" pos="0 0 0.05"/>
+            <body name="rotor" pos="0 0 0.05">
+                <geom name="rotor" type="cylinder" size="0.05 0.015" mass="0.25"/>
+                <site name="top_imu" pos="0 0 0.015"/>
+            </body>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <motor name="rotor" joint="rotor" ctrlrange="-3 3" ctrllimited="true"/>
+    </actuator>
+
+    <sensor>
+        <gyro name="base_gyro" site="base_imu"/>
+        <accelerometer name="base_acc" site="base_imu"/>
+        <gyro name="top_gyro" site="top_imu"/>
+        <accelerometer name="top_acc" site="top_imu"/>
+    </sensor>
+</mujoco>

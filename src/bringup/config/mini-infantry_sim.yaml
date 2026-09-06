@@ -5,8 +5,10 @@
 # transport factory so every hardware-model CBoard attaches to the MuJoCo
 # backend, which streams DJI feedback + IMU to the models.
 #
-# usb_pid_top/bottom_board act as symbolic board keys (1 = top, 2 = bottom) that
-# the sim transport uses to select the board topology.
+# usb_pid_top/bottom_board act as symbolic board keys (1 = top, 2 = bottom). The
+# backend looks up each key in the config-driven binding below (sim_bootstrap.
+# boards / motors), so the unmodified MiniInfantry hardware model .cpp runs
+# directly against MuJoCo.
 #
 # A simulated DBUS remote is injected (sim_bootstrap.remote_*): with both
 # switches enabled (not DOWN), the real gimbal control chain below closes the
@@ -24,6 +26,8 @@ rmcs_executor:
       - rmcs_core::controller::pid::PidController -> yaw_velocity_pid_controller
       - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_pid_controller
       - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
+      - rmcs_core::controller::chassis::ChassisController -> chassis_controller
+      - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 sim_bootstrap:
@@ -44,6 +48,25 @@ sim_bootstrap:
     remote_channel1: 1024
     remote_channel2: 1024
     remote_channel3: 1024
+    # ---- config-driven board/motor topology (see sim_common.hpp) -------------
+    # boards: "pid|dbus|gyro_sensor|acc_sensor"  (dbus: board hosts the DR16)
+    # motors: "pid|can_bus|fb_can_id|kind|reduction|sign|zero|command_id|actuator"
+    #   kind = GM6020 | GM6020_VOLTAGE | M3508 | M2006 | J4310 (DM MIT)
+    #   command_id: DJI => 0 (group derived from fb_can_id); DM => MIT master id
+    # Mirror of the motor Config in the (unmodified) MiniInfantry model .cpp.
+    boards:
+      - "1|1|gimbal_gyro|gimbal_acc" # top: Dr16 + gimbal IMU
+      - "2|0|base_gyro|base_acc" # bottom: base IMU
+    motors:
+      - "1|1|0x201|M3508|1.0|-1|0|0|left_friction"
+      - "1|1|0x202|M3508|1.0|1|0|0|right_friction"
+      - "1|1|0x205|GM6020|1.0|1|7556|0|pitch"
+      - "2|1|0x201|M3508|15.7647059|-1|0|0|wheel_rf"
+      - "2|1|0x202|M3508|15.7647059|-1|0|0|wheel_lf"
+      - "2|1|0x203|M3508|15.7647059|-1|0|0|wheel_lb"
+      - "2|1|0x204|M3508|15.7647059|-1|0|0|wheel_rb"
+      - "2|1|0x206|GM6020|1.0|1|3606|0|yaw"
+      - "2|1|0x207|M2006|44.0|-1|0|0|bullet_feeder"
 
 value_broadcaster:
   ros__parameters:
@@ -58,6 +81,14 @@ value_broadcaster:
       - /gimbal/yaw/control_angle_error
       - /gimbal/left_friction/velocity
       - /chassis/right_front_wheel/angle
+      - /chassis/right_front_wheel/velocity
+      - /chassis/left_front_wheel/velocity
+      - /chassis/right_back_wheel/velocity
+      - /chassis/left_back_wheel/velocity
+      - /chassis/right_front_wheel/control_torque
+      - /sim/base/pose/x
+      - /sim/base/pose/y
+      - /sim/base/pose/yaw
 
 mini_infantry_hardware:
   ros__parameters:
@@ -127,3 +158,34 @@ pitch_velocity_pid_controller:
     kp: 1.5
     ki: 0.0
     kd: 5.0
+    integral_min: -10.0
+    integral_max: 10.0
+
+# Chassis: the real mini-infantry chain (ChassisController -> OmniWheelController
+# -> per-wheel /chassis/*_wheel/control_torque). Like the real robot, chassis
+# translation is commanded by the RIGHT joystick (+keyboard WASD on the real
+# unit); the left joystick shifts the gimbal aim. The (non-simulated) power
+# controller is replaced by sim_bootstrap's constant /chassis/control_power_limit.
+#
+# The MJCF (mini_infantry.xml) is a MOBILE base: a free-jointed platform driven
+# by the engine-level kinematic ground (MujocoEngine::apply_kinematic_ground) -
+# the base planar velocity follows the four wheel speeds with the SAME forward
+# kinematics as OmniWheelController, so forward / strafe / spin are exact and
+# there is no ground-contact slip. Wheels stay torque-driven (<motor>); the
+# sim_bootstrap.ground_* params must equal omni_wheel_controller geometry below.
+# /sim/base/pose/{x,y,yaw} publish the base planar pose for headless checks.
+chassis_controller:
+  ros__parameters:
+    translational_velocity_limit: 20.0
+    angular_velocity_limit: 13.0
+
+omni_wheel_controller:
+  ros__parameters:
+    mass: 22.0
+    moment_of_inertia: 4.08
+    chassis_radius_x: 0.165
+    chassis_radius_y: 0.165
+    wheel_radius: 0.07
+    friction_coefficient: 0.6
+    spinning_bias_adjust: false
+    spinning_bias_coefficient: -0.02

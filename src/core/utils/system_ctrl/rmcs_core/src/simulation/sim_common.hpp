@@ -14,55 +14,98 @@
 #include <cstring>
 #include <numbers>
 #include <string>
+#include <vector>
 
 namespace rmcs_core::simulation {
 
 constexpr double kPi = std::numbers::pi;
 constexpr int kAngleMax = 8192; // DJI encoder counts per revolution
 
-// Device-side configuration of one simulated DJI motor (mirror of
-// librmcs::device::DjiMotor::Config), plus its CAN identity.
-struct DjiSimSpec {
-    std::string name;       // human/log name
-    int can_id = 0;         // feedback CAN id (e.g. 0x205)
+// ---- Simulated motor kinds -------------------------------------------------
+// Mirrors every motor type used by the unmodified hardware models:
+//   * DJI current-broadcast motors (DjiMotor): GM6020 / GM6020_VOLTAGE / M3508 /
+//     M2006. Commanded through the 0x200/0x1FF current broadcasts; feedback
+//     can_ids 0x201..0x204 / 0x205..0x208.
+//   * DM MIT direct-torque motors (DmMotor): J4310. Commanded through a per-motor
+//     master id on CAN2; the 8-byte payload is an MIT torque command (N*m).
+enum class MotorKind : uint8_t { GM6020, GM6020_VOLTAGE, M3508, M2006, J4310 };
 
-    double reduction = 1.0; // load-side reduction (motor turns per load turn)
-    double sign = 1.0;      // -1 when reversed
-    int zero = 0;           // encoder raw counts at load angle 0
+inline bool motor_is_dm(MotorKind kind) { return kind == MotorKind::J4310; }
 
-    // N*m of (load-frame) torque produced per unit raw current == the
-    // librmcs decode coefficient sign*reduction*torque_constant/raw_max*cmax.
-    double torque_per_raw = 0.0;
-
-    // MuJoCo actuator (== joint) name this motor drives (MuJoCo backend only).
-    std::string actuator;
-};
-
-// DJI motor type constants -> (reduction, torque_per_raw at given reduction).
-// `reduction` is the load-side ratio; returned torque_per_raw already includes
-// sign and reduction. Values match librmcs::device::DjiMotor exactly.
-struct DjiTypeConsts {
-    double torque_constant;
+// (DJI) motor-frame constants; mirror librmcs::device::DjiMotor::configure.
+struct MotorKindConsts {
+    double torque_constant; // N*m per A (pre-reduction motor torque)
     double raw_current_max;
-    double current_max;
+    double current_max;     // A
 };
 
-enum class DjiType { GM6020, M3508, M2006 };
-
-inline DjiTypeConsts dji_type_consts(DjiType type) {
-    switch (type) {
-    case DjiType::GM6020: return {0.741, 16384.0, 3.0};
-    case DjiType::M3508: return {0.3 * 187.0 / 3591.0, 16384.0, 20.0};
-    case DjiType::M2006: return {0.18 * 1.0 / 36.0, 16384.0, 10.0};
+inline MotorKindConsts motor_kind_consts(MotorKind kind) {
+    switch (kind) {
+    case MotorKind::GM6020: return {0.741, 16384.0, 3.0};
+    case MotorKind::GM6020_VOLTAGE: return {0.741, 25000.0, 3.0};
+    case MotorKind::M3508: return {0.3 * 187.0 / 3591.0, 16384.0, 20.0};
+    case MotorKind::M2006: return {0.18 * 1.0 / 36.0, 16384.0, 10.0};
+    case MotorKind::J4310: return {0.0, 1.0, 1.0}; // DM: commanded in N*m directly
     }
     return {0.0, 1.0, 1.0};
 }
 
-// Build the full DJI per-raw-current coefficient: sign*reduction*tc/raw*cmax.
-inline double dji_torque_per_raw(DjiType type, double reduction, double sign = 1.0) {
-    const auto c = dji_type_consts(type);
+// Load-frame N*m produced per unit raw current for a DJI motor (mirror of
+// DjiMotor::raw_current_to_torque_coefficient_):
+//   sign * reduction * torque_constant / raw_current_max * current_max
+inline double dji_torque_per_raw(MotorKind kind, double reduction, double sign = 1.0) {
+    const auto c = motor_kind_consts(kind);
     return sign * reduction * c.torque_constant / c.raw_current_max * c.current_max;
 }
+
+// One simulated motor: data-driven binding that mirrors the DjiMotor/DmMotor
+// Config + CAN identity declared in the (unmodified) hardware-model .cpp. Every
+// field comes from the robot's sim config, so adding a robot never touches the
+// simulation backend code.
+struct SimMotorSpec {
+    MotorKind kind = MotorKind::GM6020;
+    int can_bus = 1;        // 1 = CAN1, 2 = CAN2
+    int can_id = 0;         // feedback CAN id (e.g. 0x206)
+    double reduction = 1.0; // load-side reduction (DJI; DM drives the load directly)
+    double sign = 1.0;      // -1 when reversed
+    int zero = 0;           // encoder raw counts at load angle 0
+    int command_id = 0;     // DJI: 0 => derive 0x200/0x1FF group from can_id;
+                            // DM:  MIT master command id (e.g. 0x9)
+    std::string actuator;   // MuJoCo actuator (== joint) name this motor drives
+
+    // Derived (DJI): N*m of load-frame torque per unit raw current.
+    double torque_per_raw = 0.0;
+
+    // DJI feedback can_id -> first feedback id of its command group, i.e.
+    // 0x201 (driven by the 0x200 broadcast) or 0x205 (driven by 0x1FF); 0 if
+    // this is not a DJI feedback id. The byte slot inside the command frame is
+    // can_id - this base (0..3), matching decode_command_current.
+    int dji_feedback_base() const {
+        if (can_id >= 0x201 && can_id <= 0x204)
+            return 0x201;
+        if (can_id >= 0x205 && can_id <= 0x208)
+            return 0x205;
+        return 0;
+    }
+    // Command broadcast frame id that drives this motor (0x200 / 0x1FF / 0).
+    int dji_frame_id() const {
+        const int b = dji_feedback_base();
+        if (b == 0)
+            return 0;
+        return b == 0x201 ? 0x200 : 0x1FF;
+    }
+};
+
+// One CBoard of the simulated robot. `pid` is the board key from the model
+// config (usb_pid_top/bottom_board / etc.), matching the usb_pid handed to
+// CBoard::set_transport_factory by the transport factory.
+struct SimBoardConfig {
+    int pid = 0;             // board key (== usb_pid_* value in the model config)
+    bool dbus = false;       // board hosts the DR16 -> simulated remote injected
+    std::string gyro_sensor; // MJCF <sensor> feeding this board's gyro ("" = none)
+    std::string acc_sensor;  // MJCF <sensor> feeding this board's accelerometer
+    std::vector<SimMotorSpec> motors;
+};
 
 inline int16_t dji_sign_extend_16(uint16_t v) { return static_cast<int16_t>(v); }
 
@@ -86,7 +129,7 @@ inline int decode_command_current(
 // librmcs::device::DjiMotor::DjiMotorFeedback) so the device decodes exactly the
 // simulated load angle (device-frame, rad) and velocity (rad/s).
 inline uint64_t
-    encode_dji_feedback(double angle, double velocity, const DjiSimSpec& spec, int raw_current) {
+    encode_dji_feedback(double angle, double velocity, const SimMotorSpec& spec, int raw_current) {
     const double counts = angle * spec.reduction * kAngleMax / (2.0 * kPi) * spec.sign;
     double cmod = std::fmod(counts, kAngleMax);
     if (cmod < 0)
@@ -108,6 +151,60 @@ inline uint64_t
     bytes[5] = static_cast<uint8_t>(raw_current & 0xFF);
     bytes[6] = 30; // temperature ~30C
     bytes[7] = 0;  // unused
+
+    uint64_t data = 0;
+    std::memcpy(&data, bytes, sizeof(bytes));
+    return data;
+}
+
+// ---- DM (MIT, J4310) helper encoders/decoders -----------------------------
+// DM motors are direct-torque: the downlink MIT frame carries a signed torque
+// (N*m, motor frame); the feedback 8 bytes mirror DmMotor::DmMotorFeedback.
+// DmMotor applies no reduction anywhere, so `reduction` stays 1 and the load
+// torque equals the MIT torque with `sign` folding the reversed mounting.
+
+// Motor-frame torque (N*m) packed in an MIT command frame (inverse of
+// DmMotor::to_dm_mit_control_command, torque field).
+inline double dm_decode_command_torque(uint64_t can_data) {
+    uint8_t bytes[8];
+    std::memcpy(bytes, &can_data, sizeof(bytes));
+    const uint16_t raw = (static_cast<uint16_t>(bytes[6] & 0x0F) << 8) | bytes[7];
+    return static_cast<double>(raw) / 4095.0 * 20.0 - 10.0; // [T_MIN,T_MAX]=[-10,10]
+}
+
+// Encode one DM feedback frame so DmMotor::update_status reports exactly the
+// simulated load angle (rad) / velocity (rad/s); `sign` mirrors reversed mount.
+inline uint64_t
+    encode_dm_feedback(double angle, double velocity, const SimMotorSpec& spec, double torque) {
+    // 8192 counts per revolution (matches DmMotor's 0x1FFF mask). The 16-bit raw
+    // value advances continuously so both single- and multi-turn decodes unwrap
+    // to the true angle.
+    const double counts = angle * 8192.0 / (2.0 * kPi);
+    const int64_t c = static_cast<int64_t>(std::lround(counts));
+    const int64_t cal_raw = (spec.sign < 0.0) ? -c : c;
+    int64_t r = static_cast<int64_t>(spec.zero) + cal_raw;
+    r %= 65536;
+    if (r < 0)
+        r += 65536;
+    const int pos = static_cast<int>(r);
+
+    // Velocity: DmMotor decodes ((raw - 2048)/4096)*60 rad/s (no sign/zero).
+    const int vel_raw = static_cast<int>(
+        std::clamp(static_cast<long>(std::lround(velocity / 60.0 * 4096.0 + 2048.0)), 0L, 4095L));
+    // Torque readout: DmMotor decodes ((raw - 2048)/4096)*20 N*m.
+    const int torque_raw = static_cast<int>(
+        std::clamp(static_cast<long>(std::lround(torque / 20.0 * 4096.0 + 2048.0)), 0L, 4095L));
+
+    uint8_t bytes[8];
+    bytes[0] = 0;  // id | error<<4 (no error)
+    bytes[1] = static_cast<uint8_t>((pos >> 8) & 0xFF);
+    bytes[2] = static_cast<uint8_t>(pos & 0xFF);
+    bytes[3] = static_cast<uint8_t>((vel_raw >> 4) & 0xFF);
+    bytes[4] = static_cast<uint8_t>(
+        ((vel_raw & 0x0F) << 4) | static_cast<uint8_t>((torque_raw >> 8) & 0x0F));
+    bytes[5] = static_cast<uint8_t>(torque_raw & 0xFF);
+    bytes[6] = 30; // T_MOS ~30C
+    bytes[7] = 30; // T_Rotor ~30C
 
     uint64_t data = 0;
     std::memcpy(&data, bytes, sizeof(bytes));
@@ -174,9 +271,18 @@ inline void make_dbus_frame(const SimRemote& r, std::byte* out) {
 // Runtime simulation configuration set by the bootstrap component and consumed
 // by the transport factory / MuJoCo backend.
 struct SimGlobalConfig {
-    std::string model_path; // MJCF path (MuJoCo backend)
-    SimRemote remote;       // injected remote-control (DBUS) state
-    bool gui = false;       // open the native MuJoCo (GLFW) viewer
+    std::string model_path;             // MJCF path (MuJoCo backend)
+    SimRemote remote;                   // injected remote-control (DBUS) state
+    bool gui = false;                   // open the native MuJoCo (GLFW) viewer
+    std::vector<SimBoardConfig> boards; // config-driven board topology
+
+    // Kinematic ground parameters (engine-level omni drive). Keep these equal
+    // to the omni_wheel_controller chassis geometry in the robot sim config so
+    // the engine's forward kinematics matches what the real chassis controller
+    // assumes.
+    double ground_wheel_radius = 0.07;
+    double ground_radius_x = 0.165;
+    double ground_radius_y = 0.165;
 };
 
 inline SimGlobalConfig& sim_global_config() {

@@ -11,8 +11,9 @@
 //     that CBoard's downlink command frames into per-motor torques.
 //
 // This translation unit is only compiled when MuJoCo is available (see
-// CMakeLists.txt). Robot<->CAN topology is still hard-coded for MiniInfantry and
-// will be moved to config files in a later phase.
+// CMakeLists.txt). Robot<->CAN topology is fully config-driven (SimBoardConfig /
+// SimMotorSpec in sim_common.hpp, populated from the robot's sim config), so the
+// unmodified hardware-model .cpp of any robot runs against this backend as-is.
 
 #if defined(RMCS_SIM_HAS_MUJOCO)
 
@@ -45,66 +46,20 @@ namespace rmcs_core::simulation {
 
 namespace {
 
-// ---- MiniInfantry topology -------------------------------------------------
-
-struct MiniBoardSpec {
-    int pid; // board key (usb_pid from the model config)
-    std::vector<DjiSimSpec> motors;
-    std::string gyro_sensor;
-    std::string acc_sensor;
-};
-
-MiniBoardSpec build_mini_spec(int pid) {
-    MiniBoardSpec spec;
-    spec.pid = pid;
-    if (pid == 1) {
-        // ---- Top board (gimbal pitch + friction wheels) ----
-        spec.motors = {
-            { "gimbal/left_friction", 0x201, 1.0, -1.0,    0, 0.0,  "left_friction"},
-            {"gimbal/right_friction", 0x202, 1.0,  1.0,    0, 0.0, "right_friction"},
-            {         "gimbal/pitch", 0x205, 1.0,  1.0, 7556, 0.0,          "pitch"},
-        };
-        spec.gyro_sensor = "gimbal_gyro";
-        spec.acc_sensor = "gimbal_acc";
-    } else {
-        // ---- Bottom board (chassis + yaw + bullet feeder) ----
-        spec.motors = {
-            {"chassis/right_front_wheel", 0x201,         268.0 / 17.0, -1.0,    0, 0.0,      "wheel_rf"},
-            { "chassis/left_front_wheel", 0x202,         268.0 / 17.0, -1.0,    0, 0.0,      "wheel_lf"},
-            {  "chassis/left_back_wheel", 0x203,         268.0 / 17.0, -1.0,    0, 0.0,      "wheel_lb"},
-            { "chassis/right_back_wheel", 0x204,         268.0 / 17.0, -1.0,    0, 0.0,      "wheel_rb"},
-            {               "gimbal/yaw", 0x206,                  1.0,  1.0, 3606, 0.0,           "yaw"},
-            {     "gimbal/bullet_feeder", 0x207, (33.0 / 27.0) * 36.0, -1.0,    0, 0.0, "bullet_feeder"},
-        };
-        spec.gyro_sensor = "base_gyro";
-        spec.acc_sensor = "base_acc";
-    }
-
-    // Resolve per-motor device type -> torque-per-raw coefficient.
-    for (auto& motor : spec.motors) {
-        if (motor.actuator.find("friction") != std::string::npos
-            || motor.actuator.rfind("wheel_", 0) == 0) {
-            motor.torque_per_raw = dji_torque_per_raw(DjiType::M3508, motor.reduction, motor.sign);
-        } else if (motor.actuator == "bullet_feeder") {
-            motor.torque_per_raw = dji_torque_per_raw(DjiType::M2006, motor.reduction, motor.sign);
-        } else { // pitch / yaw GM6020
-            motor.torque_per_raw = dji_torque_per_raw(DjiType::GM6020, motor.reduction, motor.sign);
-        }
-    }
-    return spec;
-}
+// (Robot topology is config-driven; see sim_common.hpp SimBoardConfig.)
 
 // ---- Engine ----------------------------------------------------------------
 
 class MujocoEngine {
 public:
     struct Motor {
-        DjiSimSpec spec;
+        SimMotorSpec spec;
         int actuator_id = -1;
         int joint_id = -1;
         int qpos_adr = -1;
         int dof_adr = -1;
-        std::atomic<int> command_raw{0};
+        std::atomic<int> command_raw{0};    // DJI: raw current command
+        std::atomic<double> torque_nm{0.0}; // DM: load torque command (N*m)
 
         Motor() = default;
         Motor(const Motor&) = delete;
@@ -115,7 +70,8 @@ public:
             , joint_id(other.joint_id)
             , qpos_adr(other.qpos_adr)
             , dof_adr(other.dof_adr)
-            , command_raw(other.command_raw.load()) {}
+            , command_raw(other.command_raw.load())
+            , torque_nm(other.torque_nm.load()) {}
         Motor& operator=(Motor&& other) noexcept {
             if (this != &other) {
                 spec = std::move(other.spec);
@@ -124,6 +80,7 @@ public:
                 qpos_adr = other.qpos_adr;
                 dof_adr = other.dof_adr;
                 command_raw.store(other.command_raw.load());
+                torque_nm.store(other.torque_nm.load());
             }
             return *this;
         }
@@ -134,6 +91,7 @@ public:
         int pid = 0;
         size_t board_index = 0;
         bool active = false;
+        bool dbus = false; // board hosts the DR16
         std::vector<size_t> motor_indices;
         int gyro_adr = -1;
         int acc_adr = -1;
@@ -180,17 +138,39 @@ public:
     }
 
     // Called by a transport.attach() while the model is being constructed; stores
-    // the board pointer and resolves all names against the loaded MJCF.
-    void attach_board(librmcs::client::CBoard& board, int pid, const MiniBoardSpec& spec) {
+    // the board pointer and resolves all its motors + IMU sensors (taken from
+    // the config-driven SimBoardConfig matching `pid`) against the loaded MJCF.
+    void attach_board(librmcs::client::CBoard& board, int pid) {
+        const SimBoardConfig* cfg = nullptr;
+        for (const auto& b : sim_global_config().boards) {
+            if (b.pid == pid) {
+                cfg = &b;
+                break;
+            }
+        }
+        if (cfg == nullptr) {
+            RCLCPP_ERROR(
+                rclcpp::get_logger("Sim"),
+                "MujocoEngine: no SimBoardConfig for board pid %d (check the sim config "
+                "'boards')",
+                pid);
+            return;
+        }
+
         Board b;
         b.cboard = &board;
         b.pid = pid;
         b.active = true;
+        b.dbus = cfg->dbus;
 
-        int sensor_gyro = mj_name2id(model_, mjOBJ_SENSOR, spec.gyro_sensor.c_str());
+        int sensor_gyro = cfg->gyro_sensor.empty()
+                            ? -1
+                            : mj_name2id(model_, mjOBJ_SENSOR, cfg->gyro_sensor.c_str());
         if (sensor_gyro >= 0)
             b.gyro_adr = model_->sensor_adr[sensor_gyro];
-        int sensor_acc = mj_name2id(model_, mjOBJ_SENSOR, spec.acc_sensor.c_str());
+        int sensor_acc = cfg->acc_sensor.empty()
+                           ? -1
+                           : mj_name2id(model_, mjOBJ_SENSOR, cfg->acc_sensor.c_str());
         if (sensor_acc >= 0)
             b.acc_adr = model_->sensor_adr[sensor_acc];
 
@@ -198,9 +178,12 @@ public:
             std::lock_guard<std::mutex> lock(mutex_);
             b.board_index = boards_.size();
             boards_.push_back(std::move(b));
-            for (const auto& m : spec.motors) {
+            for (const auto& m : cfg->motors) {
+                SimMotorSpec spec = m;
+                if (!motor_is_dm(spec.kind))
+                    spec.torque_per_raw = dji_torque_per_raw(spec.kind, spec.reduction, spec.sign);
                 Motor motor;
-                motor.spec = m;
+                motor.spec = std::move(spec);
                 motor.actuator_id = mj_name2id(model_, mjOBJ_ACTUATOR, m.actuator.c_str());
                 motor.joint_id = mj_name2id(model_, mjOBJ_JOINT, m.actuator.c_str());
                 if (motor.joint_id >= 0) {
@@ -210,10 +193,9 @@ public:
                 if (motor.actuator_id < 0 || motor.joint_id < 0) {
                     RCLCPP_ERROR(
                         rclcpp::get_logger("Sim"),
-                        "MujocoEngine: motor '%s' not found in MJCF (act=%d jnt=%d)",
-                        m.actuator.c_str(), motor.actuator_id, motor.joint_id);
+                        "MujocoEngine: motor '%s' (pid %d) not found in MJCF (act=%d jnt=%d)",
+                        m.actuator.c_str(), pid, motor.actuator_id, motor.joint_id);
                 }
-                motor_indices_.push_back(motors_.size());
                 motors_.push_back(std::move(motor));
                 boards_.back().motor_indices.push_back(motors_.size() - 1);
             }
@@ -228,15 +210,48 @@ public:
         }
     }
 
-    void set_current(size_t motor_idx, int raw_current) {
-        if (motor_idx < motors_.size())
-            motors_[motor_idx].command_raw.store(raw_current, std::memory_order::relaxed);
+    const Board* board_by_pid(int pid) const {
+        for (const auto& b : boards_) {
+            if (b.pid == pid)
+                return &b;
+        }
+        return nullptr;
     }
 
-    size_t motor_count() const { return motors_.size(); }
-    size_t board_count() const { return boards_.size(); }
-    const Board& board(size_t i) const { return boards_[i]; }
-    const Motor& motor(size_t i) const { return motors_[i]; }
+    // Command setters, indexed by (pid, index inside that board's config list).
+    void set_dji_current(int pid, size_t motor_in_board, int raw_current) {
+        const auto* b = board_by_pid(pid);
+        if (b != nullptr && motor_in_board < b->motor_indices.size())
+            motors_[b->motor_indices[motor_in_board]].command_raw.store(
+                raw_current, std::memory_order::relaxed);
+    }
+
+    void set_dm_torque(int pid, size_t motor_in_board, double torque_nm) {
+        const auto* b = board_by_pid(pid);
+        if (b != nullptr && motor_in_board < b->motor_indices.size())
+            motors_[b->motor_indices[motor_in_board]].torque_nm.store(
+                torque_nm, std::memory_order::relaxed);
+    }
+
+    // Planar pose (x, y, yaw) of the mobile base's free joint (sim debugging /
+    // headless verification that the vehicle actually drives).
+    bool get_base_pose(double& x, double& y, double& yaw) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (int j = 0; j < model_->njnt; ++j) {
+            if (model_->jnt_type[j] != mjJNT_FREE)
+                continue;
+            const int a = model_->jnt_qposadr[j];
+            const double qw = data_->qpos[a + 3];
+            const double qx = data_->qpos[a + 4];
+            const double qy = data_->qpos[a + 5];
+            const double qz = data_->qpos[a + 6];
+            x = data_->qpos[a + 0];
+            y = data_->qpos[a + 1];
+            yaw = std::atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz));
+            return true;
+        }
+        return false;
+    }
 
 private:
 # if defined(RMCS_SIM_HAS_GUI)
@@ -399,7 +414,7 @@ private:
 
         RCLCPP_INFO(
             rclcpp::get_logger("Sim"),
-            "MujocoEngine GUI: window opened (GL %s) - DR16 keys: Lstk=WASD/arrows Rstk=IJKL "
+            "MujocoEngine GUI: window opened (GL %s) - DR16 keys: Lstk WASD=aim Rstk IJKL=chassis "
             "knob=[] swR:1up/2mid/3dn swL:4up/5mid/6dn",
             glGetString(GL_VERSION));
         bool scene_logged = false;
@@ -471,7 +486,8 @@ private:
             mjr_overlay(mjFONT_NORMAL, mjGRID_TOPLEFT, viewport, osd_state, nullptr, &gui_con_);
             mjr_overlay(
                 mjFONT_NORMAL, mjGRID_BOTTOMLEFT, viewport,
-                "keys: Lstk=WASD/arrows  Rstk=IJKL  knob=[ ]  swR:1up/2mid/3dn  swL:4up/5mid/6dn",
+                "Lstk WASD=aim-shift  Rstk IJKL=drive chassis  knob=[ ]  swR:1up/2mid/3dn  "
+                "swL:4up/5mid/6dn",
                 nullptr, &gui_con_);
             glfwSwapBuffers(window);
         }
@@ -501,45 +517,125 @@ private:
         }
     }
 
+    // Engine-level kinematic ground: after each physics step the base's planar
+    // velocity is set from the four chassis-wheel angular velocities using the
+    // SAME forward kinematics as rmcs OmniWheelController, so the (torque-driven)
+    // real chassis chain produces exact forward/strafe/spin motion with no
+    // ground-contact slip. Applied only when the MJCF has a free-jointed base and
+    // the four wheel actuators named wheel_lf/lb/rb/rf.
+    void apply_kinematic_ground() {
+        const SimGlobalConfig& cfg = sim_global_config();
+        double w_lf = 0.0, w_lb = 0.0, w_rb = 0.0, w_rf = 0.0;
+        bool found[4] = {false, false, false, false};
+        for (auto& m : motors_) {
+            if (m.dof_adr < 0)
+                continue;
+            const std::string& a = m.spec.actuator;
+            const double v = data_->qvel[m.dof_adr];
+            if (a == "wheel_lf") {
+                w_lf = v;
+                found[0] = true;
+            } else if (a == "wheel_lb") {
+                w_lb = v;
+                found[1] = true;
+            } else if (a == "wheel_rb") {
+                w_rb = v;
+                found[2] = true;
+            } else if (a == "wheel_rf") {
+                w_rf = v;
+                found[3] = true;
+            }
+        }
+        if (!(found[0] && found[1] && found[2] && found[3]))
+            return;
+        int fd = -1, fa = -1;
+        for (int j = 0; j < model_->njnt; ++j) {
+            if (model_->jnt_type[j] == mjJNT_FREE) {
+                fd = model_->jnt_dofadr[j]; // free joint: 6 consecutive qvel dofs
+                fa = model_->jnt_qposadr[j];
+                break;
+            }
+        }
+        if (fd < 0 || fa < 0)
+            return;
+        if (!ground_z0_ready_) {
+            ground_z0_ = data_->qpos[fa + 2];
+            ground_z0_ready_ = true;
+        }
+
+        // OmniWheelController calculate_chassis_velocity:
+        //   v = (-w1-w2+w3+w4, w1-w2-w3+w4, (w1+w2+w3+w4)/(rx+ry)) * (-sqrt2/4*Rw)
+        // with w1=left_front, w2=left_back, w3=right_back, w4=right_front.
+        const double k = -0.7071067811865476 / 4.0 * cfg.ground_wheel_radius; // -sqrt2/4*Rw
+        const double sum_radius = cfg.ground_radius_x + cfg.ground_radius_y;
+        const double vx = k * (-w_lf - w_lb + w_rb + w_rf);
+        const double vy = k * (w_lf - w_lb - w_rb + w_rf);
+        const double wz = k * ((w_lf + w_lb + w_rb + w_rf) / sum_radius);
+
+        data_->qvel[fd + 0] = vx;
+        data_->qvel[fd + 1] = vy;
+        data_->qvel[fd + 2] = 0.0;                                            // no fall
+        data_->qvel[fd + 3] = 0.0;                                            // no roll
+        data_->qvel[fd + 4] = 0.0;                                            // no pitch
+        data_->qvel[fd + 5] = wz;
+
+        // Flatten the base back onto the ground plane (keep heading).
+        const double qw = data_->qpos[fa + 3], qx = data_->qpos[fa + 4];
+        const double qy = data_->qpos[fa + 5], qz = data_->qpos[fa + 6];
+        const double yaw = std::atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz));
+        data_->qpos[fa + 2] = ground_z0_;
+        data_->qpos[fa + 3] = std::cos(yaw * 0.5);
+        data_->qpos[fa + 4] = 0.0;
+        data_->qpos[fa + 5] = 0.0;
+        data_->qpos[fa + 6] = std::sin(yaw * 0.5);
+    }
+
     void step_physics() {
         std::lock_guard<std::mutex> lock(mutex_);
         for (auto& motor : motors_) {
-            const int cmd = motor.command_raw.load(std::memory_order::relaxed);
-            data_->ctrl[motor.actuator_id] = static_cast<double>(cmd) * motor.spec.torque_per_raw;
+            if (motor.actuator_id < 0)
+                continue;
+            if (motor_is_dm(motor.spec.kind)) {
+                data_->ctrl[motor.actuator_id] = motor.torque_nm.load(std::memory_order::relaxed);
+            } else {
+                const int cmd = motor.command_raw.load(std::memory_order::relaxed);
+                data_->ctrl[motor.actuator_id] =
+                    static_cast<double>(cmd) * motor.spec.torque_per_raw;
+            }
         }
         mj_step(model_, data_);
+        apply_kinematic_ground();
     }
 
     void dispatch(size_t tick) {
-        std::vector<std::pair<size_t, size_t>> pending; // (board_idx, motor_idx)
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            for (size_t bi = 0; bi < boards_.size(); ++bi) {
-                if (!boards_[bi].active)
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (auto& b : boards_) {
+            if (!b.active)
+                continue;
+            // Stream DJI / DM motor feedback to the owning board over the motor's
+            // CAN bus (the model's receive callback routes by can_id).
+            for (size_t mi : b.motor_indices) {
+                const auto& m = motors_[mi];
+                if (m.qpos_adr < 0 || m.dof_adr < 0)
                     continue;
-                for (size_t mi : boards_[bi].motor_indices) {
-                    const auto& m = motors_[mi];
-                    if (m.qpos_adr < 0 || m.dof_adr < 0)
-                        continue;
-                    const double angle = data_->qpos[m.qpos_adr];
-                    const double vel = data_->qvel[m.dof_adr];
-                    const int cmd = m.command_raw.load(std::memory_order::relaxed);
-                    const uint64_t frame = encode_dji_feedback(angle, vel, m.spec, cmd);
-                    boards_[bi].cboard->can1_receive_callback(
+                const double angle = data_->qpos[m.qpos_adr];
+                const double vel = data_->qvel[m.dof_adr];
+                const uint64_t frame =
+                    motor_is_dm(m.spec.kind)
+                        ? encode_dm_feedback(
+                              angle, vel, m.spec, m.torque_nm.load(std::memory_order::relaxed))
+                        : encode_dji_feedback(
+                              angle, vel, m.spec, m.command_raw.load(std::memory_order::relaxed));
+                if (m.spec.can_bus == 2)
+                    b.cboard->can2_receive_callback(
                         static_cast<uint32_t>(m.spec.can_id), frame, false, false, 8);
-                }
+                else
+                    b.cboard->can1_receive_callback(
+                        static_cast<uint32_t>(m.spec.can_id), frame, false, false, 8);
             }
-            // IMU dispatch under the same lock (uses boards_[]).
-            for (auto& b : boards_) {
-                if (!b.active)
-                    continue;
-                dispatch_imu(b);
-            }
-            // Inject the simulated DBUS (remote controller) into the top board,
-            // which hosts the Dr16 device in the hardware model.
-            for (auto& b : boards_) {
-                if (!b.active || b.pid != 1)
-                    continue;
+            // IMU + simulated DBUS (into the board that hosts the DR16).
+            dispatch_imu(b);
+            if (b.dbus) {
                 std::byte dbus[18];
                 make_dbus_frame(sim_global_config().remote, dbus);
                 b.cboard->dbus_receive_callback(dbus, 18);
@@ -580,8 +676,11 @@ private:
 
     std::mutex mutex_;
     std::vector<Motor> motors_;
-    std::vector<size_t> motor_indices_;
     std::vector<Board> boards_;
+
+    // Kinematic-ground state (base planar height).
+    double ground_z0_ = 0.0;
+    bool ground_z0_ready_ = false;
 
     std::atomic<bool> running_{false};
     std::condition_variable wake_;
@@ -611,13 +710,17 @@ public:
     explicit MujocoBoardTransport(std::shared_ptr<MujocoEngine> engine, int pid)
         : engine_(std::move(engine))
         , pid_(pid) {
-        if (pid_ == 1 || pid_ == 2)
-            spec_ = build_mini_spec(pid_);
+        for (const auto& b : sim_global_config().boards) {
+            if (b.pid == pid_) {
+                config_motors_ = b.motors;
+                break;
+            }
+        }
     }
 
     void attach(librmcs::client::CBoard& board) override {
         board_ = &board;
-        engine_->attach_board(board, pid_, spec_);
+        engine_->attach_board(board, pid_);
     }
 
     void run() override {
@@ -626,7 +729,8 @@ public:
         // The engine's own thread performs stepping and feedback dispatch; this
         // board event thread simply idles until stop_handling_events().
         RCLCPP_INFO(
-            rclcpp::get_logger("Sim"), "MujocoBoardTransport(board pid=%d): attached", pid_);
+            rclcpp::get_logger("Sim"), "MujocoBoardTransport(board pid=%d): attached (%zu motors)",
+            pid_, config_motors_.size());
         std::unique_lock<std::mutex> lock(stop_mutex_);
         stop_cv_.wait(lock, [this] { return stop_.load(std::memory_order::relaxed); });
     }
@@ -644,35 +748,30 @@ public:
     void can_transmission(
         uint8_t can_bus, uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
         bool is_remote_transmission, uint8_t can_data_length) override {
-        (void)can_bus;
         if (is_extended_can_id || is_remote_transmission || can_data_length < 8)
             return;
 
-        uint32_t base = 0;
-        if (can_id == 0x200)
-            base = 0x201;
-        else if (can_id == 0x1FF)
-            base = 0x205;
-        else
-            return;
-
-        for (const auto& m : spec_.motors) {
-            if (m.can_id >= static_cast<int>(base) && m.can_id < static_cast<int>(base + 4)) {
-                const int raw = decode_command_current(can_data, m.can_id, base);
-                // motor index inside the engine == index inside the per-board spec
-                // (attach pushed this board's motors in spec order). Store command
-                // by (board, index): use a linear search fallback.
-                for (size_t bi = 0; bi < engine_->board_count(); ++bi) {
-                    const auto& b = engine_->board(bi);
-                    if (b.pid == pid_) {
-                        for (size_t idx = 0; idx < b.motor_indices.size(); ++idx) {
-                            if (idx < spec_.motors.size() && spec_.motors[idx].can_id == m.can_id) {
-                                engine_->set_current(b.motor_indices[idx], raw);
-                                break;
-                            }
-                        }
-                        break;
-                    }
+        // Resolve the frame against this board's config-driven motor binding:
+        // either a DM MIT master command on the motor's CAN2 bus, or a DJI
+        // 0x200/0x1FF current broadcast on the motor's bus. Engine motor index ==
+        // index inside this board's config list (attach pushes them in order).
+        for (size_t i = 0; i < config_motors_.size(); ++i) {
+            const auto& m = config_motors_[i];
+            if (static_cast<int>(can_bus) != m.can_bus)
+                continue;
+            if (motor_is_dm(m.kind)) {
+                if (can_id == static_cast<uint32_t>(m.command_id)) {
+                    // The MIT payload torque is motor-frame; `sign` folds the
+                    // reversed mounting back to the load frame.
+                    const double load_torque = m.sign * dm_decode_command_torque(can_data);
+                    engine_->set_dm_torque(pid_, i, load_torque);
+                }
+            } else {
+                const int fbase = m.dji_feedback_base();
+                if (fbase != 0 && can_id == static_cast<uint32_t>(m.dji_frame_id())) {
+                    // Byte slot inside the frame == can_id - fbase (0..3).
+                    const int raw = decode_command_current(can_data, m.can_id, fbase);
+                    engine_->set_dji_current(pid_, i, raw);
                 }
             }
         }
@@ -686,7 +785,7 @@ public:
 private:
     std::shared_ptr<MujocoEngine> engine_;
     int pid_ = 0;
-    MiniBoardSpec spec_;
+    std::vector<SimMotorSpec> config_motors_;
     librmcs::client::CBoard* board_ = nullptr;
     std::atomic<bool> stop_{false};
     std::mutex stop_mutex_;
@@ -696,6 +795,22 @@ private:
 } // namespace
 
 librmcs::client::CBoardTransport* create_mujoco_transport(int32_t usb_pid) {
+    bool found = false;
+    for (const auto& b : sim_global_config().boards) {
+        if (b.pid == usb_pid) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        RCLCPP_ERROR(
+            rclcpp::get_logger("Sim"),
+            "create_mujoco_transport: no SimBoardConfig for board pid %d (check the sim "
+            "config 'boards')",
+            usb_pid);
+        return nullptr;
+    }
+
     auto& engine = engine_instance();
     if (engine == nullptr) {
         if (sim_global_config().model_path.empty()) {
@@ -707,13 +822,15 @@ librmcs::client::CBoardTransport* create_mujoco_transport(int32_t usb_pid) {
         }
         engine = std::make_shared<MujocoEngine>(sim_global_config().model_path);
     }
-    if (usb_pid != 1 && usb_pid != 2) {
-        RCLCPP_ERROR(
-            rclcpp::get_logger("Sim"), "create_mujoco_transport: unsupported board pid %d",
-            usb_pid);
-        return nullptr;
-    }
     return new MujocoBoardTransport(engine, usb_pid);
+}
+
+// Planar pose of the mobile base's free joint (see MujocoEngine::get_base_pose).
+bool engine_get_base_pose(double& x, double& y, double& yaw) {
+    auto& engine = engine_instance();
+    if (engine == nullptr)
+        return false;
+    return engine->get_base_pose(x, y, yaw);
 }
 
 } // namespace rmcs_core::simulation
