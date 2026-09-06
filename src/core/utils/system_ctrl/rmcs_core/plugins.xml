@@ -14,6 +14,9 @@
   <class type="rmcs_core::hardware::MiniInfantry" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>
+  <class type="rmcs_core::simulation::SimulationBootstrap" base_class_type="rmcs_executor::Component">
+    <description>Simulation bootstrap plugin (installs CBoard simulation transport factory).</description>
+  </class>
   <class type="rmcs_core::hardware::Hero" base_class_type="rmcs_executor::Component">
     <description>Test plugin.</description>
   </class>

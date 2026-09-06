@@ -1,0 +1,47 @@
+# P0 simulation config: run the unmodified MiniInfantry hardware model against a
+# fake (non-MuJoCo) CBoard transport to validate the librmcs transport seam.
+#
+# usb_pid_top/bottom_board act as symbolic board keys here (1 = top, 2 = bottom);
+# the fake transport uses them to select the board topology.
+#
+# pitch_torque_probe writes a constant 0.5 N*m torque to the pitch motor so the
+# simulated pitch accelerates (proves command -> feedback -> model loop). Devices
+# that are NOT simulated (dr16, supercap, referee...) simply stay quiet.
+rmcs_executor:
+  ros__parameters:
+    update_rate: 1000.0
+    components:
+      - rmcs_core::simulation::SimulationBootstrap -> sim_bootstrap
+      - rmcs_core::hardware::MiniInfantry -> mini_infantry_hardware
+      - rmcs_core::controller::pid::PidController -> pitch_torque_probe
+      - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
+
+value_broadcaster:
+  ros__parameters:
+    forward_list:
+      - /gimbal/pitch/angle
+      - /gimbal/pitch/velocity
+      - /gimbal/yaw/angle
+      - /gimbal/left_friction/velocity
+      - /chassis/right_front_wheel/angle
+
+mini_infantry_hardware:
+  ros__parameters:
+    usb_pid_top_board: 1
+    usb_pid_bottom_board: 2
+    yaw_motor_zero_point: 3606
+    pitch_motor_zero_point: 7556
+
+    imu_bias_x: 1
+    imu_bias_y: 3
+    imu_bias_z: 3
+
+pitch_torque_probe:
+  ros__parameters:
+    measurement: /gimbal/pitch/angle
+    setpoint: 0.0
+    feedforward: 0.5
+    kp: 0.0
+    ki: 0.0
+    kd: 0.0
+    control: /gimbal/pitch/control_torque
