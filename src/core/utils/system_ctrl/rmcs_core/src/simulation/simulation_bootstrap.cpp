@@ -394,9 +394,10 @@ public:
         RCLCPP_INFO(
             rclcpp::get_logger("Sim"),
             "SimulationBootstrap: transport factory installed (backend=%s model=%s "
-            "dbus_sw=(%u,%u) gui=%d)",
-            config.backend.c_str(), config.model_path.c_str(), config.remote.switch_right,
-            config.remote.switch_left, config.gui ? 1 : 0);
+            "dbus_sw=(%d,%d) gui=%d)",
+            config.backend.c_str(), config.model_path.c_str(),
+            config.remote.switch_right.load(std::memory_order::relaxed),
+            config.remote.switch_left.load(std::memory_order::relaxed), config.gui ? 1 : 0);
     }
 
     void update() override {}

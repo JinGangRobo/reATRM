@@ -22,6 +22,7 @@
 # include <cmath>
 # include <condition_variable>
 # include <cstdint>
+# include <cstdio>
 # include <cstring>
 # include <memory>
 # include <mutex>
@@ -243,12 +244,28 @@ private:
     // Runs on its own thread so a slow/broken GL stack can never stall the
     // 1 kHz physics/control thread. Each frame snapshots the live mjData under
     // the physics mutex and renders the copy (simulate-style decoupling).
-    struct GuiPointer { // stored as the GLFW window user pointer
+    struct GuiPointer {              // stored as the GLFW window user pointer
         mjvCamera* cam = nullptr;
+        SimRemote* remote = nullptr; // live simulated DR16 state (shared atomically)
         double last_x = 0.0;
         double last_y = 0.0;
-        bool left = false;
-        bool right = false;
+        bool left = false;           // left mouse button held (orbit)
+        bool right = false;          // right mouse button held (pan)
+        bool key_w = false;          // left stick up    (ch2 y)
+        bool key_s = false;          // left stick down  (ch2 y)
+        bool key_a = false;          // left stick left  (ch3 x)
+        bool key_d = false;          // left stick right (ch3 x)
+        bool r_up = false;           // right stick up    (ch0 y)
+        bool r_dn = false;           // right stick down  (ch0 y)
+        bool r_lf = false;           // right stick left  (ch1 x)
+        bool r_rt = false;           // right stick right (ch1 x)
+        bool knob_up = false;        // rotary knob increase (']')
+        bool knob_dn = false;        // rotary knob decrease ('[')
+        double axis_ly = 1024.0;     // smoothed left-stick y (ch2)
+        double axis_lx = 1024.0;     // smoothed left-stick x (ch3)
+        double axis_ry = 1024.0;     // smoothed right-stick y (ch0)
+        double axis_rx = 1024.0;     // smoothed right-stick x (ch1)
+        double knob = 1024.0;        // rotary knob value (positional, no spring)
     };
 
     void start_gui() {
@@ -293,6 +310,12 @@ private:
         // Drag-to-orbit (left), drag-to-pan (right), scroll-to-zoom.
         GuiPointer gp;
         gp.cam = &gui_cam_;
+        gp.remote = &sim_global_config().remote;
+        gp.axis_ly = static_cast<double>(gp.remote->channel2.load(std::memory_order::relaxed));
+        gp.axis_lx = static_cast<double>(gp.remote->channel3.load(std::memory_order::relaxed));
+        gp.axis_ry = static_cast<double>(gp.remote->channel0.load(std::memory_order::relaxed));
+        gp.axis_rx = static_cast<double>(gp.remote->channel1.load(std::memory_order::relaxed));
+        gp.knob = static_cast<double>(gp.remote->rotary.load(std::memory_order::relaxed));
         glfwSetWindowUserPointer(window, &gp);
         glfwSetCursorPosCallback(
             window, +[](GLFWwindow* w, double x, double y) {
@@ -326,13 +349,89 @@ private:
                 auto* g = static_cast<GuiPointer*>(glfwGetWindowUserPointer(w));
                 g->cam->distance *= (yoff > 0.0) ? 0.9f : 1.1f;
             });
+        // Keyboard -> full simulated DR16 panel (drives the real control chain via
+        // the injected DBUS every tick):
+        //   left stick  ch2/ch3 : W/S/A/D or arrow keys (spring-returned)
+        //   right stick ch0/ch1 : I/K/J/L               (spring-returned)
+        //   rotary knob        : '[' decrease, ']' increase (positional, no spring)
+        //   right switch       : 1=UP  2=MIDDLE  3=DOWN
+        //   left switch        : 4=UP  5=MIDDLE  6=DOWN
+        glfwSetKeyCallback(
+            window, +[](GLFWwindow* w, int key, int, int action, int) {
+                auto* g = static_cast<GuiPointer*>(glfwGetWindowUserPointer(w));
+                const bool pressed = (action == GLFW_PRESS || action == GLFW_REPEAT);
+                constexpr auto relaxed = std::memory_order::relaxed;
+                if (key == GLFW_KEY_W || key == GLFW_KEY_UP)
+                    g->key_w = pressed;
+                else if (key == GLFW_KEY_S || key == GLFW_KEY_DOWN)
+                    g->key_s = pressed;
+                else if (key == GLFW_KEY_A || key == GLFW_KEY_LEFT)
+                    g->key_a = pressed;
+                else if (key == GLFW_KEY_D || key == GLFW_KEY_RIGHT)
+                    g->key_d = pressed;
+                else if (key == GLFW_KEY_I)
+                    g->r_up = pressed;
+                else if (key == GLFW_KEY_K)
+                    g->r_dn = pressed;
+                else if (key == GLFW_KEY_J)
+                    g->r_lf = pressed;
+                else if (key == GLFW_KEY_L)
+                    g->r_rt = pressed;
+                else if (key == GLFW_KEY_LEFT_BRACKET)
+                    g->knob_dn = pressed;
+                else if (key == GLFW_KEY_RIGHT_BRACKET)
+                    g->knob_up = pressed;
+                else if (action == GLFW_PRESS) { // 3-position switches (Dr16 codes)
+                    if (key == GLFW_KEY_1)
+                        g->remote->switch_right.store(1, relaxed); // UP
+                    else if (key == GLFW_KEY_2)
+                        g->remote->switch_right.store(3, relaxed); // MIDDLE
+                    else if (key == GLFW_KEY_3)
+                        g->remote->switch_right.store(2, relaxed); // DOWN
+                    else if (key == GLFW_KEY_4)
+                        g->remote->switch_left.store(1, relaxed);  // UP
+                    else if (key == GLFW_KEY_5)
+                        g->remote->switch_left.store(3, relaxed);  // MIDDLE
+                    else if (key == GLFW_KEY_6)
+                        g->remote->switch_left.store(2, relaxed);  // DOWN
+                }
+            });
 
         RCLCPP_INFO(
-            rclcpp::get_logger("Sim"), "MujocoEngine GUI: window opened (GL %s)",
+            rclcpp::get_logger("Sim"),
+            "MujocoEngine GUI: window opened (GL %s) - DR16 keys: Lstk=WASD/arrows Rstk=IJKL "
+            "knob=[] swR:1up/2mid/3dn swL:4up/5mid/6dn",
             glGetString(GL_VERSION));
         bool scene_logged = false;
         while (!glfwWindowShouldClose(window) && !gui_quit_.load(std::memory_order::relaxed)) {
             glfwPollEvents();
+
+            // Drive the simulated sticks/knob toward their pressed targets, then
+            // publish to the atomically shared remote state the physics thread
+            // encodes into DBUS every tick. Sticks spring back to center; the knob
+            // stays where it was left (positional), like the real remote.
+            constexpr double kAxisStep = 90.0; // counts per GUI frame (~60 Hz)
+            auto drive_axis = [kAxisStep](double& value, bool up_pressed, bool down_pressed) {
+                const double target = up_pressed   ? 1024.0 + 660.0
+                                    : down_pressed ? 1024.0 - 660.0
+                                                   : 1024.0;
+                const double delta = target - value;
+                value += std::clamp(delta, -kAxisStep, kAxisStep);
+            };
+            drive_axis(gp.axis_ly, gp.key_w, gp.key_s); // left stick y  (ch2)
+            drive_axis(gp.axis_lx, gp.key_d, gp.key_a); // left stick x  (ch3)
+            drive_axis(gp.axis_ry, gp.r_up, gp.r_dn);   // right stick y (ch0)
+            drive_axis(gp.axis_rx, gp.r_rt, gp.r_lf);   // right stick x (ch1)
+            if (gp.knob_up && !gp.knob_dn)
+                gp.knob = std::min(gp.knob + kAxisStep, 1684.0);
+            else if (gp.knob_dn && !gp.knob_up)
+                gp.knob = std::max(gp.knob - kAxisStep, 364.0);
+            constexpr auto relaxed = std::memory_order::relaxed;
+            gp.remote->channel0.store(static_cast<int>(std::lround(gp.axis_ry)), relaxed);
+            gp.remote->channel1.store(static_cast<int>(std::lround(gp.axis_rx)), relaxed);
+            gp.remote->channel2.store(static_cast<int>(std::lround(gp.axis_ly)), relaxed);
+            gp.remote->channel3.store(static_cast<int>(std::lround(gp.axis_lx)), relaxed);
+            gp.remote->rotary.store(static_cast<int>(std::lround(gp.knob)), relaxed);
 
             // Snapshot the live physics state under the engine lock.
             {
@@ -355,6 +454,25 @@ private:
                     gui_scn_.ngeom);
             }
             mjr_render(viewport, &gui_scn_, &gui_con_);
+            auto sw_name = [](int v) {
+                return v == 1 ? "UP" : (v == 3 ? "MID" : (v == 2 ? "DN" : "??"));
+            };
+            char osd_state[160];
+            std::snprintf(
+                osd_state, sizeof(osd_state),
+                "DR16  ch: R(y)=%d R(x)=%d | L(y)=%d L(x)=%d | knob=%d  SW L=%s R=%s",
+                static_cast<int>(gp.remote->channel0.load(relaxed)),
+                static_cast<int>(gp.remote->channel1.load(relaxed)),
+                static_cast<int>(gp.remote->channel2.load(relaxed)),
+                static_cast<int>(gp.remote->channel3.load(relaxed)),
+                static_cast<int>(gp.remote->rotary.load(relaxed)),
+                sw_name(gp.remote->switch_left.load(relaxed)),
+                sw_name(gp.remote->switch_right.load(relaxed)));
+            mjr_overlay(mjFONT_NORMAL, mjGRID_TOPLEFT, viewport, osd_state, nullptr, &gui_con_);
+            mjr_overlay(
+                mjFONT_NORMAL, mjGRID_BOTTOMLEFT, viewport,
+                "keys: Lstk=WASD/arrows  Rstk=IJKL  knob=[ ]  swR:1up/2mid/3dn  swL:4up/5mid/6dn",
+                nullptr, &gui_con_);
             glfwSwapBuffers(window);
         }
 

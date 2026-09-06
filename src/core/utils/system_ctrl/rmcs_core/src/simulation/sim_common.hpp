@@ -7,13 +7,13 @@
 #pragma once
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <numbers>
 #include <string>
-#include <vector>
 
 namespace rmcs_core::simulation {
 
@@ -117,33 +117,37 @@ inline uint64_t
 // ---- Simulated DBUS (remote controller) ---------------------
 // Switch codes mirror librmcs::device::Dr16::Switch: UNKNOWN=0 UP=1 DOWN=2
 // MIDDLE=3. Channels are centered at 1024 (0..2047), identical to the DR16.
+// Runtime-editable fields are atomics so the ~60 Hz GUI thread (keyboard) and the
+// 1 kHz physics thread (which encodes them into DBUS frames every tick) can share
+// the remote state lock-free. Switches mirror Dr16: UP=1 DOWN=2 MIDDLE=3.
 struct SimRemote {
-    uint8_t switch_right = 3; // MIDDLE
-    uint8_t switch_left = 3;  // MIDDLE
-    int channel0 = 1024;      // -> joystick right y
-    int channel1 = 1024;      // -> joystick right x
-    int channel2 = 1024;      // -> joystick left y
-    int channel3 = 1024;      // -> joystick left x
+    std::atomic<int> switch_right{3}; // MIDDLE (Dr16: UP=1 DOWN=2 MIDDLE=3)
+    std::atomic<int> switch_left{3};  // MIDDLE
+    std::atomic<int> channel0{1024};  // -> joystick right y (GUI: I/K)
+    std::atomic<int> channel1{1024};  // -> joystick right x (GUI: J/L)
+    std::atomic<int> channel2{1024};  // -> joystick left y  (GUI: W/S or arrows)
+    std::atomic<int> channel3{1024};  // -> joystick left x  (GUI: A/D or arrows)
     int16_t mouse_x = 0;
     int16_t mouse_y = 0;
     int16_t mouse_z = 0;
     bool mouse_left = false;
     bool mouse_right = false;
-    uint16_t keyboard = 0;    // rmcs_msgs::Keyboard bitfield
-    int rotary = 1024;        // rotary knob, centered
+    uint16_t keyboard = 0;            // rmcs_msgs::Keyboard bitfield
+    std::atomic<int> rotary{1024};    // rotary knob (GUI: [ / ])
 };
 
 // Build an 18-byte DBUS frame whose layout is the exact inverse of
 // librmcs::device::Dr16::store_status/update_status.
 inline void make_dbus_frame(const SimRemote& r, std::byte* out) {
+    constexpr auto relaxed = std::memory_order::relaxed;
     auto clamp_ch = [](int v) { return std::clamp(v, 0, 2047); };
-    const uint64_t ch0 = static_cast<uint64_t>(clamp_ch(r.channel0));
-    const uint64_t ch1 = static_cast<uint64_t>(clamp_ch(r.channel1));
-    const uint64_t ch2 = static_cast<uint64_t>(clamp_ch(r.channel2));
-    const uint64_t ch3 = static_cast<uint64_t>(clamp_ch(r.channel3));
+    const uint64_t ch0 = static_cast<uint64_t>(clamp_ch(r.channel0.load(relaxed)));
+    const uint64_t ch1 = static_cast<uint64_t>(clamp_ch(r.channel1.load(relaxed)));
+    const uint64_t ch2 = static_cast<uint64_t>(clamp_ch(r.channel2.load(relaxed)));
+    const uint64_t ch3 = static_cast<uint64_t>(clamp_ch(r.channel3.load(relaxed)));
     const uint64_t part1 = ch0 | (ch1 << 11) | (ch2 << 22) | (ch3 << 33)
-                         | (static_cast<uint64_t>(r.switch_right & 0x3) << 44)
-                         | (static_cast<uint64_t>(r.switch_left & 0x3) << 46);
+                         | (static_cast<uint64_t>(r.switch_right.load(relaxed) & 0x3) << 44)
+                         | (static_cast<uint64_t>(r.switch_left.load(relaxed) & 0x3) << 46);
 
     uint8_t b[18] = {0};
     for (int i = 0; i < 6; i++)
@@ -162,7 +166,7 @@ inline void make_dbus_frame(const SimRemote& r, std::byte* out) {
 
     // part3: keyboard u16 + rotary knob u16
     put16(14, r.keyboard);
-    put16(16, static_cast<uint16_t>(r.rotary));
+    put16(16, static_cast<uint16_t>(r.rotary.load(relaxed)));
 
     std::memcpy(out, b, 18);
 }
