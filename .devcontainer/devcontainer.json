@@ -35,19 +35,25 @@
     "containerEnv": {
         "DISPLAY": "unix:0",
         "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
-        "ROS_DOMAIN_ID": "42"
+        "ROS_DOMAIN_ID": "42",
+        "WAYLAND_DISPLAY": "wayland-0",
+        "XDG_RUNTIME_DIR": "/run/user/1000"
     },
     "runArgs": [
         "--network=host",
         "--pid=host",
         "--ipc=host",
         "-e",
-        "DISPLAY=${env:DISPLAY}"
+        "DISPLAY=${env:DISPLAY}",
+        "-e",
+        "WAYLAND_DISPLAY=${env:WAYLAND_DISPLAY}",
+        "-e",
+        "XDG_RUNTIME_DIR=/run/user/1000"
     ],
     "mounts": [
-        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
         "source=/dev,target=/dev,type=bind,consistency=cached",
-        "source=${localWorkspaceFolder}/.log,target=/home/cvdoc/.ros/log,type=bind"
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+        "source=/run/user/1000,target=/run/user/1000,type=bind,consistency=cached"
     ],
     "postCreateCommand": ""
 }
