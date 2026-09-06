@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <numbers>
@@ -113,11 +114,66 @@ inline uint64_t
     return data;
 }
 
+// ---- Simulated DBUS (remote controller) ---------------------
+// Switch codes mirror librmcs::device::Dr16::Switch: UNKNOWN=0 UP=1 DOWN=2
+// MIDDLE=3. Channels are centered at 1024 (0..2047), identical to the DR16.
+struct SimRemote {
+    uint8_t switch_right = 3; // MIDDLE
+    uint8_t switch_left = 3;  // MIDDLE
+    int channel0 = 1024;      // -> joystick right y
+    int channel1 = 1024;      // -> joystick right x
+    int channel2 = 1024;      // -> joystick left y
+    int channel3 = 1024;      // -> joystick left x
+    int16_t mouse_x = 0;
+    int16_t mouse_y = 0;
+    int16_t mouse_z = 0;
+    bool mouse_left = false;
+    bool mouse_right = false;
+    uint16_t keyboard = 0;    // rmcs_msgs::Keyboard bitfield
+    int rotary = 1024;        // rotary knob, centered
+};
+
+// Build an 18-byte DBUS frame whose layout is the exact inverse of
+// librmcs::device::Dr16::store_status/update_status.
+inline void make_dbus_frame(const SimRemote& r, std::byte* out) {
+    auto clamp_ch = [](int v) { return std::clamp(v, 0, 2047); };
+    const uint64_t ch0 = static_cast<uint64_t>(clamp_ch(r.channel0));
+    const uint64_t ch1 = static_cast<uint64_t>(clamp_ch(r.channel1));
+    const uint64_t ch2 = static_cast<uint64_t>(clamp_ch(r.channel2));
+    const uint64_t ch3 = static_cast<uint64_t>(clamp_ch(r.channel3));
+    const uint64_t part1 = ch0 | (ch1 << 11) | (ch2 << 22) | (ch3 << 33)
+                         | (static_cast<uint64_t>(r.switch_right & 0x3) << 44)
+                         | (static_cast<uint64_t>(r.switch_left & 0x3) << 46);
+
+    uint8_t b[18] = {0};
+    for (int i = 0; i < 6; i++)
+        b[i] = static_cast<uint8_t>((part1 >> (8 * i)) & 0xFF);
+
+    // part2: mouse x/y/z int16 + left/right bytes (little-endian)
+    const auto put16 = [&b](int offset, uint16_t v) {
+        b[offset] = static_cast<uint8_t>(v & 0xFF);
+        b[offset + 1] = static_cast<uint8_t>((v >> 8) & 0xFF);
+    };
+    put16(6, static_cast<uint16_t>(r.mouse_x));
+    put16(8, static_cast<uint16_t>(r.mouse_y));
+    put16(10, static_cast<uint16_t>(r.mouse_z));
+    b[12] = r.mouse_left ? 1 : 0;
+    b[13] = r.mouse_right ? 1 : 0;
+
+    // part3: keyboard u16 + rotary knob u16
+    put16(14, r.keyboard);
+    put16(16, static_cast<uint16_t>(r.rotary));
+
+    std::memcpy(out, b, 18);
+}
+
 // Runtime simulation configuration set by the bootstrap component and consumed
 // by the transport factory / backends.
 struct SimGlobalConfig {
     std::string backend = "fake"; // "fake" | "mujoco"
     std::string model_path;       // MJCF path (MuJoCo backend)
+    SimRemote remote;             // injected remote-control (DBUS) state
+    bool gui = false;             // open the native MuJoCo (GLFW) viewer
 };
 
 inline SimGlobalConfig& sim_global_config() {

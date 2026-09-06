@@ -43,6 +43,24 @@ target_link_libraries(${PROJECT_NAME} -lusb-1.0)
 if(mujoco_vendor_FOUND)
   target_compile_definitions(${PROJECT_NAME} PRIVATE RMCS_SIM_HAS_MUJOCO=1)
   target_link_libraries(${PROJECT_NAME} mujoco::mujoco)
+
+  # Optional native MuJoCo GUI (GLFW + OpenGL) viewer, compiled into the
+  # MuJoCo backend when both are present. On systems without a display/GL the
+  # GUI code is simply not built and the sim runs headless.
+  find_package(PkgConfig QUIET)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(GLFW3 QUIET IMPORTED_TARGET glfw3)
+  endif()
+  if(GLFW3_FOUND)
+    find_package(OpenGL QUIET)
+  endif()
+  if(GLFW3_FOUND AND OpenGL_FOUND)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RMCS_SIM_HAS_GUI=1)
+    target_link_libraries(${PROJECT_NAME} PkgConfig::GLFW3 OpenGL::GL)
+    message(STATUS "rmcs_core: MuJoCo native GUI enabled (GLFW ${GLFW3_VERSION})")
+  else()
+    message(STATUS "rmcs_core: MuJoCo native GUI disabled (glfw3/OpenGL not found)")
+  endif()
 endif()
 
 pluginlib_export_plugin_description_file(rmcs_executor plugins.xml)

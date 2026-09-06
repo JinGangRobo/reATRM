@@ -273,6 +273,13 @@ private:
         // IMU: level + stationary -> accelerometer +1g on Z, gyroscope ~0.
         board_->accelerometer_receive_callback(0, 0, 5461); // 32767/6 * 1g
         board_->gyroscope_receive_callback(0, 0, 0);
+
+        // Inject the simulated DBUS (remote controller) into the top board.
+        if (pid_ == 1) {
+            std::byte dbus[18];
+            make_dbus_frame(sim_global_config().remote, dbus);
+            board_->dbus_receive_callback(dbus, 18);
+        }
     }
 
     void log_status(size_t tick) {
@@ -345,11 +352,51 @@ public:
                               + "/mjcf/mini_infantry.xml";
         }
 
+        // Optional native MuJoCo viewer window (MuJoCo backend only; ignored
+        // unless built with RMCS_SIM_HAS_GUI).
+        if (!has_parameter("gui"))
+            declare_parameter("gui", false);
+        get_parameter("gui", config.gui);
+
+        // Simulated remote control (DBUS) state. Switches are strings so the
+        // config stays readable: up / middle / down.
+        const auto parse_switch = [this](const std::string& name, const std::string& def) {
+            if (!has_parameter(name))
+                declare_parameter(name, def);
+            std::string value;
+            get_parameter(name, value);
+            if (value == "up")
+                return 1u;
+            if (value == "middle")
+                return 3u;
+            if (value == "down")
+                return 2u;
+            RCLCPP_WARN(
+                rclcpp::get_logger("Sim"), "SimulationBootstrap: bad switch value '%s' for '%s'",
+                value.c_str(), name.c_str());
+            return 0u; // UNKNOWN -> controllers stay disabled
+        };
+        config.remote.switch_right = parse_switch("remote_switch_right", "middle");
+        config.remote.switch_left = parse_switch("remote_switch_left", "middle");
+        const auto parse_channel = [this](const std::string& name, int def) {
+            if (!has_parameter(name))
+                declare_parameter(name, def);
+            int value = def;
+            get_parameter(name, value);
+            return value;
+        };
+        config.remote.channel0 = parse_channel("remote_channel0", 1024);
+        config.remote.channel1 = parse_channel("remote_channel1", 1024);
+        config.remote.channel2 = parse_channel("remote_channel2", 1024);
+        config.remote.channel3 = parse_channel("remote_channel3", 1024);
+
         librmcs::client::CBoard::set_transport_factory(&dispatch_transport_factory);
         RCLCPP_INFO(
             rclcpp::get_logger("Sim"),
-            "SimulationBootstrap: transport factory installed (backend=%s model=%s)",
-            config.backend.c_str(), config.model_path.c_str());
+            "SimulationBootstrap: transport factory installed (backend=%s model=%s "
+            "dbus_sw=(%u,%u) gui=%d)",
+            config.backend.c_str(), config.model_path.c_str(), config.remote.switch_right,
+            config.remote.switch_left, config.gui ? 1 : 0);
     }
 
     void update() override {}

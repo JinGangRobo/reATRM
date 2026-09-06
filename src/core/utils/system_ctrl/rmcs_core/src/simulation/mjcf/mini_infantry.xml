@@ -1,6 +1,10 @@
 <mujoco model="mini_infantry">
     <option timestep="0.001" gravity="0 0 -9.81" />
-
+    <default>
+        <!-- Rotor inertia: adds effective inertia to every joint so the (real-robot)
+         controller gains behave stably on this lightweight model. -->
+        <joint armature="0.015" />
+    </default>
     <worldbody>
         <light directional="true" diffuse="0.7 0.7 0.7" dir="0 -1 -1" pos="2 3 4" />
         <geom name="floor" type="plane" size="6 6 0.05" pos="0 0 -0.05" rgba="0.35 0.35 0.35 1" contype="0" conaffinity="0" />

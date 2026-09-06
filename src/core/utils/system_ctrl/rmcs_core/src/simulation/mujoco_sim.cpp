@@ -30,6 +30,9 @@
 # include <vector>
 
 # include <mujoco/mujoco.h>
+# if defined(RMCS_SIM_HAS_GUI)
+#  include <GLFW/glfw3.h>
+# endif
 
 # include <librmcs/client/cboard.hpp>
 # include <librmcs/client/cboard_transport.hpp>
@@ -145,12 +148,19 @@ public:
             throw std::runtime_error{"MujocoEngine: mj_loadXML failed"};
         }
         data_ = mj_makeData(model_);
+        // One pass to initialize derived quantities (xpos/xmat/sensordata...).
+        mj_forward(model_, data_);
         RCLCPP_INFO(
             rclcpp::get_logger("Sim"), "MujocoEngine: loaded '%s' (%d joints, %d actuators)",
             model_path.c_str(), model_->njnt, model_->nu);
 
         running_.store(true);
         thread_ = std::thread{[this]() { step_loop(); }};
+
+# if defined(RMCS_SIM_HAS_GUI)
+        if (sim_global_config().gui)
+            start_gui();
+# endif
     }
 
     ~MujocoEngine() {
@@ -158,6 +168,12 @@ public:
         wake_.notify_all();
         if (thread_.joinable())
             thread_.join();
+# if defined(RMCS_SIM_HAS_GUI)
+        if (gui_thread_.joinable()) {
+            gui_quit_.store(true, std::memory_order::relaxed);
+            gui_thread_.join();
+        }
+# endif
         mj_deleteData(data_);
         mj_deleteModel(model_);
     }
@@ -222,6 +238,136 @@ public:
     const Motor& motor(size_t i) const { return motors_[i]; }
 
 private:
+# if defined(RMCS_SIM_HAS_GUI)
+    // ---- optional native MuJoCo (GLFW) viewer ------------------------------
+    // Runs on its own thread so a slow/broken GL stack can never stall the
+    // 1 kHz physics/control thread. Each frame snapshots the live mjData under
+    // the physics mutex and renders the copy (simulate-style decoupling).
+    struct GuiPointer { // stored as the GLFW window user pointer
+        mjvCamera* cam = nullptr;
+        double last_x = 0.0;
+        double last_y = 0.0;
+        bool left = false;
+        bool right = false;
+    };
+
+    void start_gui() {
+        if (gui_started_)
+            return;
+        gui_started_ = true;
+        gui_quit_.store(false, std::memory_order::relaxed);
+        gui_thread_ = std::thread{[this]() { gui_loop(); }};
+    }
+
+    void gui_loop() {
+        using namespace std::chrono_literals;
+        if (!glfwInit()) {
+            RCLCPP_WARN(
+                rclcpp::get_logger("Sim"), "MujocoEngine GUI: glfwInit failed, running headless");
+            return;
+        }
+        glfwWindowHint(GLFW_SAMPLES, 4);
+        glfwWindowHint(GLFW_VISIBLE, 1);
+        GLFWwindow* window =
+            glfwCreateWindow(1280, 800, "reATRM mini-infantry (MuJoCo sim)", nullptr, nullptr);
+        if (window == nullptr) {
+            RCLCPP_WARN(
+                rclcpp::get_logger("Sim"),
+                "MujocoEngine GUI: glfwCreateWindow failed, running headless");
+            glfwTerminate();
+            return;
+        }
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+
+        // Scene / render context / camera (canonical MuJoCo init order).
+        mjv_defaultCamera(&gui_cam_);
+        mjv_defaultOption(&gui_opt_);
+        mjv_defaultScene(&gui_scn_);
+        mjr_defaultContext(&gui_con_);
+        mjv_makeScene(model_, &gui_scn_, 2000);
+        mjr_makeContext(model_, &gui_con_, 150);
+        mjv_defaultFreeCamera(model_, &gui_cam_);
+        gui_data_ = mj_makeData(model_);
+
+        // Drag-to-orbit (left), drag-to-pan (right), scroll-to-zoom.
+        GuiPointer gp;
+        gp.cam = &gui_cam_;
+        glfwSetWindowUserPointer(window, &gp);
+        glfwSetCursorPosCallback(
+            window, +[](GLFWwindow* w, double x, double y) {
+                auto* g = static_cast<GuiPointer*>(glfwGetWindowUserPointer(w));
+                if (g->left) {
+                    g->cam->azimuth += static_cast<float>((x - g->last_x) * 0.3);
+                    g->cam->elevation = static_cast<float>(
+                        std::clamp(g->cam->elevation - (y - g->last_y) * 0.3, -89.0, 89.0));
+                } else if (g->right) {
+                    const float k = static_cast<float>(0.001 * g->cam->distance);
+                    g->cam->lookat[0] -= static_cast<float>(x - g->last_x) * k;
+                    g->cam->lookat[1] += static_cast<float>(y - g->last_y) * k;
+                }
+                g->last_x = x;
+                g->last_y = y;
+            });
+        glfwSetMouseButtonCallback(
+            window, +[](GLFWwindow* w, int button, int action, int) {
+                auto* g = static_cast<GuiPointer*>(glfwGetWindowUserPointer(w));
+                if (button == GLFW_MOUSE_BUTTON_LEFT)
+                    g->left = (action == GLFW_PRESS);
+                else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+                    g->right = (action == GLFW_PRESS);
+                double x = 0.0, y = 0.0;
+                glfwGetCursorPos(w, &x, &y);
+                g->last_x = x;
+                g->last_y = y;
+            });
+        glfwSetScrollCallback(
+            window, +[](GLFWwindow* w, double, double yoff) {
+                auto* g = static_cast<GuiPointer*>(glfwGetWindowUserPointer(w));
+                g->cam->distance *= (yoff > 0.0) ? 0.9f : 1.1f;
+            });
+
+        RCLCPP_INFO(
+            rclcpp::get_logger("Sim"), "MujocoEngine GUI: window opened (GL %s)",
+            glGetString(GL_VERSION));
+        bool scene_logged = false;
+        while (!glfwWindowShouldClose(window) && !gui_quit_.load(std::memory_order::relaxed)) {
+            glfwPollEvents();
+
+            // Snapshot the live physics state under the engine lock.
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                mj_copyData(gui_data_, model_, data_);
+            }
+
+            int fbw = 0, fbh = 0;
+            glfwGetFramebufferSize(window, &fbw, &fbh);
+            if (fbw <= 0 || fbh <= 0) { // minimized -> wait for restore
+                std::this_thread::sleep_for(10ms);
+                continue;
+            }
+            const mjrRect viewport{0, 0, fbw, fbh};
+            mjv_updateScene(model_, gui_data_, &gui_opt_, nullptr, &gui_cam_, mjCAT_ALL, &gui_scn_);
+            if (!scene_logged) {
+                scene_logged = true;
+                RCLCPP_INFO(
+                    rclcpp::get_logger("Sim"), "MujocoEngine GUI: first scene has %d geoms",
+                    gui_scn_.ngeom);
+            }
+            mjr_render(viewport, &gui_scn_, &gui_con_);
+            glfwSwapBuffers(window);
+        }
+
+        mjr_freeContext(&gui_con_);
+        mjv_freeScene(&gui_scn_);
+        mj_deleteData(gui_data_);
+        gui_data_ = nullptr;
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        RCLCPP_INFO(rclcpp::get_logger("Sim"), "MujocoEngine GUI: closed");
+    }
+# endif
+
     void step_loop() {
         using namespace std::chrono_literals;
         auto next = std::chrono::steady_clock::now();
@@ -271,6 +417,15 @@ private:
                     continue;
                 dispatch_imu(b);
             }
+            // Inject the simulated DBUS (remote controller) into the top board,
+            // which hosts the Dr16 device in the hardware model.
+            for (auto& b : boards_) {
+                if (!b.active || b.pid != 1)
+                    continue;
+                std::byte dbus[18];
+                make_dbus_frame(sim_global_config().remote, dbus);
+                b.cboard->dbus_receive_callback(dbus, 18);
+            }
         }
         (void)tick;
     }
@@ -313,6 +468,17 @@ private:
     std::atomic<bool> running_{false};
     std::condition_variable wake_;
     std::thread thread_;
+
+# if defined(RMCS_SIM_HAS_GUI)
+    bool gui_started_ = false;
+    std::atomic<bool> gui_quit_{false};
+    std::thread gui_thread_;
+    mjData* gui_data_ = nullptr;
+    mjvScene gui_scn_; // used after mjv_defaultScene in gui_loop()
+    mjrContext gui_con_;
+    mjvCamera gui_cam_;
+    mjvOption gui_opt_;
+# endif
 };
 
 std::shared_ptr<MujocoEngine>& engine_instance() {

@@ -1,22 +1,28 @@
 # reATRM simulation config for the (unmodified) MiniInfantry hardware model.
 #
 # Backend selection (sim_bootstrap.backend):
-#   - "mujoco" (P2): MuJoCo physics (MJCF) drives motors + IMU.
+#   - "mujoco" (P2+): MuJoCo physics (MJCF) drives motors + IMU.
 #   - "fake"   (P0): dependency-free integrator backend for validation/CI.
 #
 # usb_pid_top/bottom_board act as symbolic board keys (1 = top, 2 = bottom) that
 # the sim transport uses to select the board topology.
 #
-# pitch_torque_probe writes a constant 0.5 N*m torque to the pitch motor so the
-# simulated pitch reacts to the physics. Non-simulated hardware (dr16, supercap,
-# referee...) simply stays quiet.
+# A simulated DBUS remote is injected (sim_bootstrap.remote_*): with both
+# switches enabled (not DOWN), the real gimbal control chain below closes the
+# loop - SimpleGimbalController levels the gimbal, angle+velocity PIDs drive the
+# pitch/yaw motors through MuJoCo. Non-simulated hardware (supercap, referee,
+# auto-aim...) simply stays quiet.
 rmcs_executor:
   ros__parameters:
     update_rate: 1000.0
     components:
       - rmcs_core::simulation::SimulationBootstrap -> sim_bootstrap
       - rmcs_core::hardware::MiniInfantry -> mini_infantry_hardware
-      - rmcs_core::controller::pid::PidController -> pitch_torque_probe
+      - rmcs_core::controller::gimbal::SimpleGimbalController -> gimbal_controller
+      - rmcs_core::controller::pid::ErrorPidController -> yaw_angle_pid_controller
+      - rmcs_core::controller::pid::PidController -> yaw_velocity_pid_controller
+      - rmcs_core::controller::pid::ErrorPidController -> pitch_angle_pid_controller
+      - rmcs_core::controller::pid::PidController -> pitch_velocity_pid_controller
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
 
 sim_bootstrap:
@@ -25,13 +31,31 @@ sim_bootstrap:
     # Empty -> auto-resolved to <share>/rmcs_core/mjcf/mini_infantry.xml.
     # May be overridden with an explicit MJCF path.
     model_file: ""
+    # Open the native MuJoCo (GLFW) viewer window on the host display. Only
+    # honored when rmcs_core is built with RMCS_SIM_HAS_GUI (glfw3 + OpenGL).
+    # Set false for headless runs.
+    gui: true
+    # Simulated remote: both switches enabled (up/middle) -> gimbal control on.
+    # "up" | "middle" | "down"
+    remote_switch_right: middle
+    remote_switch_left: middle
+    # Joystick channels (0..2047, 1024 = center). Left stick shifts the aim.
+    remote_channel0: 1024
+    remote_channel1: 1024
+    remote_channel2: 1024
+    remote_channel3: 1024
 
 value_broadcaster:
   ros__parameters:
     forward_list:
       - /gimbal/pitch/angle
       - /gimbal/pitch/velocity
+      - /gimbal/pitch/control_torque
+      - /gimbal/pitch/control_angle_error
       - /gimbal/yaw/angle
+      - /gimbal/yaw/velocity
+      - /gimbal/yaw/control_torque
+      - /gimbal/yaw/control_angle_error
       - /gimbal/left_friction/velocity
       - /chassis/right_front_wheel/angle
 
@@ -46,12 +70,60 @@ mini_infantry_hardware:
     imu_bias_y: 3
     imu_bias_z: 3
 
-pitch_torque_probe:
+gimbal_controller:
   ros__parameters:
-    measurement: /gimbal/pitch/angle
-    setpoint: 0.0
-    feedforward: 0.5
-    kp: 0.0
+    upper_limit: -0.10
+    lower_limit: 0.35
+
+    joystick_left_bias_y: 0.0
+    joystick_left_bias_x: 0.0
+
+    depond_motors:
+      - /gimbal/pitch
+      - /gimbal/yaw
+
+yaw_angle_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/yaw/control_angle_error
+    control: /gimbal/yaw/control_velocity
+    enable: /gimbal/yaw/alive
+    kp: 3.0
     ki: 0.0
     kd: 0.0
+    integral_min: -10.0
+    integral_max: 10.0
+
+yaw_velocity_pid_controller:
+  ros__parameters:
+    # NOTE: sim uses encoder velocity (consistent sign with the model feedback);
+    # on the real robot this is /gimbal/yaw/velocity_imu.
+    measurement: /gimbal/yaw/velocity
+    setpoint: /gimbal/yaw/control_velocity
+    control: /gimbal/yaw/control_torque
+    enable: /gimbal/yaw/alive
+    kp: 1.5
+    ki: 0.0
+    kd: 5.0
+    integral_min: -60.0
+    integral_max: 60.0
+
+pitch_angle_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/pitch/control_angle_error
+    control: /gimbal/pitch/control_velocity
+    enable: /gimbal/pitch/alive
+    kp: 3.0
+    ki: 0.0
+    kd: 0.0
+    integral_min: -1.0
+    integral_max: 1.0
+
+pitch_velocity_pid_controller:
+  ros__parameters:
+    measurement: /gimbal/pitch/velocity
+    setpoint: /gimbal/pitch/control_velocity
     control: /gimbal/pitch/control_torque
+    enable: /gimbal/pitch/alive
+    kp: 1.5
+    ki: 0.0
+    kd: 5.0
