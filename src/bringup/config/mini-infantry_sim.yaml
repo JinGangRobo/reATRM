@@ -1,8 +1,9 @@
 # reATRM simulation config for the (unmodified) MiniInfantry hardware model.
 #
-# Backend selection (sim_bootstrap.backend):
-#   - "mujoco" (P2+): MuJoCo physics (MJCF) drives motors + IMU.
-#   - "fake"   (P0): dependency-free integrator backend for validation/CI.
+# The simulation subsystem supports exactly one backend: MuJoCo (physics driven
+# by the MJCF model below). The SimulationBootstrap component installs a CBoard
+# transport factory so every hardware-model CBoard attaches to the MuJoCo
+# backend, which streams DJI feedback + IMU to the models.
 #
 # usb_pid_top/bottom_board act as symbolic board keys (1 = top, 2 = bottom) that
 # the sim transport uses to select the board topology.
@@ -27,7 +28,6 @@ rmcs_executor:
 
 sim_bootstrap:
   ros__parameters:
-    backend: mujoco
     # Empty -> auto-resolved to <share>/rmcs_core/mjcf/mini_infantry.xml.
     # May be overridden with an explicit MJCF path.
     model_file: ""

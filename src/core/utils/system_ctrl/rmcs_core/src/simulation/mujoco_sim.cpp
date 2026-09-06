@@ -1,6 +1,6 @@
-// MuJoCo-backed CBoard transport (P2). Replaces the P0 fake's integrator
-// dynamics with the MuJoCo physics engine while keeping the exact same
-// CBoardTransport seam, so hardware models remain unchanged.
+// MuJoCo-backed CBoard transport (P2): the simulation subsystem's only backend.
+// Drives the robot's motors + IMU with the MuJoCo physics engine while keeping
+// the exact same CBoardTransport seam, so hardware models remain unchanged.
 //
 // Architecture:
 //   - One MujocoEngine per robot owns a single mjModel/mjData and a 1 kHz step

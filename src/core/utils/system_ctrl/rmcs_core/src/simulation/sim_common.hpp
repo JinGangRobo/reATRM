@@ -1,8 +1,8 @@
-// Shared helpers for the rmcs_core simulation transports (fake + MuJoCo).
+// Shared helpers for the rmcs_core simulation transports (MuJoCo backend).
 //
 // Contains the DJI feedback-frame encoder (the exact inverse of
-// librmcs::device::DjiMotor::update_status decoding), so that every simulation
-// backend streams byte-identical frames to the unmodified hardware models.
+// librmcs::device::DjiMotor::update_status decoding), so the simulation backend
+// streams byte-identical frames to the unmodified hardware models.
 
 #pragma once
 
@@ -172,12 +172,11 @@ inline void make_dbus_frame(const SimRemote& r, std::byte* out) {
 }
 
 // Runtime simulation configuration set by the bootstrap component and consumed
-// by the transport factory / backends.
+// by the transport factory / MuJoCo backend.
 struct SimGlobalConfig {
-    std::string backend = "fake"; // "fake" | "mujoco"
-    std::string model_path;       // MJCF path (MuJoCo backend)
-    SimRemote remote;             // injected remote-control (DBUS) state
-    bool gui = false;             // open the native MuJoCo (GLFW) viewer
+    std::string model_path; // MJCF path (MuJoCo backend)
+    SimRemote remote;       // injected remote-control (DBUS) state
+    bool gui = false;       // open the native MuJoCo (GLFW) viewer
 };
 
 inline SimGlobalConfig& sim_global_config() {

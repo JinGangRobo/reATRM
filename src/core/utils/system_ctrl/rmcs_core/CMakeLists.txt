@@ -13,9 +13,9 @@ endif()
 find_package (ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies ()
 
-# MuJoCo is OPTIONAL: only simulation backends use it. When it is not available
-# (e.g. building on the real robot), the MuJoCo simulation sources are excluded
-# and rmcs_core still builds with the fake (dependency-free) backend.
+# MuJoCo is OPTIONAL: the simulation subsystem is MuJoCo-only. When it is not
+# available (e.g. building on the real robot), the simulation sources are simply
+# excluded and rmcs_core still builds for production hardware.
 find_package(mujoco_vendor QUIET)
 
 file (GLOB_RECURSE PROJECT_SOURCE CONFIGURE_DEPENDS
