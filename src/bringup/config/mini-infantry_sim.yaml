@@ -1,12 +1,15 @@
-# P0 simulation config: run the unmodified MiniInfantry hardware model against a
-# fake (non-MuJoCo) CBoard transport to validate the librmcs transport seam.
+# reATRM simulation config for the (unmodified) MiniInfantry hardware model.
 #
-# usb_pid_top/bottom_board act as symbolic board keys here (1 = top, 2 = bottom);
-# the fake transport uses them to select the board topology.
+# Backend selection (sim_bootstrap.backend):
+#   - "mujoco" (P2): MuJoCo physics (MJCF) drives motors + IMU.
+#   - "fake"   (P0): dependency-free integrator backend for validation/CI.
+#
+# usb_pid_top/bottom_board act as symbolic board keys (1 = top, 2 = bottom) that
+# the sim transport uses to select the board topology.
 #
 # pitch_torque_probe writes a constant 0.5 N*m torque to the pitch motor so the
-# simulated pitch accelerates (proves command -> feedback -> model loop). Devices
-# that are NOT simulated (dr16, supercap, referee...) simply stay quiet.
+# simulated pitch reacts to the physics. Non-simulated hardware (dr16, supercap,
+# referee...) simply stays quiet.
 rmcs_executor:
   ros__parameters:
     update_rate: 1000.0
@@ -15,6 +18,13 @@ rmcs_executor:
       - rmcs_core::hardware::MiniInfantry -> mini_infantry_hardware
       - rmcs_core::controller::pid::PidController -> pitch_torque_probe
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
+
+sim_bootstrap:
+  ros__parameters:
+    backend: mujoco
+    # Empty -> auto-resolved to <share>/rmcs_core/mjcf/mini_infantry.xml.
+    # May be overridden with an explicit MJCF path.
+    model_file: ""
 
 value_broadcaster:
   ros__parameters:

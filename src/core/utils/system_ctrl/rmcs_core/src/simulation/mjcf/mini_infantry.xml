@@ -1,0 +1,84 @@
+<mujoco model="mini_infantry">
+    <option timestep="0.001" gravity="0 0 -9.81" />
+
+    <worldbody>
+        <light directional="true" diffuse="0.7 0.7 0.7" dir="0 -1 -1" pos="2 3 4" />
+        <geom name="floor" type="plane" size="6 6 0.05" pos="0 0 -0.05" rgba="0.35 0.35 0.35 1" contype="0" conaffinity="0" />
+
+        <!-- Chassis is fixed to the world (no free joint): no contact tuning needed.
+         Wheels / gimbal / friction wheels spin under their own motor torques. -->
+        <body name="base" pos="0 0 0.12">
+            <geom name="chassis" type="box" size="0.16 0.16 0.04" mass="3.0" rgba="0.6 0.6 0.6 1" contype="0" conaffinity="0" />
+            <site name="base_imu" pos="0 0 0.03" />
+
+            <!-- 4 omni wheels (only spin simulated) -->
+            <body name="wheel_rf" pos="0.14 0.14 -0.03">
+                <joint name="wheel_rf" type="hinge" axis="0 1 0" damping="0.01" />
+                <geom name="wheel_rf_g" type="cylinder" size="0.06 0.02" euler="0 0 0" mass="0.15" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+            </body>
+            <body name="wheel_lf" pos="-0.14 0.14 -0.03">
+                <joint name="wheel_lf" type="hinge" axis="0 1 0" damping="0.01" />
+                <geom name="wheel_lf_g" type="cylinder" size="0.06 0.02" euler="0 0 0" mass="0.15" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+            </body>
+            <body name="wheel_lb" pos="-0.14 -0.14 -0.03">
+                <joint name="wheel_lb" type="hinge" axis="0 1 0" damping="0.01" />
+                <geom name="wheel_lb_g" type="cylinder" size="0.06 0.02" euler="0 0 0" mass="0.15" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+            </body>
+            <body name="wheel_rb" pos="0.14 -0.14 -0.03">
+                <joint name="wheel_rb" type="hinge" axis="0 1 0" damping="0.01" />
+                <geom name="wheel_rb_g" type="cylinder" size="0.06 0.02" euler="0 0 0" mass="0.15" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+            </body>
+
+            <!-- Gimbal yaw -->
+            <body name="yaw" pos="0 0 0.08">
+                <joint name="yaw" type="hinge" axis="0 0 1" damping="0.02" />
+                <geom name="yaw_g" type="box" size="0.045 0.045 0.03" mass="0.5" rgba="0.75 0.6 0.2 1" contype="0" conaffinity="0" />
+
+                <!-- Gimbal pitch -->
+                <body name="pitch" pos="0 0 0.01">
+                    <joint name="pitch" type="hinge" axis="0 1 0" damping="0.02" />
+                    <site name="gimbal_imu" pos="0 0 0.01" />
+
+                    <!-- barrel: offset COM -> gravity droop that the pitch motor must hold -->
+                    <geom name="barrel" type="box" size="0.02 0.02 0.09" pos="0.10 0 0.0" mass="0.12" rgba="0.75 0.75 0.75 1" contype="0" conaffinity="0" />
+                    <geom name="pitch_g" type="box" size="0.02 0.05 0.02" pos="0 0 0" mass="0.3" rgba="0.75 0.6 0.2 1" contype="0" conaffinity="0" />
+
+                    <!-- two friction wheels -->
+                    <body name="left_friction" pos="0.03 0.0 0.035">
+                        <joint name="left_friction" type="hinge" axis="1 0 0" damping="0.005" />
+                        <geom name="left_friction_g" type="cylinder" size="0.018 0.025" mass="0.03" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+                    </body>
+                    <body name="right_friction" pos="0.03 0.0 -0.035">
+                        <joint name="right_friction" type="hinge" axis="1 0 0" damping="0.005" />
+                        <geom name="right_friction_g" type="cylinder" size="0.018 0.025" mass="0.03" rgba="0.2 0.2 0.2 1" contype="0" conaffinity="0" />
+                    </body>
+
+                    <!-- bullet feeder -->
+                    <body name="bullet_feeder" pos="-0.04 0.0 0.0">
+                        <joint name="bullet_feeder" type="hinge" axis="0 1 0" damping="0.005" />
+                        <geom name="bullet_feeder_g" type="cylinder" size="0.02 0.03" mass="0.04" rgba="0.4 0.4 0.8 1" contype="0" conaffinity="0" />
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <motor name="wheel_rf" joint="wheel_rf" ctrlrange="-30 30" />
+        <motor name="wheel_lf" joint="wheel_lf" ctrlrange="-30 30" />
+        <motor name="wheel_lb" joint="wheel_lb" ctrlrange="-30 30" />
+        <motor name="wheel_rb" joint="wheel_rb" ctrlrange="-30 30" />
+        <motor name="yaw" joint="yaw" ctrlrange="-10 10" />
+        <motor name="pitch" joint="pitch" ctrlrange="-10 10" />
+        <motor name="left_friction" joint="left_friction" ctrlrange="-10 10" />
+        <motor name="right_friction" joint="right_friction" ctrlrange="-10 10" />
+        <motor name="bullet_feeder" joint="bullet_feeder" ctrlrange="-10 10" />
+    </actuator>
+
+    <sensor>
+        <gyro name="gimbal_gyro" site="gimbal_imu" />
+        <accelerometer name="gimbal_acc" site="gimbal_imu" />
+        <gyro name="base_gyro" site="base_imu" />
+        <accelerometer name="base_acc" site="base_imu" />
+    </sensor>
+</mujoco>

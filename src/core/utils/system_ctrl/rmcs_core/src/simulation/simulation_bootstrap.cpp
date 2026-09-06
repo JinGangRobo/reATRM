@@ -17,13 +17,24 @@
 #include <cstdint>
 #include <cstring>
 #include <numbers>
+#include <string>
 #include <thread>
 #include <vector>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <librmcs/client/cboard.hpp>
 #include <librmcs/client/cboard_transport.hpp>
 #include <rclcpp/logging.hpp>
+#include <rclcpp/node.hpp>
 #include <rmcs_executor/component.hpp>
+
+#include "sim_common.hpp"
+
+#if defined(RMCS_SIM_HAS_MUJOCO)
+namespace rmcs_core::simulation {
+librmcs::client::CBoardTransport* create_mujoco_transport(int32_t usb_pid);
+}
+#endif
 
 namespace rmcs_core::simulation {
 
@@ -38,8 +49,8 @@ struct DjiSimMotor {
 
     // Device configuration mirror (matches librmcs::device::DjiMotor::Config)
     double reduction = 1.0; // load-side reduction (motor turns per load turn)
-    double sign      = 1.0; // -1 when reversed
-    int    zero      = 0;   // encoder raw counts at load angle 0
+    double sign = 1.0;      // -1 when reversed
+    int zero = 0;           // encoder raw counts at load angle 0
 
     // DJI type constants (Nm per raw current unit == decode coefficient)
     double torque_per_raw = 0.0;
@@ -49,10 +60,10 @@ struct DjiSimMotor {
     double damping = 0.05; // viscous N*m*s/rad
 
     // Simulated load-side state
-    double angle    = 0.0; // rad (unwrapped)
+    double angle = 0.0;    // rad (unwrapped)
     double velocity = 0.0; // rad/s
 
-    int can_id = 0; // feedback CAN id (e.g. 0x205)
+    int can_id = 0;        // feedback CAN id (e.g. 0x205)
 
     // Commanded raw current, written by the executor thread, read by sim thread
     std::atomic<int> command_raw{0};
@@ -74,16 +85,16 @@ struct DjiSimMotor {
         , command_raw(other.command_raw.load()) {}
     DjiSimMotor& operator=(DjiSimMotor&& other) noexcept {
         if (this != &other) {
-            name          = std::move(other.name);
-            reduction     = other.reduction;
-            sign          = other.sign;
-            zero          = other.zero;
+            name = std::move(other.name);
+            reduction = other.reduction;
+            sign = other.sign;
+            zero = other.zero;
             torque_per_raw = other.torque_per_raw;
-            inertia       = other.inertia;
-            damping       = other.damping;
-            angle         = other.angle;
-            velocity      = other.velocity;
-            can_id        = other.can_id;
+            inertia = other.inertia;
+            damping = other.damping;
+            angle = other.angle;
+            velocity = other.velocity;
+            can_id = other.can_id;
             command_raw.store(other.command_raw.load());
         }
         return *this;
@@ -94,8 +105,7 @@ struct DjiSimMotor {
 // librmcs::device::DjiMotor::DjiMotorFeedback) so the device decodes exactly the
 // simulated load angle/velocity.
 uint64_t encode_dji_feedback(const DjiSimMotor& motor, int raw_current, int16_t velocity_raw) {
-    const double counts =
-        motor.angle * motor.reduction * kAngleMax / (2.0 * kPi) * motor.sign;
+    const double counts = motor.angle * motor.reduction * kAngleMax / (2.0 * kPi) * motor.sign;
     double cmod = std::fmod(counts, kAngleMax);
     if (cmod < 0)
         cmod += kAngleMax;
@@ -120,9 +130,7 @@ uint64_t encode_dji_feedback(const DjiSimMotor& motor, int raw_current, int16_t 
     return data;
 }
 
-inline int16_t sign_extend_16(uint16_t v) {
-    return static_cast<int16_t>(v);
-}
+inline int16_t sign_extend_16(uint16_t v) { return static_cast<int16_t>(v); }
 
 class FakeMiniTransport final : public librmcs::client::CBoardTransport {
 public:
@@ -138,18 +146,18 @@ public:
         } else if (pid_ == 2) {
             // ---- Bottom board (chassis / yaw / bullet feeder) ----
             // M3508 (reduction 268/17): tc=0.3*187/3591, raw_max 16384, current_max 20
-            add_motor("chassis/right_front_wheel", 0x201, 268.0 / 17.0, -1.0, 0, 0.3, 0.05,
-                3.005e-4);
-            add_motor("chassis/left_front_wheel", 0x202, 268.0 / 17.0, -1.0, 0, 0.3, 0.05,
-                3.005e-4);
-            add_motor("chassis/left_back_wheel", 0x203, 268.0 / 17.0, -1.0, 0, 0.3, 0.05,
-                3.005e-4);
-            add_motor("chassis/right_back_wheel", 0x204, 268.0 / 17.0, -1.0, 0, 0.3, 0.05,
-                3.005e-4);
+            add_motor(
+                "chassis/right_front_wheel", 0x201, 268.0 / 17.0, -1.0, 0, 0.3, 0.05, 3.005e-4);
+            add_motor(
+                "chassis/left_front_wheel", 0x202, 268.0 / 17.0, -1.0, 0, 0.3, 0.05, 3.005e-4);
+            add_motor("chassis/left_back_wheel", 0x203, 268.0 / 17.0, -1.0, 0, 0.3, 0.05, 3.005e-4);
+            add_motor(
+                "chassis/right_back_wheel", 0x204, 268.0 / 17.0, -1.0, 0, 0.3, 0.05, 3.005e-4);
             // GM6020 (reduction 1)
             add_motor("gimbal/yaw", 0x206, 1.0, 1.0, 3606, 0.05, 0.1, 1.356e-4);
             // M2006 (reduction (33/27)*36): tc=0.18/36, raw_max 16384, current_max 10
-            add_motor("gimbal/bullet_feeder", 0x207, (33.0 / 27.0) * 36.0, -1.0, 0, 0.002, 0.01,
+            add_motor(
+                "gimbal/bullet_feeder", 0x207, (33.0 / 27.0) * 36.0, -1.0, 0, 0.002, 0.01,
                 1.3428e-4);
         } else {
             RCLCPP_ERROR(
@@ -164,8 +172,7 @@ public:
             return;
 
         RCLCPP_INFO(
-            rclcpp::get_logger("Sim"), "FakeMiniTransport(board pid=%d): sim loop started",
-            pid_);
+            rclcpp::get_logger("Sim"), "FakeMiniTransport(board pid=%d): sim loop started", pid_);
 
         using namespace std::chrono_literals;
         constexpr double dt = 0.001; // 1 kHz, aligned with rmcs_executor control rate
@@ -183,8 +190,7 @@ public:
         }
 
         RCLCPP_INFO(
-            rclcpp::get_logger("Sim"), "FakeMiniTransport(board pid=%d): sim loop stopped",
-            pid_);
+            rclcpp::get_logger("Sim"), "FakeMiniTransport(board pid=%d): sim loop stopped", pid_);
     }
 
     void stop() override { stop_.store(true, std::memory_order::relaxed); }
@@ -209,9 +215,9 @@ public:
         uint8_t bytes[8];
         std::memcpy(bytes, &can_data, sizeof(bytes));
         for (uint32_t slot = 0; slot < 4; slot++) {
-            uint16_t raw =
-                static_cast<uint16_t>((static_cast<uint16_t>(bytes[2 * slot]) << 8)
-                                      | static_cast<uint16_t>(bytes[2 * slot + 1]));
+            uint16_t raw = static_cast<uint16_t>(
+                (static_cast<uint16_t>(bytes[2 * slot]) << 8)
+                | static_cast<uint16_t>(bytes[2 * slot + 1]));
             const uint32_t id = base + slot;
             for (auto& motor : motors_) {
                 if (motor.can_id == static_cast<int>(id)) {
@@ -232,13 +238,13 @@ private:
         const char* name, int can_id, double reduction, double sign, int zero, double inertia,
         double damping, double torque_per_raw) {
         DjiSimMotor motor;
-        motor.name          = name;
-        motor.can_id        = can_id;
-        motor.reduction     = reduction;
-        motor.sign          = sign;
-        motor.zero          = zero;
-        motor.inertia       = inertia;
-        motor.damping       = damping;
+        motor.name = name;
+        motor.can_id = can_id;
+        motor.reduction = reduction;
+        motor.sign = sign;
+        motor.zero = zero;
+        motor.inertia = inertia;
+        motor.damping = damping;
         motor.torque_per_raw = torque_per_raw;
         motors_.push_back(std::move(motor));
     }
@@ -248,8 +254,7 @@ private:
         for (auto& motor : motors_) {
             const int cmd = motor.command_raw.load(std::memory_order::relaxed);
             const double torque = static_cast<double>(cmd) * motor.torque_per_raw;
-            const double accel =
-                (torque - motor.damping * motor.velocity) / motor.inertia;
+            const double accel = (torque - motor.damping * motor.velocity) / motor.inertia;
             motor.velocity += accel * dt;
             motor.angle += motor.velocity * dt;
         }
@@ -259,8 +264,7 @@ private:
             const int cmd = motor.command_raw.load(std::memory_order::relaxed);
             const double vel_raw_d =
                 motor.sign * motor.velocity * motor.reduction * 60.0 / (2.0 * kPi);
-            const int16_t vel_raw = static_cast<int16_t>(
-                std::clamp(vel_raw_d, -32767.0, 32767.0));
+            const int16_t vel_raw = static_cast<int16_t>(std::clamp(vel_raw_d, -32767.0, 32767.0));
             const uint64_t frame = encode_dji_feedback(motor, cmd, vel_raw);
             board_->can1_receive_callback(
                 static_cast<uint32_t>(motor.can_id), frame, false, false, 8);
@@ -277,8 +281,8 @@ private:
             const int cmd = motor.command_raw.load(std::memory_order::relaxed);
             parts += " [";
             parts += motor.name;
-            parts += "] ang=" + std::to_string(motor.angle) + " vel="
-                     + std::to_string(motor.velocity) + " cur=" + std::to_string(cmd);
+            parts += "] ang=" + std::to_string(motor.angle)
+                   + " vel=" + std::to_string(motor.velocity) + " cur=" + std::to_string(cmd);
         }
         RCLCPP_INFO(
             rclcpp::get_logger("Sim"), "tick %zu (board pid=%d):%s", tick, pid_, parts.c_str());
@@ -294,17 +298,58 @@ librmcs::client::CBoardTransport* make_fake_mini_transport(int32_t usb_pid) {
     return new FakeMiniTransport(usb_pid);
 }
 
+librmcs::client::CBoardTransport* dispatch_transport_factory(int32_t usb_pid) {
+    const auto& config = sim_global_config();
+#if defined(RMCS_SIM_HAS_MUJOCO)
+    if (config.backend == "mujoco") {
+        auto* transport = create_mujoco_transport(usb_pid);
+        if (transport != nullptr)
+            return transport;
+        RCLCPP_ERROR(
+            rclcpp::get_logger("Sim"),
+            "dispatch_transport_factory: MuJoCo transport creation failed for pid %d, "
+            "falling back to fake",
+            usb_pid);
+    }
+#endif
+    return make_fake_mini_transport(usb_pid);
+}
+
 } // namespace
 
 // Simulation bootstrap: when listed FIRST in the bringup config `components`,
-// it is constructed before any hardware model and installs the fake transport
+// it is constructed before any hardware model and installs the CBoard transport
 // factory so that every subsequent CBoard construction runs against the sim.
-class SimulationBootstrap final : public rmcs_executor::Component {
+// Parameters (under the component instance name):
+//   backend:     "fake" (default, dependency-free) | "mujoco"
+//   model_file:  MJCF path used by the MuJoCo backend
+class SimulationBootstrap final
+    : public rmcs_executor::Component
+    , public rclcpp::Node {
 public:
-    SimulationBootstrap() {
-        librmcs::client::CBoard::set_transport_factory(&make_fake_mini_transport);
+    SimulationBootstrap()
+        : Node{
+              get_component_name(),
+              rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)} {
+        auto& config = sim_global_config();
+        if (!has_parameter("backend"))
+            declare_parameter("backend", "fake");
+        get_parameter("backend", config.backend);
+        if (!has_parameter("model_file"))
+            declare_parameter("model_file", "");
+        get_parameter("model_file", config.model_path);
+        if (config.backend == "mujoco" && config.model_path.empty()) {
+            // Default to the MJCF installed with this package:
+            //   <share>/rmcs_core/mjcf/<robot>.xml
+            config.model_path = ament_index_cpp::get_package_share_directory("rmcs_core")
+                              + "/mjcf/mini_infantry.xml";
+        }
+
+        librmcs::client::CBoard::set_transport_factory(&dispatch_transport_factory);
         RCLCPP_INFO(
-            rclcpp::get_logger("Sim"), "SimulationBootstrap: fake transport factory installed");
+            rclcpp::get_logger("Sim"),
+            "SimulationBootstrap: transport factory installed (backend=%s model=%s)",
+            config.backend.c_str(), config.model_path.c_str());
     }
 
     void update() override {}
@@ -314,5 +359,4 @@ public:
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(
-    rmcs_core::simulation::SimulationBootstrap, rmcs_executor::Component)
+PLUGINLIB_EXPORT_CLASS(rmcs_core::simulation::SimulationBootstrap, rmcs_executor::Component)
