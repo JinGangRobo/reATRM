@@ -37,21 +37,21 @@ public:
         arm_board_ = std::make_unique<ArmBoard>(
             *this, *command_component_,
             static_cast<int>(get_parameter("usb_pid_arm_board").as_int()));
-        chassis_board_ = std::make_unique<ChassisBoard>(
-            *this, *command_component_,
-            static_cast<int>(get_parameter("usb_pid_chassis_board").as_int()));
+        // chassis_board_ = std::make_unique<ChassisBoard>(
+        //     *this, *command_component_,
+        //     static_cast<int>(get_parameter("usb_pid_chassis_board").as_int()));
         using namespace rmcs_description;
     }
     ~Engineer() override = default;
 
     void update() override { 
         arm_board_->update(); 
-        chassis_board_->update();
+        // chassis_board_->update();
     }
 
     void command_update() { 
         arm_board_->command_update(); 
-        chassis_board_->command_update();
+        // chassis_board_->command_update();
     }
 
 private:
@@ -166,28 +166,12 @@ private:
 
             if (can_id == 0x53) {
                 arm_joint4_motor_.store_status(can_data);
-                if(!joint4_calibrated_){
-                    arm_joint4_motor_.calibrate_zero_point();
-                    joint4_calibrated_ = true;
-                }
             } else if (can_id == 0x54) {
                 arm_joint5_motor_.store_status(can_data);
-                if(!joint5_calibrated_){
-                    arm_joint5_motor_.calibrate_zero_point();
-                    joint5_calibrated_ = true;
-                }
             } else if (can_id == 0x55) {
                 arm_joint6_motor_.store_status(can_data);
-                if(!joint6_calibrated_){
-                    arm_joint6_motor_.calibrate_zero_point();
-                    joint6_calibrated_ = true;
-                }
             } else if (can_id == 0x212) {
                 arm_joint1_motor_.store_status(can_data);
-                if(!joint1_calibrated_){
-                    arm_joint1_motor_.calibrate_zero_point();
-                    joint1_calibrated_ = true;
-                }
             }
         }
         void can2_receive_callback(
@@ -198,27 +182,13 @@ private:
 
             if (can_id == 0x141) {
                 arm_joint2_motor_.store_status(can_data);
-                if(!joint2_calibrated_){
-                    arm_joint2_motor_.calibrate_zero_point();
-                    joint2_calibrated_ = true;
-                }
             } else if (can_id == 0x142) {
                 arm_joint3_motor_.store_status(can_data);
-                if(!joint3_calibrated_){
-                    arm_joint3_motor_.calibrate_zero_point();
-                    joint3_calibrated_ = true;
-                }
             } 
         }
         void uart2_receive_callback(const std::byte* data, uint8_t length) override {
             vt03_.store_status(data, length);
         }
-        bool joint1_calibrated_ = false;
-        bool joint2_calibrated_ = false;
-        bool joint3_calibrated_ = false;
-        bool joint4_calibrated_ = false;
-        bool joint5_calibrated_ = false;
-        bool joint6_calibrated_ = false;
         device::Vt03 vt03_;
         device::DmMotor arm_joint1_motor_;
         device::LkMotor arm_joint2_motor_;

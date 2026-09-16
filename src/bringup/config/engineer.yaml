@@ -6,6 +6,8 @@ rmcs_executor:
       - rmcs_core::controller::arm::ArmConfig -> arm_config
       - rmcs_core::controller::arm::ArmController -> arm_controller
       - rmcs_core::controller::arm::ArmSolver -> arm_solver
+      # - rmcs_core::controller::chassis::ChassisController -> chassis_controller
+      # - rmcs_core::controller::chassis::OmniWheelController -> omni_wheel_controller
       - rmcs_core::broadcaster::ValueBroadcaster -> value_broadcaster
       - rmcs_core::controller::diagnosis::Diagnosis -> diagnosis
 
@@ -18,11 +20,28 @@ value_broadcaster:
       - /arm/joint_4/motor/angle
       - /arm/joint_5/motor/angle
       - /arm/joint_6/motor/angle
+      - /arm/joint_1/motor/raw_angle
+      - /arm/joint_2/motor/raw_angle
+      - /arm/joint_3/motor/raw_angle
+      - /arm/joint_4/motor/raw_angle
+      - /arm/joint_5/motor/raw_angle
+      - /arm/joint_6/motor/raw_angle
+      - /arm/joint_1/motor/velocity
+      - /arm/joint_2/motor/velocity
+      - /arm/joint_3/motor/velocity
+      - /arm/joint_4/motor/velocity
+      - /arm/joint_5/motor/velocity
+      - /arm/joint_6/motor/velocity
       - /arm/joint_2/motor/control_torque
+      - /arm/config/reference_latched
+      - /vt03/mode_switch
+      - /arm/enable_flag
+      - /arm/mode
 
 engineer_hardware:
   ros__parameters:
-    usb_pid_arm_board: 0x1fd9
+    usb_pid_arm_board: 0xa513
+    # usb_pid_chassis_board: 0xf112
     arm_joint1_motor_zero_point: 29682
     arm_joint2_motor_zero_point: 54083
     arm_joint3_motor_zero_point: 35846
@@ -30,10 +49,36 @@ engineer_hardware:
     arm_joint5_motor_zero_point: 32801
     arm_joint6_motor_zero_point: 30864
 
+arm_config:
+  ros__parameters:
+    offsets_verified: true
+    default_joint_offsets: [8.666224, 1.297994, -1.391739, 7.481991, 4.656399, 1.559291]
+    require_latch: false
+    latch_joints: [2, 3]
+    latch_reference_angle_j2: -1.3265
+    latch_reference_angle_j3: 1.3265
+    latch_velocity_threshold: 0.1      
+    joint_gear_ratio: [1.0, 50.0, 50.0, 1.0, 1.0, 1.0]
+
 arm_solver:
   ros__parameters:
     controller_list: ["gravity","friction"]
-    
+   #controller_list: ["gravity","friction","pid"]
+
+# chassis_controller:
+#   ros__parameters:
+#     translational_velocity_limit: 10.0
+#     angular_velocity_limit: 10.0
+
+# omni_wheel_controller:
+#   ros__parameters:
+#     chassis_radius_x: 0.164
+#     chassis_radius_y: 0.162
+#     wheel_radius_: 0.077
+#     friction_coefficient: 0.3
+
+#     spinning_bais_coefficient: -0.05
+
 diagnosis:
   ros__parameters:
     motors:
@@ -45,4 +90,3 @@ diagnosis:
       - /arm/joint_6/motor
 
     enable_motor_check: true
-    enable_supercap_check: false

@@ -59,30 +59,39 @@ public:
             register_input("urdf_loaded", is_loaded);
             register_input("/arm/joint_4/position", joint4_position);
             register_input("/arm/enable_flag", is_arm_enable);
+
+            register_input("/arm/config/offsets_verified", offsets_verified_, false);
+
             const auto list = this->get_parameter("controller_list").as_string_array();
             load_controller_list(list);
         }
 
         void update() override {
             //todo
-            
             TorqueVec torque_cmd;
-            if(!*is_loaded){
-                RCLCPP_WARN(rclcpp::get_logger("[Arm_Solver]"), "URDF NOT Fatel");
-                return;
-            }
             torque_cmd.setZero();
             if(*is_arm_enable){
-                if(!last_is_arm_enable){
-                    for(auto& pid: joint_angle_pid_controller){
-                        pid.reset();
+                if(!*is_loaded){
+                    RCLCPP_WARN_THROTTLE(rclcpp::get_logger("[Arm_Solver]"), *this->get_clock(), 2000,"URDF not loaded! Arm torque output blocked.");
+                    torque_cmd = zero_calculate();
+                } else {
+                    const bool verified = offsets_verified_.ready() && *offsets_verified_;
+                    if (!verified) {
+                        RCLCPP_WARN_THROTTLE(rclcpp::get_logger("Arm_Solver"), *this->get_clock(), 2000,"Arm offsets not verified! Torque output blocked. ""Calibrate then set offsets_verified=true.");
+                        torque_cmd = zero_calculate();
+                    } else {
+                        if(!last_is_arm_enable){
+                            for(auto& pid: joint_angle_pid_controller){
+                                pid.reset();
+                            }
+                            for(auto& pid: joint_vel_pid_controller){
+                                pid.reset();
+                            }
+                        }
+                        for(auto fn : controller_list_){
+                            torque_cmd += (this->*fn)();
+                        }
                     }
-                    for(auto& pid: joint_vel_pid_controller){
-                        pid.reset();
-                    }
-                }
-                for(auto fn : controller_list_){
-                    torque_cmd += (this->*fn)();
                 }
             } else {
                 torque_cmd = zero_calculate();
@@ -92,7 +101,6 @@ public:
                 *target_torque_[i] = torque_cmd[i];
             }
         }
-
 private:
     using controller_type = TorqueVec (ArmSolver::*)();
     std::vector<controller_type> controller_list_;
@@ -163,11 +171,12 @@ private:
         const double j_2          = -l1 * sin(theta_1) - l_2m * s12;
         const double i_2          = -(l1 * sin(theta_1) + l2 * s12 + k);
         const double joint2_tau_g = (k_2 + j_2 * mass_2 + i_2 * mass_3) * g;
+        double k_j2 = 1;
         double k_j3 = 5;
         TorqueVec torque_gravity;
         torque_gravity.setZero();
 
-        torque_gravity(1) = reverse * joint2_tau_g;
+        torque_gravity(1) = reverse * joint2_tau_g * k_j2; 
         torque_gravity(2) = reverse * joint_3_tau_g * k_j3 * (-1);
         torque_gravity(3) = joint_4_tau_g;
         torque_gravity(4) = reverse * joint_5_tau_g;
@@ -191,7 +200,7 @@ private:
         TorqueVec torque_friction = tau_c * (joint_vel / speed_threshold).tanh();
 
         torque_friction(0) = 0.0; 
-        torque_friction(1) = 0.0; 
+        // torque_friction(1) = 0.0; 
         torque_friction(4) = 0.0; 
         torque_friction(5) = 0.0; 
 
@@ -248,6 +257,7 @@ private:
     InputInterface<Eigen::Vector3d> joint4_position;
     InputInterface<bool> is_loaded;
     InputInterface<bool> is_arm_enable;
+    InputInterface<bool> offsets_verified_;      
     bool last_is_arm_enable{false};
     };
 } // namespace rmcs_core::controller::arm

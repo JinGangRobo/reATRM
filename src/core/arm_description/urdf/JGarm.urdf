@@ -143,8 +143,8 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-1.528"
-      upper="1.084"
+      lower="-1.3265"
+      upper="1.9024"
       effort="63"
       velocity="4.71" />
     <dynamics
@@ -203,8 +203,8 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-1.2566"
-      upper="1.3972"
+      lower="-0.5934"
+      upper="1.3265"
       effort="35"
       velocity="4.71" />
     <dynamics
@@ -315,7 +315,7 @@
     type="revolute">
     <origin
       xyz="0 0 0.136"
-      rpy="1.5708 0.022902 0" />
+      rpy="1.5708 0 0" />
     <parent
       link="link_4" />
     <child
