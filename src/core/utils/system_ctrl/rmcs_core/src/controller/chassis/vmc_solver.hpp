@@ -7,12 +7,13 @@
 namespace rmcs_core::controller::chassis {
 class VmcSolver {
 public:
-    VmcSolver(double l1, double l2, double l5)
+    VmcSolver(double l1, double l2, double l5, double gas_spring)
         : l1_(l1)
         , l2_(l2)
         , l3_(l2)
         , l4_(l1)
-        , l5_(l5) {
+        , l5_(l5)
+        , gas_spring_(gas_spring) {
         reset();
     }
 
@@ -41,11 +42,17 @@ public:
         return jacobian_matrix * Dot_phi;
     }
     Eigen::Vector2d update_joint_torque(double F, double Tp) {
-        return joint_torque_matrix_ * Eigen::Vector2d{F, Tp};
+        return jacobian_matrix.transpose() * Eigen::Vector2d{F, Tp};
     }
 
     Eigen::Vector2d update_virtual_torque(double T1, double T2) {
-        return joint_torque_matrix_.inverse() * Eigen::Vector2d{T1, T2};
+        return -(jacobian_matrix.transpose().inverse() * Eigen::Vector2d{T1, T2}); // F , Tp
+    }
+    double update_gas_spring() {
+        double gas_spring_force = std::fabs(
+            (0.5f * (gas_spring_ * std::sin(alpha[0])))
+            * std::sin(pi_ - 0.5f * alpha[1] - alpha[0]));
+        return  gas_spring_force;
     }
 
 private:
@@ -78,17 +85,16 @@ private:
              j22 = l4_ * std::cos(phi0 - phi2) * std::sin(phi3 - phi4)
                  / (leg_length_ * std::sin(phi3 - phi2));
 
+        alpha[0] = acos((l1_ * l1_ + l2_ * l2_ - leg_length_ * leg_length_) / (2.0f * l1_ * l2_));
+        alpha[1] = phi1 - phi4;
+        if (alpha[1] > 2 * std::numbers::pi) {
+            alpha[1] -= 2 * std::numbers::pi;
+        }
+
         jacobian_matrix = Eigen::Matrix2d{
             {j11, j12},
             {j21, j22}
         };
-        auto rotation_matrix = Eigen::Rotation2Dd(phi0 - pi_ / 2.0);
-        auto transform_matrix = Eigen::Matrix2d{
-            {0, -1 / leg_length_},
-            {1,                0}
-        };
-
-        joint_torque_matrix_ = jacobian_matrix.transpose() * transform_matrix;
     }
 
     Eigen::Vector2d get_leg_posture() const { return leg_posture_; }
@@ -98,9 +104,9 @@ private:
 
     static constexpr double pi_ = std::numbers::pi;
 
-    const double l1_, l2_, l3_, l4_, l5_;
+    const double l1_, l2_, l3_, l4_, l5_, gas_spring_;
 
-    double leg_length_, tilt_angle_;
+    double leg_length_, tilt_angle_, alpha[2];
 
     Eigen::Vector2d leg_posture_;
     Eigen::Matrix2d joint_torque_matrix_;

@@ -15,6 +15,7 @@
 #include "hardware/device/dji_motor.hpp"
 #include "hardware/device/dm_motor.hpp"
 #include "hardware/device/dr16.hpp"
+#include "hardware/device/lk_motor.hpp"
 
 namespace rmcs_core::hardware {
 
@@ -33,6 +34,17 @@ public:
 
         register_output("/tf", tf_);
         // tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.16, 0.0, 0.15});
+        tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{-0.052, 0.0, 0.084});
+        tf_->set_transform<PitchLink, MuzzleLink>(Eigen::Translation3d{0.0, 0.0, 0.0});
+
+        gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
+            "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
+                gimbal_calibrate_subscription_callback(std::move(msg));
+            });
+
+        top_board_ = std::make_unique<TopBoard>(
+            *this, *command_component_,
+            static_cast<int>(get_parameter("usb_pid_top_board").as_int()));
 
         bottom_board_ = std::make_unique<BottomBoard>(
             *this, *command_component_,
@@ -41,11 +53,26 @@ public:
 
     ~WheelLegInfantry() override = default;
 
-    void update() override { bottom_board_->update(); }
+    void update() override {
+        top_board_->update();
+        bottom_board_->update();
+    }
 
-    void command_update() { bottom_board_->command_update(); }
+    void command_update() {
+        top_board_->command_update();
+        bottom_board_->command_update();
+    }
 
 private:
+    void gimbal_calibrate_subscription_callback(std_msgs::msg::Int32::UniquePtr) {
+        RCLCPP_INFO(
+            get_logger(), "[gimbal calibration] New yaw offset: %d",
+            bottom_board_->gimbal_yaw_motor_.calibrate_zero_point());
+        RCLCPP_INFO(
+            get_logger(), "[gimbal calibration] New pitch offset: %d",
+            top_board_->gimbal_pitch_motor_.calibrate_zero_point());
+    }
+
     class WheelLegInfantryCommand : public rmcs_executor::Component {
     public:
         explicit WheelLegInfantryCommand(WheelLegInfantry& wheeleg_infantry)
@@ -56,6 +83,178 @@ private:
         WheelLegInfantry& wheeleg_infantry_;
     };
     std::shared_ptr<WheelLegInfantryCommand> command_component_;
+
+    class TopBoard final : private librmcs::client::CBoard {
+    public:
+        friend class WheelLegInfantry;
+        explicit TopBoard(
+            WheelLegInfantry& wheeleg_infantry, WheelLegInfantryCommand& wheeleg_infantry_command,
+            int usb_pid = -1)
+            : librmcs::client::CBoard(usb_pid)
+            , tf_(wheeleg_infantry.tf_)
+            , imu_(10.0f, 0.001f, 1000000.0f)
+            , dr16_{wheeleg_infantry}
+            , imu_bias_x(wheeleg_infantry.get_parameter("imu_bias_x").as_int())
+            , imu_bias_y(wheeleg_infantry.get_parameter("imu_bias_y").as_int())
+            , imu_bias_z(wheeleg_infantry.get_parameter("imu_bias_z").as_int())
+            , gimbal_pitch_motor_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/gimbal/pitch",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
+                      static_cast<int>(
+                          wheeleg_infantry.get_parameter("pitch_motor_zero_point").as_int())))
+            , gimbal_left_friction_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/gimbal/left_friction")
+            , gimbal_right_friction_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/gimbal/right_friction")
+            , transmit_buffer_(*this, 32)
+            , event_thread_([this]() { handle_events(); }) {
+
+            gimbal_left_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.));
+            gimbal_right_friction_.configure(
+                device::DjiMotor::Config{device::DjiMotor::Type::M3508}
+                    .set_reduction_ratio(1.)
+                    .set_reversed());
+
+            imu_.set_coordinate_mapping([](double x, double y, double z) {
+                // Get the mapping with the following code.
+                // The rotation angle must be an exact multiple of 90 degrees, otherwise use a
+                // matrix.
+
+                // Eigen::AngleAxisd pitch_link_to_imu_link{
+                //     std::numbers::pi, Eigen::Vector3d::UnitZ()};
+                // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
+                // std::cout << mapping << std::endl;
+
+                return std::make_tuple(x, y, z);
+            });
+
+            wheeleg_infantry.register_output("/gimbal/yaw/velocity_imu", gimbal_yaw_velocity_imu_);
+            wheeleg_infantry.register_output(
+                "/gimbal/pitch/velocity_imu", gimbal_pitch_velocity_imu_);
+            wheeleg_infantry.register_output(
+                "/debug/gimbal/pitch/raw_angle", debug_pitch_raw_angle_);
+        }
+
+        ~TopBoard() final {
+            stop_handling_events();
+            event_thread_.join();
+        }
+
+        void update() {
+            imu_.update_status();
+            Eigen::Quaterniond gimbal_imu_pose{imu_.q0(), imu_.q1(), imu_.q2(), imu_.q3()};
+
+            *debug_imu_gx_bais_ = imu_.cali_gx_ref();
+            *debug_imu_gy_bais_ = imu_.cali_gy_ref();
+            *debug_imu_gz_bais_ = imu_.cali_gz_ref();
+
+            tf_->set_transform<rmcs_description::PitchLink, rmcs_description::OdomImu>(
+                gimbal_imu_pose.conjugate());
+            tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
+                gimbal_imu_pose);
+            fast_tf::rcl::broadcast_all(*tf_);
+
+            dr16_.update_status();
+            // buzzer_.update_status();
+
+            *gimbal_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
+            *gimbal_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
+
+            *debug_pitch_raw_angle_ = gimbal_pitch_motor_.last_raw_angle();
+
+            gimbal_pitch_motor_.update_status();
+            tf_->set_state<rmcs_description::YawLink, rmcs_description::PitchLink>(
+                gimbal_pitch_motor_.angle());
+
+            // fast_tf::rcl::broadcast_all(*tf_);
+
+            gimbal_left_friction_.update_status();
+            gimbal_right_friction_.update_status();
+        }
+
+        void command_update() {
+            uint16_t batch_commands[4];
+
+            batch_commands[0] = gimbal_left_friction_.generate_command();
+            batch_commands[1] = gimbal_right_friction_.generate_command();
+            batch_commands[2] = 0;
+            batch_commands[3] = 0;
+            transmit_buffer_.add_can1_transmission(0x200, std::bit_cast<uint64_t>(batch_commands));
+
+            transmit_buffer_.add_can2_transmission(
+                0x06, gimbal_pitch_motor_.generate_torque_command());
+
+            // transmit_buffer_.add_buzzer_transmission(buzzer_.generate_command());
+
+            transmit_buffer_.trigger_transmission();
+        }
+
+    private:
+        void can1_receive_callback(
+            uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
+            bool is_remote_transmission, uint8_t can_data_length) override {
+            if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
+                return;
+
+            if (can_id == 0x201) {
+                gimbal_left_friction_.store_status(can_data);
+            } else if (can_id == 0x202) {
+                gimbal_right_friction_.store_status(can_data);
+            }
+        }
+
+        void can2_receive_callback(
+            uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
+            bool is_remote_transmission, uint8_t can_data_length) override {
+            (void)can_id;
+            (void)can_data;
+            if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
+                return;
+            if (can_id == 0x216) {
+                gimbal_pitch_motor_.store_status(can_data);
+            }
+        }
+
+        void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
+            dr16_.store_status(uart_data, uart_data_length);
+        }
+
+        void accelerometer_receive_callback(int16_t x, int16_t y, int16_t z) override {
+            imu_.store_accelerometer_status(x, y, z);
+        }
+
+        void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
+            imu_.store_gyroscope_status(x - imu_bias_x, y - imu_bias_y, z - imu_bias_z);
+        }
+
+        OutputInterface<rmcs_description::Tf>& tf_;
+
+        device::Bmi088 imu_;
+        device::Dr16 dr16_;
+        // device::Buzzer buzzer_;
+
+        int16_t imu_bias_x, imu_bias_y, imu_bias_z = 0.0;
+
+        OutputInterface<double> gimbal_yaw_velocity_imu_;
+        OutputInterface<double> gimbal_pitch_velocity_imu_;
+        OutputInterface<double> debug_pitch_raw_angle_;
+        OutputInterface<double> debug_pitch_temp;
+        OutputInterface<double> debug_imu_gx_bais_;
+        OutputInterface<double> debug_imu_gy_bais_;
+        OutputInterface<double> debug_imu_gz_bais_;
+
+        device::DmMotor gimbal_pitch_motor_;
+
+        device::DjiMotor gimbal_left_friction_;
+        device::DjiMotor gimbal_right_friction_;
+
+        rmcs_core::utility::LowPassFilter<> imu_gy_velocity_filter_{4.0f, 1000.0f};
+        rmcs_core::utility::LowPassFilter<> imu_gz_velocity_filter_{8.0f, 1000.0f};
+
+        librmcs::client::CBoard::TransmitBuffer transmit_buffer_;
+        std::thread event_thread_;
+    };
 
     class BottomBoard final : private librmcs::client::CBoard {
     public:
@@ -69,6 +268,17 @@ private:
             , imu_bias_x(wheeleg_infantry.get_parameter("imu_bias_x").as_int())
             , imu_bias_y(wheeleg_infantry.get_parameter("imu_bias_y").as_int())
             , imu_bias_z(wheeleg_infantry.get_parameter("imu_bias_z").as_int())
+
+            , gimbal_yaw_motor_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/gimbal/yaw",
+                  device::DmMotor::Config{device::DmMotor::Type::J4310}.set_encoder_zero_point(
+                      static_cast<int>(
+                          wheeleg_infantry.get_parameter("yaw_motor_zero_point").as_int())))
+            , gimbal_bullet_feeder_(
+                  wheeleg_infantry, wheeleg_infantry_command, "/gimbal/bullet_feeder",
+                  device::LkMotor::Config{device::LkMotor::Type::MG4005E_I10}
+                      .enable_multi_turn_angle()
+                      .set_reversed())
 
             , chassis_wheel_motors_(
                   {wheeleg_infantry, wheeleg_infantry_command, "/chassis/left_wheel",
@@ -112,7 +322,7 @@ private:
                           static_cast<int>(
                               wheeleg_infantry.get_parameter("right_back_hip_motors_zero_point")
                                   .as_int())))
-            , dr16_{wheeleg_infantry}
+            // , dr16_{wheeleg_infantry}
 
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
@@ -126,7 +336,7 @@ private:
                 // Eigen::Vector3d mapping = pitch_link_to_imu_link * Eigen::Vector3d{1, 2, 3};
                 // std::cout << mapping << std::endl;
 
-                return std::make_tuple(-x, -y, z);
+                return std::make_tuple(x, y, z);
             });
             wheeleg_infantry.register_output("/debug/imu/gx_bais", debug_imu_gx_bais_);
             wheeleg_infantry.register_output("/debug/imu/gy_bais", debug_imu_gy_bais_);
@@ -166,6 +376,7 @@ private:
                 "/debug/right_front_hip/raw_angle", debug_right_front_hip_raw_angle_);
             wheeleg_infantry.register_output(
                 "/debug/right_back_hip/raw_angle", debug_right_back_hip_raw_angle_);
+            wheeleg_infantry.register_output("/debug/gimbal/yaw/raw_angle", debug_yaw_raw_angle_);
         }
 
         ~BottomBoard() final {
@@ -204,23 +415,28 @@ private:
             *chassis_yaw_velocity_imu_ = imu_gz_velocity_filter_.update(imu_.gz());
             *chassis_pitch_velocity_imu_ = imu_gy_velocity_filter_.update(imu_.gy());
             *chassis_roll_velocity_imu_ = imu_gx_velocity_filter_.update(imu_.gx());
-
-            tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
-                chassis_imu_pose);
+            tf_->set_state<rmcs_description::GimbalCenterLink, rmcs_description::YawLink>(
+                gimbal_yaw_motor_.angle());
+            // tf_->set_transform<rmcs_description::BaseLink, rmcs_description::RawImu>(
+            //     chassis_imu_pose);
             fast_tf::rcl::broadcast_all(*tf_);
-            dr16_.update_status();
+            // dr16_.update_status();
             chassis_wheel_motors_[0].update_status();
             chassis_wheel_motors_[1].update_status();
-            left_front_hip_motors_.update_status();
 
+            left_front_hip_motors_.update_status();
             left_back_hip_motors_.update_status();
             right_front_hip_motors_.update_status();
             right_back_hip_motors_.update_status();
+
+            gimbal_bullet_feeder_.update_status();
+            gimbal_yaw_motor_.update_status();
 
             *debug_left_front_hip_raw_angle_ = left_front_hip_motors_.last_raw_angle();
             *debug_left_back_hip_raw_angle_ = left_back_hip_motors_.last_raw_angle();
             *debug_right_front_hip_raw_angle_ = right_front_hip_motors_.last_raw_angle();
             *debug_right_back_hip_raw_angle_ = right_back_hip_motors_.last_raw_angle();
+            *debug_yaw_raw_angle_ = gimbal_yaw_motor_.last_raw_angle();
 
             *debug_imu_gx_bais_ = imu_.cali_gx_ref();
             *debug_imu_gy_bais_ = imu_.cali_gy_ref();
@@ -253,14 +469,19 @@ private:
             *imu_ddx = (r11 * imu_.ax() + r12 * imu_.ay() + r13 * imu_.az()) * 9.80665;
             *imu_ddz = ((r31 * imu_.ax() + r32 * imu_.ay() + r33 * imu_.az()) - 1.0) * 9.80665;
             *imu_az = imu_.az();
+            *imu_ax = imu_.ax();
+            *imu_ay = imu_.ay();
             // *imu_gx = imu_.gx();
             // *imu_gy = imu_.gy();
             // transmit_buffer_.add_can1_transmission(0x01, motor_.generate_torque_command(10));
+
+            i = !i;
         }
 
-        void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
-            dr16_.store_status(uart_data, uart_data_length);
-        }
+        // void dbus_receive_callback(
+        //     const std::byte* uart_data, uint8_t uart_data_length) override {
+        //     dr16_.store_status(uart_data, uart_data_length);
+        // }
 
         void accelerometer_receive_callback(int16_t x, int16_t y, int16_t z) override {
             imu_.store_accelerometer_status(x, y, z);
@@ -271,6 +492,10 @@ private:
         }
 
         void command_update() {
+
+            transmit_buffer_.add_can2_transmission(
+                0x141, gimbal_bullet_feeder_.generate_torque_command());
+
             uint16_t can_commands[4];
 
             can_commands[0] = chassis_wheel_motors_[0].generate_command();
@@ -279,14 +504,21 @@ private:
             can_commands[3] = 0;
             transmit_buffer_.add_can2_transmission(0x200, std::bit_cast<uint64_t>(can_commands));
 
-            transmit_buffer_.add_can1_transmission(
-                0x01, left_front_hip_motors_.generate_torque_command());
-            transmit_buffer_.add_can1_transmission(
-                0x02, left_back_hip_motors_.generate_torque_command());
-            transmit_buffer_.add_can1_transmission(
-                0x03, right_front_hip_motors_.generate_torque_command());
-            transmit_buffer_.add_can1_transmission(
-                0x04, right_back_hip_motors_.generate_torque_command());
+            if (i) {
+                transmit_buffer_.add_can1_transmission(
+                    0x01, left_front_hip_motors_.generate_torque_command());
+                transmit_buffer_.add_can1_transmission(
+                    0x02, left_back_hip_motors_.generate_torque_command());
+
+            } else {
+                transmit_buffer_.add_can1_transmission(
+                    0x03, right_front_hip_motors_.generate_torque_command());
+
+                transmit_buffer_.add_can1_transmission(
+                    0x04, right_back_hip_motors_.generate_torque_command());
+                transmit_buffer_.add_can1_transmission(
+                    0x05, gimbal_yaw_motor_.generate_torque_command());
+            }
 
             transmit_buffer_.trigger_transmission();
         }
@@ -297,15 +529,20 @@ private:
             bool is_remote_transmission, uint8_t can_data_length) override {
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
                 return;
-
-            if (can_id == 0x211) {
-                left_front_hip_motors_.store_status(can_data);
-            } else if (can_id == 0x212) {
-                left_back_hip_motors_.store_status(can_data);
-            } else if (can_id == 0x213) {
-                right_front_hip_motors_.store_status(can_data);
-            } else if (can_id == 0x214) {
-                right_back_hip_motors_.store_status(can_data);
+            if (i) {
+                if (can_id == 0x211) {
+                    left_front_hip_motors_.store_status(can_data);
+                } else if (can_id == 0x212) {
+                    left_back_hip_motors_.store_status(can_data);
+                }
+            } else {
+                if (can_id == 0x213) {
+                    right_front_hip_motors_.store_status(can_data);
+                } else if (can_id == 0x214) {
+                    right_back_hip_motors_.store_status(can_data);
+                } else if (can_id == 0x215) {
+                    gimbal_yaw_motor_.store_status(can_data);
+                }
             }
         }
 
@@ -318,8 +555,14 @@ private:
                 chassis_wheel_motors_[0].store_status(can_data);
             } else if (can_id == 0x202) {
                 chassis_wheel_motors_[1].store_status(can_data);
+            } else if (can_id == 0x141) {
+                gimbal_bullet_feeder_.store_status(can_data);
             }
         }
+        bool i = 0;
+
+        device::DmMotor gimbal_yaw_motor_;
+        device::LkMotor gimbal_bullet_feeder_;
         device::DjiMotor chassis_wheel_motors_[2];
 
         device::DmMotor left_front_hip_motors_;
@@ -327,7 +570,7 @@ private:
         device::DmMotor right_front_hip_motors_;
         device::DmMotor right_back_hip_motors_;
 
-        device::Dr16 dr16_;
+        // device::Dr16 dr16_;
         OutputInterface<double> imu_gx;
         OutputInterface<double> imu_gz;
         OutputInterface<double> imu_gy;
@@ -360,6 +603,7 @@ private:
         OutputInterface<double> debug_left_back_hip_raw_angle_;
         OutputInterface<double> debug_right_front_hip_raw_angle_;
         OutputInterface<double> debug_right_back_hip_raw_angle_;
+        OutputInterface<double> debug_yaw_raw_angle_;
 
         librmcs::utility::RingBuffer<std::byte> referee_ring_buffer_receive_{256};
         OutputInterface<rmcs_msgs::SerialInterface> referee_serial_;
@@ -374,7 +618,7 @@ private:
     OutputInterface<rmcs_description::Tf> tf_;
 
     rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr gimbal_calibrate_subscription_;
-
+    std::unique_ptr<TopBoard> top_board_;
     std::unique_ptr<BottomBoard> bottom_board_;
 };
 
