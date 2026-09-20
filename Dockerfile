@@ -71,6 +71,11 @@ RUN apt-get update && apt-get install -y \
     ros-jazzy-nav2-common \
     ros-jazzy-foxglove-bridge \
     ros-jazzy-rviz2 \
+    ros-jazzy-moveit\
+    ros-jazzy-moveit-ros-visualization \
+    ros-jazzy-urdf-tutorial\
+    ros-jazzy-moveit-visual-tools \
+    ros-jazzy-moveit-servo \
     libusb-1.0-0-dev \
     iproute2 net-tools \
     screen tini
