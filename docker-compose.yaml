@@ -1,6 +1,9 @@
 services:
   atrm-develop:
     image: atrm-dev-loc:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     user: "cvdoc"
     privileged: true
