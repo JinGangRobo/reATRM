@@ -75,16 +75,16 @@ shooting_dart_controller:
     servo_angle_limit: 180.0
     # FIRE uses mask 0x01, so only servo_1 is driven to the firing position.
     # Keep the other servos at their safe position to avoid unintended motion.
-    servo_fire_angles: [90.0, 90.0, 90.0, 90.0]
+    servo_fire_angles: [180.0, 90.0, 90.0, 90.0]
     servo_safe_angles: [0.0, 90.0, 0.0, 0.0]
     # Each array maps to servo_1, servo_2, servo_3, and servo_4.
-    servo_reload1_angles: [90.0, 0.0, 90.0, 90.0]
-    servo_reload2_angles: [90.0, 0.0, 90.0, 90.0]
-    servo_reload3_angles: [90.0, 0.0, 90.0, 90.0]
+    servo_reload1_angles: [0.0, 0.0, 90.0, 90.0]
+    servo_reload2_angles: [0.0, 0.0, 90.0, 90.0]
+    servo_reload3_angles: [0.0, 0.0, 90.0, 90.0]
     servo_reload1_return_angles: [0.0, 90.0, 0.0, 0.0]
     servo_reload2_return_angles: [0.0, 90.0, 0.0, 0.0]
     servo_reload3_return_angles: [0.0, 90.0, 0.0, 0.0]
-    servo_fire_return_angles: [180.0, 90.0, 0.0, 0.0]
+    servo_fire_return_angles: [90.0, 90.0, 0.0, 0.0]
 
     joystick_left_bias_y: 0.0
     joystick_sensitivity: 0.004
