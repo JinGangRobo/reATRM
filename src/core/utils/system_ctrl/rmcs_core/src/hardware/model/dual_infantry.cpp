@@ -24,8 +24,14 @@
 #include "utility/low_pass_filter.hpp"
 
 namespace rmcs_core::hardware {
-
+// 这是一个包含两个主控板的底盘模型，分别对应步兵2号和步兵3号。
+// 两个主控板通过CAN总线通信，底盘电机连接在步兵3号上，云台电机连接在步兵2号上。
+// 两个主控板都连接了一个BMI088 IMU，分别安装在云台中心和底盘中心。
+// 两个IMU的数据都被发布出来了，用户可以选择使用哪个IMU的数据来进行控制。
 class DualInfantry
+// DualInfantry同时继承了rmcs_executor::Component和rclcpp::Node，
+// 前者使它能够作为一个组件被系统控制器管理，
+// 后者使它能够使用ROS2的功能，如参数服务器和话题通信。
     : public rmcs_executor::Component
     , public rclcpp::Node {
 public:
@@ -33,20 +39,17 @@ public:
         : Node{
               get_component_name(),
               rclcpp::NodeOptions{}.automatically_declare_parameters_from_overrides(true)}
-        , command_component_(
+              , command_component_(
               create_partner_component<DualInfantryCommand>(
                   get_component_name() + "_command", *this)) {
         using namespace rmcs_description;
-
         register_output("/tf", tf_);
         tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.084, 0.0, 0.048});
         tf_->set_transform<PitchLink, MuzzleLink>(Eigen::Translation3d{0.0, 0.0, 0.0});
-
         gimbal_calibrate_subscription_ = create_subscription<std_msgs::msg::Int32>(
             "/gimbal/calibrate", rclcpp::QoS{0}, [this](std_msgs::msg::Int32::UniquePtr&& msg) {
                 gimbal_calibrate_subscription_callback(std::move(msg));
             });
-
         top_board_ = std::make_unique<TopBoard>(
             *this, *command_component_,
             static_cast<int>(get_parameter("usb_pid_top_board").as_int()));
@@ -66,7 +69,6 @@ public:
         top_board_->command_update();
         bottom_board_->command_update();
     }
-
 private:
     void gimbal_calibrate_subscription_callback(std_msgs::msg::Int32::UniquePtr) {
         RCLCPP_INFO(
@@ -162,7 +164,6 @@ private:
             stop_handling_events();
             event_thread_.join();
         }
-
         void update() {
             imu_.update_status();
             gimbal_top_yaw_motor_.update_status();
@@ -192,7 +193,6 @@ private:
             gimbal_right_friction_.update_status();
             gimbal_bullet_feeder_.update_status();
         }
-
         void command_update() {
             uint16_t can_commands[4];
 
@@ -217,7 +217,7 @@ private:
         }
 
     private:
-        void can1_receive_callback(
+    void can1_receive_callback(
             uint32_t can_id, uint64_t can_data, bool is_extended_can_id,
             bool is_remote_transmission, uint8_t can_data_length) override {
             if (is_extended_can_id || is_remote_transmission || can_data_length < 8) [[unlikely]]
@@ -248,15 +248,12 @@ private:
         void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
             dr16_.store_status(uart_data, uart_data_length);
         }
-
         void uart2_receive_callback(const std::byte* data, uint8_t length) override {
             gy614_.store_status(data, length);
         }
-
         void accelerometer_receive_callback(int16_t x, int16_t y, int16_t z) override {
             imu_.store_accelerometer_status(x, y, z);
         }
-
         void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
             imu_.store_gyroscope_status(x - imu_bias_x, y - imu_bias_y, z - imu_bias_z);
         }

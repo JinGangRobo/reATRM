@@ -1,3 +1,6 @@
 #! /bin/bash
+set -e
 source /home/ws/.script/envinit.bash
+cd /home/ws
+python3 -c "import ament_package" >/dev/null
 colcon build --executor sequential --symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON

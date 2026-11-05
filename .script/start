@@ -1,4 +1,5 @@
 #! /bin/bash
+set -e
 
 source /home/ws/.script/envinit.bash
 
@@ -7,4 +8,5 @@ if [ -z "${RMCS_ROBOT_TYPE}" ]; then
     exit 1
 fi
 
+echo "Starting RMCS robot=${RMCS_ROBOT_TYPE} with servo USB protocol and diagnostics"
 ros2 launch atrm_bringup rmcs.launch.py robot:=${RMCS_ROBOT_TYPE}

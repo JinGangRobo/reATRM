@@ -228,7 +228,7 @@ private:
 
     OutputInterface<bool> friction_ready_;
 
-    int friction_faulty_count_ = 0;
+    int friction_faulty_count_ = 0;  
     OutputInterface<bool> friction_jammed_;
 
     double last_primary_friction_velocity_ = nan_;

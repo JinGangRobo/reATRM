@@ -7,6 +7,7 @@ SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash
 ENV ROS_DISTRO=jazzy
 ENV TZ=Asia/Shanghai
+ENV PATH=/home/ws/.script:$PATH
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -46,10 +47,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     lsb-release software-properties-common gnupg \
     python3-colorama python3-dpkt && \
-    wget -O ./llvm-snapshot.gpg.key https://apt.llvm.org/llvm-snapshot.gpg.key && \
-    apt-key add ./llvm-snapshot.gpg.key && \
-    rm ./llvm-snapshot.gpg.key && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/llvm-apt/noble/ llvm-toolchain-noble main" > /etc/apt/sources.list.d/llvm-apt.list && \
     apt-get update && \
     version=`apt-cache search clangd- | grep clangd- | awk -F' ' '{print $1}' | sort -V | tail -1 | cut -d- -f2` && \
     apt-get install -y --no-install-recommends clang-$version clang-format-$version clangd-$version && \

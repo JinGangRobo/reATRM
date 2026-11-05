@@ -58,11 +58,11 @@ public:
         *yaw_angle_error_ = angle_error.yaw_angle_error;
         *pitch_angle_error_ = angle_error.pitch_angle_error;
     }
-
+// 本函数用于计算云台的角度误差，考虑了遥控器的输入、鼠标的输入以及自动瞄准模式的控制方向。
     double value_abs_clamp(double value) {
         return std::copysign(std::min(std::abs(value), shift_control_clamp_), value);
     }
-
+// 这里用于限制输入值的绝对值不超过shift_control_clamp_，同时保持原来的符号。
     TwoAxisGimbalSolver::AngleError calculate_angle_error() {
         auto switch_right = *switch_right_;
         auto switch_left = *switch_left_;

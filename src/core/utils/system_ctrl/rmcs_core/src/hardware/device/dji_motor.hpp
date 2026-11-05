@@ -31,20 +31,17 @@ public:
         motor_name_ = name_prefix;
         alive_watchdog_.reset(50);
     }
-
     DjiMotor(
         rmcs_executor::Component& status_component, rmcs_executor::Component& command_component,
         const std::string& name_prefix, const Config& config)
         : DjiMotor(status_component, command_component, name_prefix) {
         configure(config);
     }
-
     void configure(const Config& config) {
         librmcs::device::DjiMotor::configure(config);
 
         *max_torque_ = max_torque();
     }
-
     void update_status() {
         librmcs::device::DjiMotor::update_status();
 
@@ -59,25 +56,21 @@ public:
         *torque_ = torque();
         *velocity_filtered_ = velocity_lpf_.update(velocity());
     }
-
     void store_status(uint64_t can_data) {
         librmcs::device::DjiMotor::store_status(can_data);
 
         *alive_ = true;
         alive_watchdog_.reset(50);
     }
-
     double control_torque() const {
         if (control_torque_.ready()) [[likely]]
             return *control_torque_;
         else
             return 0.0;
     }
-
     uint16_t generate_command() {
         return librmcs::device::DjiMotor::generate_command(control_torque());
     }
-
 private:
     rmcs_executor::Component::OutputInterface<double> angle_;
     rmcs_executor::Component::OutputInterface<double> raw_angle_;

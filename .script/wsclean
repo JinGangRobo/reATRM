@@ -1,2 +1,3 @@
 #! /bin/bash
+set -e
 rm -rf /home/ws/build /home/ws/install /home/ws/log

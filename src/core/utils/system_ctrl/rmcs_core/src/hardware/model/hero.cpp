@@ -33,7 +33,6 @@ public:
         , command_component_(
               create_partner_component<HeroCommand>(get_component_name() + "_command", *this)) {
         using namespace rmcs_description;
-
         register_output("/tf", tf_);
         tf_->set_transform<PitchLink, CameraLink>(Eigen::Translation3d{0.17, 0.0, 0.05});
         tf_->set_transform<PitchLink, CameraLink>(
@@ -64,7 +63,6 @@ public:
         top_board_->command_update();
         bottom_board_->command_update();
     }
-
 private:
     void gimbal_calibrate_subscription_callback(std_msgs::msg::Int32::UniquePtr) {
         RCLCPP_INFO(
@@ -74,7 +72,6 @@ private:
             get_logger(), "[gimbal calibration] New pitch offset: %d",
             top_board_->gimbal_pitch_motor_.calibrate_zero_point());
     }
-
     class HeroCommand : public rmcs_executor::Component {
     public:
         explicit HeroCommand(Hero& hero)
@@ -85,7 +82,6 @@ private:
         Hero& hero_;
     };
     std::shared_ptr<HeroCommand> command_component_;
-
     class TopBoard final : private librmcs::client::CBoard {
     public:
         friend class Hero;
@@ -104,6 +100,7 @@ private:
                       .set_encoder_zero_point(
                           static_cast<int>(hero.get_parameter("pitch_motor_zero_point").as_int()))
                       .set_reversed())
+
             , gimbal_friction_wheels_(
                   {hero, hero_command, "/gimbal/first_friction",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
@@ -113,11 +110,10 @@ private:
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}.set_reduction_ratio(1.)},
                   {hero, hero_command, "/gimbal/third_friction",
                    device::DjiMotor::Config{device::DjiMotor::Type::M3508}
-                       .set_reduction_ratio(1.)
-                       .set_reversed()})
+                       .set_reduction_ratio(1.)//设置减速比为1
+                       .set_reversed()})//设置反转
             , transmit_buffer_(*this, 32)
             , event_thread_([this]() { handle_events(); }) {
-
             imu_.set_coordinate_mapping([](double x, double y, double z) {
                 // Get the mapping with the following code.
                 // The rotation angle must be an exact multiple of 90 degrees, otherwise use a
@@ -223,11 +219,9 @@ private:
         void dbus_receive_callback(const std::byte* uart_data, uint8_t uart_data_length) override {
             dr16_.store_status(uart_data, uart_data_length);
         }
-
         void accelerometer_receive_callback(int16_t x, int16_t y, int16_t z) override {
             imu_.store_accelerometer_status(x, y, z);
         }
-
         void gyroscope_receive_callback(int16_t x, int16_t y, int16_t z) override {
             imu_.store_gyroscope_status(x - imu_bias_x, y - imu_bias_y, z - imu_bias_z);
         }
@@ -349,7 +343,7 @@ private:
                 0x2, gimbal_yaw_motor_.generate_torque_command());
 
             transmit_buffer_.trigger_transmission();
-            // RCLCPP_INFO(
+            // RCLCPP_INFO(referee_serial_
             //     rclcpp::get_logger("MOTOR"), "send command: %d, %d, %d, %d", batch_commands[0],
             //     batch_commands[1], batch_commands[2], batch_commands[3]);
         }

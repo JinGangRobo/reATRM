@@ -1,0 +1,11 @@
+.git
+.gitmodules
+.cache
+.log
+log
+build
+install
+CMakeFiles
+**/__pycache__
+**/*.pyc
+*.swp
